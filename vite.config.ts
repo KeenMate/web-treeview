@@ -33,4 +33,9 @@ export default defineConfig({
     },
     sourcemap: true,
   },
+	optimizeDeps: {
+		exclude: [
+			"@keenmate/svelte-treeview"
+		]
+	}
 });

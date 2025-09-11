@@ -1,4 +1,5 @@
 import type { LTreeNode } from "@keenmate/svelte-treeview";
+import {createRawSnippet} from "svelte"
 
 export type TemplateFunction<T> = (node: LTreeNode<T>) => string;
 export type HeaderFooterTemplate = () => string;
@@ -140,39 +141,55 @@ export class TemplateSystem<T> {
   getSvelteSnippets() {
     const snippets: any = {};
 
+		console.log("svelte snippets begin", this.templates)
     if (this.templates.nodeTemplate) {
-      snippets.nodeTemplate = (node: LTreeNode<T>) => {
-        // const html = this.templates.nodeTemplate!(node);
-        console.log("rendering ", node?.path)
-        return `${node?.path || 'N/A'}`;
-        // {
-        //   render: () => html,
-        // };
-      };
+			const component = this
+
+      snippets.nodeTemplate = createRawSnippet((node: () => LTreeNode<T>) => ({
+				render() {
+					return component.templates.nodeTemplate!(node());
+				}
+			}))
     }
 
     if (this.templates.treeHeader) {
-      snippets.treeHeader = () => ({
-        render: () => this.templates.treeHeader!(),
-      });
+			const component = this
+
+      snippets.treeHeader = createRawSnippet(() => ({
+				render() {
+					return component.templates.treeHeader!();
+				}
+			}))
     }
 
     if (this.templates.treeFooter) {
-      snippets.treeFooter = () => ({
-        render: () => this.templates.treeFooter!(),
-      });
+			const component = this
+
+      snippets.treeFooter = createRawSnippet(() => ({
+				render() {
+					return component.templates.treeFooter!();
+				}
+			}))
     }
 
     if (this.templates.noDataFound) {
-      snippets.noDataFound = () => ({
-        render: () => this.templates.noDataFound!(),
-      });
+			const component = this
+
+      snippets.noDataFound = createRawSnippet(() => ({
+				render() {
+					return component.templates.noDataFound!();
+				}
+			}))
     }
 
     if (this.templates.contextMenu) {
-      snippets.contextMenu = (node: LTreeNode<T>) => ({
-        render: () => this.templates.contextMenu!(node),
-      });
+			const component = this
+
+      snippets.contextMenu = createRawSnippet((node: () => LTreeNode<T>) => ({
+				render() {
+					return component.templates.contextMenu!(node());
+				}
+			}))
     }
 
     return snippets;
