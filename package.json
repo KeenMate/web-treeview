@@ -1,0 +1,48 @@
+{
+  "name": "@keenmate/svelte-treeview-webcomponent",
+  "version": "1.0.0",
+  "description": "Framework-agnostic web component wrapper for @keenmate/svelte-treeview",
+  "type": "module",
+  "main": "./dist/svelte-tree-view.umd.js",
+  "module": "./dist/svelte-tree-view.js",
+  "types": "./dist/svelte-tree-view.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/svelte-tree-view.d.ts",
+      "import": "./dist/svelte-tree-view.js",
+      "require": "./dist/svelte-tree-view.umd.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*"
+  ],
+  "scripts": {
+    "dev": "vite --port 21111",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "web-component",
+    "custom-element",
+    "treeview",
+    "svelte",
+    "framework-agnostic",
+    "hierarchical",
+    "drag-drop"
+  ],
+  "author": "KeenMate",
+  "license": "MIT",
+  "dependencies": {
+    "svelte": "^5.38.9"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.2.0",
+    "@types/node": "^24.3.1",
+    "sass": "^1.92.1",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5",
+    "vite-plugin-dts": "^4.5.4"
+  }
+}
