@@ -13,7 +13,7 @@ import type {
 import type { SearchOptions } from "flexsearch";
 import {
   TemplateSystem,
-  type TemplateFunction,
+  type NodeTemplateFunction,
   type HeaderFooterTemplate,
 } from "./template-system.js";
 
@@ -159,7 +159,9 @@ export class SvelteTreeView<T = any>
       this._searchText = value;
       this._props.searchText = value;
       this.setAttribute("search-text", value);
-      this.updateSvelteComponent();
+      this.svelteComponent.filterNodes(this.searchText)
+
+      // this.updateSvelteComponent();
       this.dispatchEvent(
         new CustomEvent("search-text-changed", {
           detail: { searchText: value },
@@ -213,10 +215,54 @@ export class SvelteTreeView<T = any>
     path: string,
     options?: ScrollToPathOptions
   ): Promise<boolean> {
-    if (this.svelteComponent && this.svelteComponent.scrollToPath) {
-      return this.svelteComponent.scrollToPath(path, options);
+    if (!this.svelteComponent || !this.shadowRoot) {
+      return false;
     }
-    return false;
+
+    // Create a shadow DOM-aware wrapper for scrollToPath
+    return this.scrollToPathShadowDOMWrapper(path, options);
+  }
+
+  private async scrollToPathShadowDOMWrapper(
+    path: string,
+    options?: ScrollToPathOptions
+  ): Promise<boolean> {
+    try {
+      // Store original document.getElementById
+      const originalGetElementById = document.getElementById.bind(document);
+
+      // Create a shadow DOM-aware getElementById replacement
+      const shadowAwareGetElementById = (id: string): HTMLElement | null => {
+        // First try the shadow root
+        const shadowElement = this.shadowRoot?.getElementById(id);
+        if (shadowElement) {
+          return shadowElement;
+        }
+
+        // Try querySelector in shadow root for more complex selectors
+        const queriedElement = this.shadowRoot?.querySelector(`#${id}`);
+        if (queriedElement) {
+          return queriedElement as HTMLElement;
+        }
+
+        // Fallback to original document search
+        return originalGetElementById(id);
+      };
+
+      // Temporarily replace document.getElementById
+      (document as any).getElementById = shadowAwareGetElementById;
+
+      // Call the original scrollToPath method
+      const result = await this.svelteComponent.scrollToPath(path, options);
+
+      // Restore original document.getElementById
+      (document as any).getElementById = originalGetElementById;
+
+      return result;
+    } catch (error) {
+      console.error("Error in scrollToPath wrapper:", error);
+      return false;
+    }
   }
 
   // Set callback functions
@@ -267,12 +313,11 @@ export class SvelteTreeView<T = any>
   }
 
   // Template methods
-  setNodeTemplate(template: TemplateFunction<T>): void {
+  setNodeTemplate(template: NodeTemplateFunction<T>): void {
     this.templateSystem?.setContextMenuTemplate(template);
     this.updateSvelteComponent();
 
     this.templateSystem?.setNodeTemplate(template);
-    console.log("🚀 ~ SvelteTreeView ~ setNodeTemplate ~ template:", template);
   }
 
   setTreeHeader(template: HeaderFooterTemplate): void {
@@ -290,7 +335,7 @@ export class SvelteTreeView<T = any>
     this.updateSvelteComponent();
   }
 
-  setContextMenuTemplate(template: TemplateFunction<T>): void {
+  setContextMenuTemplate(template: NodeTemplateFunction<T>): void {
     this.templateSystem?.setContextMenuTemplate(template);
     this.updateSvelteComponent();
   }
@@ -327,14 +372,12 @@ export class SvelteTreeView<T = any>
 
     // Get template snippets from template system
     const templateSnippets = this.templateSystem?.getSvelteSnippets() || {};
-    console.log(
-      "🚀 ~ SvelteTreeView ~ mountSvelteComponent ~ templateSnippets:",
-      templateSnippets
-    );
+
     // Create reactive props object for Svelte 5
     this.svelteProps = {
       ...this._props,
       data: this._data,
+      searchText: this._searchText,
       ...templateSnippets,
       onNodeClicked: (node: LTreeNode<T>) => {
         this.selectedNode = node;
@@ -409,10 +452,12 @@ export class SvelteTreeView<T = any>
   private updateSvelteComponent(): void {
     if (this.svelteComponent && this.svelteProps) {
       // Update props directly for Svelte 5
-      Object.assign(this.svelteProps, {
+      const finalObject = {
         ...this._props,
         data: this._data,
-      });
+        searchText: this._searchText,
+      };
+      Object.assign(this.svelteProps, finalObject);
     }
   }
 

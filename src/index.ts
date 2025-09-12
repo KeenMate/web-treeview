@@ -10,7 +10,7 @@ if (!customElements.get('svelte-tree-view')) {
 export { SvelteTreeView };
 export type { TreeEventMap, TreeWebComponentMethods, TreeWebComponentProps };
 export type { LTreeNode, Ltree } from '@keenmate/svelte-treeview';
-export type { TemplateFunction, HeaderFooterTemplate, TemplateSlots } from './template-system.js';
+export type { NodeTemplateFunction as TemplateFunction, HeaderFooterTemplate, TemplateSlots } from './template-system.js';
 
 // Global declaration for TypeScript
 declare global {

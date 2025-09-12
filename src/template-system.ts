@@ -1,15 +1,15 @@
 import type { LTreeNode } from "@keenmate/svelte-treeview";
-import {createRawSnippet} from "svelte"
+import { createRawSnippet } from "svelte";
 
-export type TemplateFunction<T> = (node: LTreeNode<T>) => string;
+export type NodeTemplateFunction<T> = (node: LTreeNode<T>) => string;
 export type HeaderFooterTemplate = () => string;
 
 export interface TemplateSlots<T> {
-  nodeTemplate?: TemplateFunction<T>;
+  nodeTemplate?: NodeTemplateFunction<T>;
   treeHeader?: HeaderFooterTemplate;
   treeFooter?: HeaderFooterTemplate;
   noDataFound?: HeaderFooterTemplate;
-  contextMenu?: TemplateFunction<T>;
+  contextMenu?: NodeTemplateFunction<T>;
 }
 
 export class TemplateSystem<T> {
@@ -30,11 +30,6 @@ export class TemplateSystem<T> {
       if (!slotName) return;
 
       const content = template.innerHTML.trim();
-      console.log(
-        "🚀 ~ TemplateSystem ~ parseSlotTemplates ~ slotName, content:",
-        slotName,
-        content
-      );
 
       switch (slotName) {
         case "node-template":
@@ -56,7 +51,7 @@ export class TemplateSystem<T> {
     });
   }
 
-  private createNodeTemplate(templateString: string): TemplateFunction<T> {
+  private createNodeTemplate(templateString: string): NodeTemplateFunction<T> {
     return (node: LTreeNode<T>) => {
       return this.interpolateTemplate(templateString, node);
     };
@@ -105,11 +100,6 @@ export class TemplateSystem<T> {
       }
     );
 
-    console.log(
-      "🚀 ~ TemplateSystem ~ interpolateTemplate ~ finalTemplate:",
-      template,
-      finalTemplate
-    );
     return finalTemplate;
   }
 
@@ -141,63 +131,61 @@ export class TemplateSystem<T> {
   getSvelteSnippets() {
     const snippets: any = {};
 
-		console.log("svelte snippets begin", this.templates)
     if (this.templates.nodeTemplate) {
-			const component = this
+      const component = this;
 
       snippets.nodeTemplate = createRawSnippet((node: () => LTreeNode<T>) => ({
-				render() {
-					return component.templates.nodeTemplate!(node());
-				}
-			}))
+        render() {
+          return component.templates.nodeTemplate!(node());
+        },
+      }));
     }
 
     if (this.templates.treeHeader) {
-			const component = this
+      const component = this;
 
       snippets.treeHeader = createRawSnippet(() => ({
-				render() {
-					return component.templates.treeHeader!();
-				}
-			}))
+        render() {
+          return component.templates.treeHeader!();
+        },
+      }));
     }
 
     if (this.templates.treeFooter) {
-			const component = this
+      const component = this;
 
       snippets.treeFooter = createRawSnippet(() => ({
-				render() {
-					return component.templates.treeFooter!();
-				}
-			}))
+        render() {
+          return component.templates.treeFooter!();
+        },
+      }));
     }
 
     if (this.templates.noDataFound) {
-			const component = this
+      const component = this;
 
       snippets.noDataFound = createRawSnippet(() => ({
-				render() {
-					return component.templates.noDataFound!();
-				}
-			}))
+        render() {
+          return component.templates.noDataFound!();
+        },
+      }));
     }
 
     if (this.templates.contextMenu) {
-			const component = this
+      const component = this;
 
       snippets.contextMenu = createRawSnippet((node: () => LTreeNode<T>) => ({
-				render() {
-					return component.templates.contextMenu!(node());
-				}
-			}))
+        render() {
+          return component.templates.contextMenu!(node());
+        },
+      }));
     }
 
     return snippets;
   }
 
   // Alternative: Set templates programmatically
-  setNodeTemplate(template: TemplateFunction<T>): void {
-    console.log("🚀 ~ TemplateSystem ~ setNodeTemplate ~ template:", template);
+  setNodeTemplate(template: NodeTemplateFunction<T>): void {
     this.templates.nodeTemplate = template;
   }
 
@@ -213,7 +201,7 @@ export class TemplateSystem<T> {
     this.templates.noDataFound = template;
   }
 
-  setContextMenuTemplate(template: TemplateFunction<T>): void {
+  setContextMenuTemplate(template: NodeTemplateFunction<T>): void {
     this.templates.contextMenu = template;
   }
 

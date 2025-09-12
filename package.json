@@ -1,27 +1,32 @@
 {
-  "name": "@keenmate/svelte-treeview-webcomponent",
+  "name": "@keenmate/web-treeview",
   "version": "1.0.0",
-  "description": "Framework-agnostic web component wrapper for @keenmate/svelte-treeview",
+  "description": "Framework-agnostic web component wrapper for @keenmate/svelte-treeview. Works with React, Vue, Angular, or vanilla JavaScript.",
   "type": "module",
-  "main": "./dist/svelte-tree-view.umd.js",
-  "module": "./dist/svelte-tree-view.js",
-  "types": "./dist/svelte-tree-view.d.ts",
+  "main": "./dist/web-treeview.umd.js",
+  "module": "./dist/web-treeview.js",
+  "types": "./dist/web-treeview.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/svelte-tree-view.d.ts",
-      "import": "./dist/svelte-tree-view.js",
-      "require": "./dist/svelte-tree-view.umd.js"
+      "types": "./dist/web-treeview.d.ts",
+      "import": "./dist/web-treeview.js",
+      "require": "./dist/web-treeview.umd.js"
     }
   },
   "files": [
     "dist",
-    "!dist/**/*.test.*"
+    "examples",
+    "README.md",
+    "CHANGELOG.md",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*"
   ],
   "scripts": {
     "dev": "vite --port 21111",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "web-component",
@@ -30,11 +35,29 @@
     "svelte",
     "framework-agnostic",
     "hierarchical",
-    "drag-drop"
+    "ltree",
+    "drag-drop",
+    "search",
+    "flexsearch",
+    "react",
+    "vue", 
+    "angular",
+    "vanilla-js",
+    "shadow-dom",
+    "typescript"
   ],
   "author": "KeenMate",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KeenMate/web-treeview.git"
+  },
+  "homepage": "https://github.com/KeenMate/web-treeview#readme",
+  "bugs": {
+    "url": "https://github.com/KeenMate/web-treeview/issues"
+  },
   "dependencies": {
+    "@keenmate/svelte-treeview": "^4.0.0-rc09",
     "flexsearch": "^0.8.212",
     "svelte": "^5.38.9"
   },

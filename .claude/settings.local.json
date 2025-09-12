@@ -6,7 +6,8 @@
       "Bash(npm install)",
       "WebFetch(domain:svelte.dev)",
       "Bash(npm run dev:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Read(//c/Git/KM/dhl-rdm-organiogram/frontend/src/lib/features/rule-sets/components/**)"
     ],
     "deny": [],
     "ask": []
