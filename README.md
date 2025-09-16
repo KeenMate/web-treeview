@@ -1,4 +1,4 @@
-# Svelte TreeView Web Component
+# TreeView Web Component
 
 [![npm version](https://badge.fury.io/js/@keenmate%2Fsvelte-treeview-webcomponent.svg)](https://badge.fury.io/js/@keenmate%2Fsvelte-treeview-webcomponent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
