@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TreeView - Custom Templates</title>
+    <link rel="stylesheet" href="examples-shared.css">
+    <style>
+        /* Custom node styles for template examples */
+        .file-icon {
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+            margin-right: 6px;
+        }
+        .file-size {
+            margin-left: auto;
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+        .node-badge {
+            display: inline-block;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+        .badge-new { background: #dcfce7; color: #166534; }
+        .badge-modified { background: #fef3c7; color: #92400e; }
+        .badge-deleted { background: #fee2e2; color: #991b1b; }
+
+        .custom-node {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            padding: 2px 0;
+        }
+        .custom-node .name {
+            font-weight: 500;
+        }
+
+        .ctx-menu-item {
+            padding: 6px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        .ctx-menu-item:hover {
+            background: #f0fdf4;
+        }
+        .ctx-menu-item.danger:hover {
+            background: #fef2f2;
+        }
+        .ctx-menu-separator {
+            border-top: 1px solid #e2e8f0;
+            margin: 4px 0;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: #94a3b8;
+        }
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .loading-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            gap: 0.75rem;
+            color: #64748b;
+        }
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #059669;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-link">&larr; Back to Examples</a>
+            <h1>Custom Templates</h1>
+            <p class="subtitle">Customize node rendering, context menus, loading, and empty states with callbacks</p>
+        </header>
+
+        <!-- Example 1: Node Template -->
+        <div class="card">
+            <h2>Example 1: Custom Node Template</h2>
+            <p>Use <code>nodeTemplate</code> to render custom HTML for each tree node. This example shows file icons and sizes.</p>
+
+            <div class="tree-container" id="tree1-container">
+                <web-treeview id="tree1"></web-treeview>
+            </div>
+
+            <div class="code-block">
+<pre><code>element.nodeTemplate = (node, container) => {
+    const ext = getExtension(node.data.name);
+    container.innerHTML = `
+        &lt;div class="custom-node"&gt;
+            &lt;span class="file-icon"&gt;${getIcon(ext)}&lt;/span&gt;
+            &lt;span class="name"&gt;${node.data.name}&lt;/span&gt;
+            &lt;span class="file-size"&gt;${node.data.size}&lt;/span&gt;
+        &lt;/div&gt;
+    `;
+};</code></pre>
+            </div>
+        </div>
+
+        <!-- Example 2: Node with Badges -->
+        <div class="card">
+            <h2>Example 2: Status Badges</h2>
+            <p>Add dynamic badges to nodes indicating their status (new, modified, deleted).</p>
+
+            <div class="tree-container" id="tree2-container">
+                <web-treeview id="tree2"></web-treeview>
+            </div>
+        </div>
+
+        <!-- Example 3: Context Menu -->
+        <div class="card">
+            <h2>Example 3: Custom Context Menu</h2>
+            <p>Right-click a node to see a custom context menu built with <code>contextMenuTemplate</code>.</p>
+
+            <div class="tree-container" id="tree3-container">
+                <web-treeview id="tree3"></web-treeview>
+            </div>
+
+            <div class="output">
+                <p class="output-label">Context menu action:</p>
+                <pre id="tree3-output">Right-click a node to see the context menu</pre>
+            </div>
+        </div>
+
+        <!-- Example 4: Empty and Loading States -->
+        <div class="card">
+            <h2>Example 4: Empty & Loading States</h2>
+            <p>Customize what appears when the tree has no data or is loading.</p>
+
+            <div class="controls">
+                <button onclick="showEmpty()">Show Empty State</button>
+                <button onclick="showLoading()">Show Loading State</button>
+                <button onclick="showData()" class="btn-outline">Load Data</button>
+            </div>
+
+            <div class="tree-container" id="tree4-container">
+                <web-treeview id="tree4"></web-treeview>
+            </div>
+        </div>
+
+        <!-- Example 5: Header and Footer -->
+        <div class="card">
+            <h2>Example 5: Header & Footer Templates</h2>
+            <p>Add custom header and footer content around the tree using <code>headerTemplate</code> and <code>footerTemplate</code>.</p>
+
+            <div class="tree-container" id="tree5-container">
+                <web-treeview id="tree5"></web-treeview>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        // ── Sample Data ──────────────────────────────────────────────────
+
+        const fileTree = [
+            { id: 1, path: '1', name: 'src', size: '' },
+            { id: 2, path: '1.1', name: 'index.ts', size: '2.4 KB' },
+            { id: 3, path: '1.2', name: 'app.tsx', size: '5.1 KB' },
+            { id: 4, path: '1.3', name: 'styles.css', size: '1.8 KB' },
+            { id: 5, path: '1.4', name: 'utils.ts', size: '3.2 KB' },
+            { id: 6, path: '2', name: 'tests', size: '' },
+            { id: 7, path: '2.1', name: 'app.test.ts', size: '4.5 KB' },
+            { id: 8, path: '2.2', name: 'utils.test.ts', size: '2.1 KB' },
+            { id: 9, path: '3', name: 'package.json', size: '0.8 KB' },
+            { id: 10, path: '4', name: 'README.md', size: '1.2 KB' }
+        ];
+
+        const gitTree = [
+            { id: 1, path: '1', name: 'src', status: null },
+            { id: 2, path: '1.1', name: 'index.ts', status: 'modified' },
+            { id: 3, path: '1.2', name: 'app.tsx', status: null },
+            { id: 4, path: '1.3', name: 'new-feature.ts', status: 'new' },
+            { id: 5, path: '1.4', name: 'deprecated.ts', status: 'deleted' },
+            { id: 6, path: '2', name: 'config', status: null },
+            { id: 7, path: '2.1', name: 'settings.json', status: 'modified' },
+            { id: 8, path: '2.2', name: 'env.local', status: 'new' },
+            { id: 9, path: '3', name: 'package.json', status: 'modified' }
+        ];
+
+        const menuTree = [
+            { id: 1, path: '1', name: 'Documents' },
+            { id: 2, path: '1.1', name: 'Report.pdf' },
+            { id: 3, path: '1.2', name: 'Presentation.pptx' },
+            { id: 4, path: '1.3', name: 'Notes.txt' },
+            { id: 5, path: '2', name: 'Images' },
+            { id: 6, path: '2.1', name: 'photo.jpg' },
+            { id: 7, path: '2.2', name: 'logo.png' },
+            { id: 8, path: '3', name: 'Downloads' },
+            { id: 9, path: '3.1', name: 'installer.exe' },
+            { id: 10, path: '3.2', name: 'archive.zip' }
+        ];
+
+        // ── Helpers ─────────────────────────────────────────────────────
+
+        const fileIcons = {
+            ts: '\uD83D\uDCDC', tsx: '\u269B\uFE0F', js: '\uD83D\uDFE8', css: '\uD83C\uDFA8',
+            json: '\u2699\uFE0F', md: '\uD83D\uDCD6', html: '\uD83C\uDF10',
+            pdf: '\uD83D\uDCC4', pptx: '\uD83D\uDCCA', txt: '\uD83D\uDCDD',
+            jpg: '\uD83D\uDDBC\uFE0F', png: '\uD83D\uDDBC\uFE0F',
+            exe: '\uD83D\uDCE6', zip: '\uD83D\uDDDC\uFE0F'
+        };
+
+        function getExt(name) {
+            const parts = name.split('.');
+            return parts.length > 1 ? parts.pop() : null;
+        }
+
+        function getIcon(name) {
+            const ext = getExt(name);
+            return ext ? (fileIcons[ext] || '\uD83D\uDCC4') : '\uD83D\uDCC1';
+        }
+
+        const statusBadge = {
+            new: '<span class="node-badge badge-new">NEW</span>',
+            modified: '<span class="node-badge badge-modified">MODIFIED</span>',
+            deleted: '<span class="node-badge badge-deleted">DELETED</span>'
+        };
+
+        // ── Initialize ─────────────────────────────────────────────────
+
+        customElements.whenDefined('web-treeview').then(() => {
+
+            // Tree 1: Custom node template with file icons
+            const tree1 = document.getElementById('tree1');
+            tree1.data = fileTree;
+            tree1.idMember = 'id';
+            tree1.pathMember = 'path';
+            tree1.displayValueMember = 'name';
+            tree1.expandLevel = 2;
+
+            tree1.nodeTemplate = (node, container) => {
+                const name = node.data?.name || '';
+                const size = node.data?.size || '';
+                container.innerHTML = `
+                    <div class="custom-node">
+                        <span class="file-icon">${getIcon(name)}</span>
+                        <span class="name">${name}</span>
+                        ${size ? `<span class="file-size">${size}</span>` : ''}
+                    </div>
+                `;
+            };
+
+            // Tree 2: Status badges
+            const tree2 = document.getElementById('tree2');
+            tree2.data = gitTree;
+            tree2.idMember = 'id';
+            tree2.pathMember = 'path';
+            tree2.displayValueMember = 'name';
+            tree2.expandLevel = 2;
+
+            tree2.nodeTemplate = (node, container) => {
+                const name = node.data?.name || '';
+                const status = node.data?.status;
+                container.innerHTML = `
+                    <div class="custom-node">
+                        <span class="file-icon">${getIcon(name)}</span>
+                        <span class="name">${name}</span>
+                        ${status ? statusBadge[status] : ''}
+                    </div>
+                `;
+            };
+
+            // Tree 3: Context menu
+            const tree3 = document.getElementById('tree3');
+            tree3.data = menuTree;
+            tree3.idMember = 'id';
+            tree3.pathMember = 'path';
+            tree3.displayValueMember = 'name';
+            tree3.expandLevel = 2;
+
+            tree3.contextMenuTemplate = (node, close, container) => {
+                const name = node.data?.name || '';
+                const items = [
+                    { icon: '\uD83D\uDCC2', label: 'Open', action: 'open' },
+                    { icon: '\u270F\uFE0F', label: 'Rename', action: 'rename' },
+                    { icon: '\uD83D\uDCCB', label: 'Copy Path', action: 'copy-path' },
+                    { separator: true },
+                    { icon: '\uD83D\uDDD1\uFE0F', label: 'Delete', action: 'delete', danger: true }
+                ];
+
+                container.innerHTML = items.map(item => {
+                    if (item.separator) return '<div class="ctx-menu-separator"></div>';
+                    return `<div class="ctx-menu-item ${item.danger ? 'danger' : ''}" data-action="${item.action}">
+                        <span>${item.icon}</span>
+                        <span>${item.label}</span>
+                    </div>`;
+                }).join('');
+
+                container.querySelectorAll('.ctx-menu-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        document.getElementById('tree3-output').textContent = JSON.stringify({
+                            action: el.dataset.action,
+                            node: name,
+                            path: node.path
+                        }, null, 2);
+                        close();
+                    });
+                });
+            };
+
+            // Tree 4: Empty & Loading states
+            const tree4 = document.getElementById('tree4');
+            tree4.idMember = 'id';
+            tree4.pathMember = 'path';
+            tree4.displayValueMember = 'name';
+            tree4.data = [];
+
+            tree4.emptyTemplate = (container) => {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">\uD83C\uDF43</div>
+                        <p>No items to display</p>
+                        <p style="font-size: 0.85rem">Add some data to get started</p>
+                    </div>
+                `;
+            };
+
+            tree4.loadingTemplate = (container) => {
+                container.innerHTML = `
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <span>Loading tree data...</span>
+                    </div>
+                `;
+            };
+
+            window.showEmpty = () => {
+                tree4.isLoading = false;
+                tree4.data = [];
+            };
+            window.showLoading = () => {
+                tree4.isLoading = true;
+            };
+            window.showData = () => {
+                tree4.isLoading = false;
+                tree4.data = menuTree;
+                tree4.expandLevel = 2;
+            };
+
+            // Tree 5: Header & Footer
+            const tree5 = document.getElementById('tree5');
+            tree5.data = menuTree;
+            tree5.idMember = 'id';
+            tree5.pathMember = 'path';
+            tree5.displayValueMember = 'name';
+            tree5.expandLevel = 1;
+
+            tree5.headerTemplate = (container) => {
+                container.innerHTML = `
+                    <div style="padding: 8px 12px; background: #ecfdf5; border-bottom: 1px solid #d1fae5; font-size: 0.85rem; color: #065f46; display: flex; align-items: center; gap: 6px;">
+                        <span>\uD83D\uDCC1</span>
+                        <strong>File Browser</strong>
+                        <span style="margin-left: auto; color: #6ee7b7;">${menuTree.length} items</span>
+                    </div>
+                `;
+            };
+
+            tree5.footerTemplate = (container) => {
+                container.innerHTML = `
+                    <div style="padding: 6px 12px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                        Right-click for context menu
+                    </div>
+                `;
+            };
+        });
+    </script>
+</body>
+</html>

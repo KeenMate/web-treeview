@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TreeView - Logging & Debugging</title>
+    <link rel="stylesheet" href="examples-shared.css">
+    <style>
+        .controls button {
+            margin: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-link">&larr; Back to Examples</a>
+            <h1>Logging & Debugging</h1>
+            <p class="subtitle">Explore the categorized logging system with runtime controls</p>
+        </header>
+
+        <div class="note warning">
+            <strong>Note:</strong> Open your browser's Developer Console (F12) to see the log messages.
+            By default, all logging is disabled in production.
+        </div>
+
+        <!-- Example 1: Basic Logging -->
+        <div class="card">
+            <h2>Example 1: Basic Logging Control</h2>
+            <p>Enable and disable logging at runtime. Watch the console as you interact with the treeview (expand, collapse, select nodes).</p>
+
+            <div class="controls">
+                <button onclick="enableAllLogging()">Enable All Logging</button>
+                <button onclick="disableAllLogging()" class="secondary">Disable All Logging</button>
+                <button onclick="setInfoLevel()">Set to INFO level</button>
+            </div>
+
+            <div class="tree-container" id="tree1-container">
+                <web-treeview id="tree1"></web-treeview>
+            </div>
+        </div>
+
+        <!-- Example 2: Category-Specific Logging -->
+        <div class="card">
+            <h2>Example 2: Category-Specific Logging</h2>
+            <p>Enable logging for specific categories. Try expanding nodes with INIT logs, or drag nodes with DRAG logs enabled.</p>
+
+            <div class="controls">
+                <button onclick="enableCategory('TREEVIEW:INIT')">INIT Logs</button>
+                <button onclick="enableCategory('TREEVIEW:DATA')">DATA Logs</button>
+                <button onclick="enableCategory('TREEVIEW:UI')">UI Logs</button>
+                <button onclick="enableCategory('TREEVIEW:DRAG')">DRAG Logs</button>
+                <button onclick="enableCategory('TREEVIEW:RENDER')">RENDER Logs</button>
+                <button onclick="disableAllLogging()" class="secondary">Disable All</button>
+            </div>
+
+            <div class="tree-container" id="tree2-container">
+                <web-treeview id="tree2"></web-treeview>
+            </div>
+        </div>
+
+        <!-- Example 3: Performance Logging -->
+        <div class="card">
+            <h2>Example 3: Performance Logging</h2>
+            <p>Enable performance logging to measure render times. Load a large dataset to see timing info in the console.</p>
+
+            <div class="controls">
+                <button onclick="enablePerfLogs()">Enable Perf Logging</button>
+                <button onclick="disablePerfLogs()" class="secondary">Disable Perf Logging</button>
+                <button onclick="setPerfThresholdMs(5)">Threshold: 5ms</button>
+                <button onclick="setPerfThresholdMs(0)">Threshold: 0ms (all)</button>
+            </div>
+
+            <div class="controls">
+                <button onclick="loadSmallTree()">Load 50 nodes</button>
+                <button onclick="loadMediumTree()">Load 500 nodes</button>
+                <button onclick="loadLargeTree()">Load 2000 nodes</button>
+            </div>
+
+            <div class="tree-container tree-container-lg" id="tree3-container">
+                <web-treeview id="tree3" progressive-render="true"></web-treeview>
+            </div>
+        </div>
+
+        <!-- Example 4: Debug Information -->
+        <div class="card">
+            <h2>Example 4: Debug Information Overlay</h2>
+            <p>Toggle the debug information overlay on the tree to see internal state.</p>
+
+            <div class="controls">
+                <button onclick="toggleDebug(true)">Show Debug Info</button>
+                <button onclick="toggleDebug(false)" class="btn-outline">Hide Debug Info</button>
+            </div>
+
+            <div class="tree-container" id="tree4-container">
+                <web-treeview id="tree4"></web-treeview>
+            </div>
+        </div>
+
+        <!-- Available Categories -->
+        <div class="card">
+            <h2>Available Log Categories</h2>
+            <ul>
+                <li><strong>INIT</strong> - Component initialization, configuration parsing, destruction</li>
+                <li><strong>DATA</strong> - Data insertion, tree building, node updates</li>
+                <li><strong>UI</strong> - DOM rendering, node reconciliation, context menu</li>
+                <li><strong>DRAG</strong> - Drag start/over/leave/drop, cross-tree detection, touch drag</li>
+                <li><strong>RENDER</strong> - Progressive rendering batches, render coordinator timing</li>
+            </ul>
+        </div>
+
+        <!-- Usage Code -->
+        <div class="card">
+            <h2>Usage in Your Code</h2>
+
+            <div class="code-block">
+<pre><code>// Import logging utilities
+import {
+    enableLogging, disableLogging,
+    setLogLevel, setCategoryLevel, LOGGING_CATEGORIES
+} from '@keenmate/web-treeview';
+
+// Import performance logging utilities
+import {
+    enablePerfLogging, disablePerfLogging, setPerfThreshold
+} from '@keenmate/web-treeview';
+
+// Enable all logging at debug level
+enableLogging();
+
+// Set specific log level for all categories
+setLogLevel('info');  // 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'silent'
+
+// Enable specific categories
+disableLogging();
+setCategoryLevel('UI', 'debug');
+setCategoryLevel('DRAG', 'debug');
+
+// Performance logging
+enablePerfLogging();
+setPerfThreshold(5);  // Only log operations taking > 5ms
+
+// List all categories
+console.log(LOGGING_CATEGORIES);
+
+// Disable everything
+disableLogging();
+disablePerfLogging();</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import '/src/index.ts';
+        import {
+            enableLogging, disableLogging, setLogLevel, setCategoryLevel,
+            enablePerfLogging, disablePerfLogging, setPerfThreshold
+        } from '/src/index.ts';
+
+        // ── Sample Data ──────────────────────────────────────────────────
+
+        const sampleData = [
+            { id: 1, path: '1', name: 'Project' },
+            { id: 2, path: '1.1', name: 'Source Code' },
+            { id: 3, path: '1.1.1', name: 'Components' },
+            { id: 4, path: '1.1.1.1', name: 'Button.tsx' },
+            { id: 5, path: '1.1.1.2', name: 'Input.tsx' },
+            { id: 6, path: '1.1.2', name: 'Pages' },
+            { id: 7, path: '1.1.2.1', name: 'Home.tsx' },
+            { id: 8, path: '1.1.2.2', name: 'Settings.tsx' },
+            { id: 9, path: '1.2', name: 'Configuration' },
+            { id: 10, path: '1.2.1', name: 'webpack.config.js' },
+            { id: 11, path: '1.2.2', name: 'tsconfig.json' },
+            { id: 12, path: '1.3', name: 'Documentation' },
+            { id: 13, path: '1.3.1', name: 'API.md' },
+            { id: 14, path: '1.3.2', name: 'Guide.md' },
+            { id: 15, path: '2', name: 'Dependencies' },
+            { id: 16, path: '2.1', name: 'Runtime' },
+            { id: 17, path: '2.2', name: 'Development' }
+        ];
+
+        function generateTree(count) {
+            const data = [];
+            let id = 1;
+            const branches = Math.min(count, 20);
+            for (let i = 1; i <= branches; i++) {
+                data.push({ id: id++, path: `${i}`, name: `Branch ${i}` });
+                const perBranch = Math.floor(count / branches);
+                for (let j = 1; j <= perBranch && id <= count; j++) {
+                    data.push({ id: id++, path: `${i}.${j}`, name: `Item ${i}.${j}` });
+                }
+            }
+            return data;
+        }
+
+        // ── Initialize ─────────────────────────────────────────────────
+
+        function initTree(id, data, opts = {}) {
+            const el = document.getElementById(id);
+            el.data = data;
+            el.idMember = 'id';
+            el.pathMember = 'path';
+            el.displayValueMember = 'name';
+            if (opts.expandLevel != null) el.expandLevel = opts.expandLevel;
+            if (opts.dragDropMode) el.dragDropMode = opts.dragDropMode;
+            return el;
+        }
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree1 = initTree('tree1', sampleData, { expandLevel: 2 });
+            const tree2 = initTree('tree2', sampleData, { expandLevel: 2, dragDropMode: 'internal' });
+            const tree3 = initTree('tree3', [], { expandLevel: 0 });
+            const tree4 = initTree('tree4', sampleData, { expandLevel: 2 });
+
+            // ── Global logging controls ──────────────────────────────────
+
+            window.enableAllLogging = () => {
+                enableLogging();
+                console.log('%c All logging enabled at DEBUG level', 'color: #10b981; font-weight: bold;');
+            };
+
+            window.disableAllLogging = () => {
+                disableLogging();
+                console.log('%c All logging disabled', 'color: #ef4444; font-weight: bold;');
+            };
+
+            window.setInfoLevel = () => {
+                setLogLevel('info');
+                console.log('%c Log level set to INFO', 'color: #3b82f6; font-weight: bold;');
+            };
+
+            window.enableCategory = (category) => {
+                disableLogging();
+                setCategoryLevel(category, 'debug');
+                console.log(`%c ${category} logging enabled`, 'color: #8b5cf6; font-weight: bold;');
+            };
+
+            // ── Performance logging controls ─────────────────────────────
+
+            window.enablePerfLogs = () => {
+                enablePerfLogging();
+                console.log('%c Performance logging enabled', 'color: #10b981; font-weight: bold;');
+            };
+
+            window.disablePerfLogs = () => {
+                disablePerfLogging();
+                console.log('%c Performance logging disabled', 'color: #ef4444; font-weight: bold;');
+            };
+
+            window.setPerfThresholdMs = (ms) => {
+                setPerfThreshold(ms);
+                console.log(`%c Perf threshold set to ${ms}ms`, 'color: #3b82f6; font-weight: bold;');
+            };
+
+            // ── Tree loading for perf tests ──────────────────────────────
+
+            window.loadSmallTree = () => { tree3.data = generateTree(50); };
+            window.loadMediumTree = () => { tree3.data = generateTree(500); };
+            window.loadLargeTree = () => { tree3.data = generateTree(2000); };
+
+            // ── Debug toggle ─────────────────────────────────────────────
+
+            window.toggleDebug = (show) => {
+                tree4.shouldDisplayDebugInformation = show;
+            };
+        });
+
+        console.log('%c TreeView Logging Examples', 'color: #059669; font-size: 1.5rem; font-weight: bold;');
+        console.log('%c By default, logging is DISABLED. Use the buttons above to enable specific categories.', 'color: #6b7280;');
+    </script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TreeView - Basic Usage</title>
+    <link rel="stylesheet" href="examples-shared.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-link">&larr; Back to Examples</a>
+            <h1>Basic Usage</h1>
+            <p class="subtitle">Simple tree rendering, expand/collapse, node selection, and hierarchical data</p>
+        </header>
+
+        <!-- Example 1: Simple Tree -->
+        <div class="card">
+            <h2>Example 1: Simple File Tree</h2>
+            <p>A basic tree with hierarchical data using path-based structure. Click nodes to select, click the toggle icon to expand/collapse.</p>
+
+            <div class="tree-container" id="tree1-container">
+                <web-treeview id="tree1"></web-treeview>
+            </div>
+
+            <div class="output">
+                <p class="output-label">Selected node:</p>
+                <pre id="tree1-output">Click a node to see selection info</pre>
+            </div>
+        </div>
+
+        <!-- Example 2: Expand Level -->
+        <div class="card">
+            <h2>Example 2: Pre-expanded Tree</h2>
+            <p>Use <code>expand-level</code> to control how many levels are expanded on initial render. This tree starts with 2 levels expanded.</p>
+
+            <div class="tree-container" id="tree2-container">
+                <web-treeview id="tree2" expand-level="2"></web-treeview>
+            </div>
+        </div>
+
+        <!-- Example 3: Large Flat Dataset -->
+        <div class="card">
+            <h2>Example 3: Large Dataset with Progressive Rendering</h2>
+            <p>A tree with 1000+ nodes demonstrating progressive rendering. Nodes are rendered in batches to keep the UI responsive.</p>
+
+            <div class="controls">
+                <button onclick="loadLargeTree()">Load 1,000 nodes</button>
+                <button onclick="loadVeryLargeTree()">Load 5,000 nodes</button>
+                <button class="secondary" onclick="clearLargeTree()">Clear</button>
+            </div>
+
+            <div class="tree-container tree-container-lg" id="tree3-container">
+                <web-treeview id="tree3" progressive-render="true"></web-treeview>
+            </div>
+
+            <div class="output">
+                <p class="output-label">Render stats:</p>
+                <pre id="tree3-output">Load data to see render statistics</pre>
+            </div>
+        </div>
+
+        <!-- Example 4: Custom Member Mappings -->
+        <div class="card">
+            <h2>Example 4: Custom Data Mappings</h2>
+            <p>Map your own data shape to the tree using <code>id-member</code>, <code>path-member</code>, and <code>display-value-member</code> attributes.</p>
+
+            <div class="tree-container" id="tree4-container">
+                <web-treeview id="tree4"></web-treeview>
+            </div>
+
+            <div class="code-block">
+<pre><code>// Your data can use any property names
+const data = [
+  { categoryId: 1, categoryPath: "1", label: "Electronics", ... },
+  { categoryId: 2, categoryPath: "1.1", label: "Phones", ... }
+];
+
+// Map them to tree properties
+element.setAttribute('id-member', 'categoryId');
+element.setAttribute('path-member', 'categoryPath');
+element.setAttribute('display-value-member', 'label');</code></pre>
+            </div>
+        </div>
+
+        <!-- Example 5: Events -->
+        <div class="card">
+            <h2>Example 5: Events</h2>
+            <p>Listen to tree events: <code>node-clicked</code>, <code>selected-node-changed</code>, <code>tree-changed</code>.</p>
+
+            <div class="tree-container" id="tree5-container">
+                <web-treeview id="tree5" expand-level="1"></web-treeview>
+            </div>
+
+            <div class="output">
+                <p class="output-label">Event log:</p>
+                <div class="event-log" id="tree5-log"></div>
+            </div>
+            <button onclick="document.getElementById('tree5-log').innerHTML = ''" class="btn-outline" style="margin-top: 0.5rem">Clear log</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        // ── Sample Data ──────────────────────────────────────────────────
+
+        const fileTree = [
+            { id: 1, path: '1', name: 'src' },
+            { id: 2, path: '1.1', name: 'components' },
+            { id: 3, path: '1.1.1', name: 'Button.tsx' },
+            { id: 4, path: '1.1.2', name: 'Input.tsx' },
+            { id: 5, path: '1.1.3', name: 'Modal.tsx' },
+            { id: 6, path: '1.2', name: 'pages' },
+            { id: 7, path: '1.2.1', name: 'Home.tsx' },
+            { id: 8, path: '1.2.2', name: 'About.tsx' },
+            { id: 9, path: '1.2.3', name: 'Settings.tsx' },
+            { id: 10, path: '1.3', name: 'utils' },
+            { id: 11, path: '1.3.1', name: 'helpers.ts' },
+            { id: 12, path: '1.3.2', name: 'constants.ts' },
+            { id: 13, path: '2', name: 'public' },
+            { id: 14, path: '2.1', name: 'index.html' },
+            { id: 15, path: '2.2', name: 'favicon.ico' },
+            { id: 16, path: '3', name: 'package.json' },
+            { id: 17, path: '4', name: 'tsconfig.json' },
+            { id: 18, path: '5', name: 'README.md' }
+        ];
+
+        const orgChart = [
+            { id: 1, path: '1', name: 'CEO - Alice' },
+            { id: 2, path: '1.1', name: 'CTO - Bob' },
+            { id: 3, path: '1.1.1', name: 'Dev Lead - Charlie' },
+            { id: 4, path: '1.1.1.1', name: 'Frontend Dev - Dave' },
+            { id: 5, path: '1.1.1.2', name: 'Backend Dev - Eve' },
+            { id: 6, path: '1.1.1.3', name: 'DevOps - Frank' },
+            { id: 7, path: '1.1.2', name: 'QA Lead - Grace' },
+            { id: 8, path: '1.1.2.1', name: 'QA Engineer - Hank' },
+            { id: 9, path: '1.2', name: 'CFO - Ivy' },
+            { id: 10, path: '1.2.1', name: 'Accountant - Jack' },
+            { id: 11, path: '1.2.2', name: 'Financial Analyst - Kim' },
+            { id: 12, path: '1.3', name: 'COO - Leo' },
+            { id: 13, path: '1.3.1', name: 'HR Manager - Mia' },
+            { id: 14, path: '1.3.2', name: 'Office Manager - Noah' }
+        ];
+
+        const categories = [
+            { categoryId: 1, categoryPath: '1', label: 'Electronics' },
+            { categoryId: 2, categoryPath: '1.1', label: 'Phones' },
+            { categoryId: 3, categoryPath: '1.1.1', label: 'Smartphones' },
+            { categoryId: 4, categoryPath: '1.1.2', label: 'Feature Phones' },
+            { categoryId: 5, categoryPath: '1.2', label: 'Laptops' },
+            { categoryId: 6, categoryPath: '1.2.1', label: 'Gaming Laptops' },
+            { categoryId: 7, categoryPath: '1.2.2', label: 'Ultrabooks' },
+            { categoryId: 8, categoryPath: '1.3', label: 'Tablets' },
+            { categoryId: 9, categoryPath: '2', label: 'Clothing' },
+            { categoryId: 10, categoryPath: '2.1', label: 'Men' },
+            { categoryId: 11, categoryPath: '2.1.1', label: 'Shirts' },
+            { categoryId: 12, categoryPath: '2.1.2', label: 'Pants' },
+            { categoryId: 13, categoryPath: '2.2', label: 'Women' },
+            { categoryId: 14, categoryPath: '2.2.1', label: 'Dresses' },
+            { categoryId: 15, categoryPath: '2.2.2', label: 'Skirts' },
+            { categoryId: 16, categoryPath: '3', label: 'Books' },
+            { categoryId: 17, categoryPath: '3.1', label: 'Fiction' },
+            { categoryId: 18, categoryPath: '3.2', label: 'Non-Fiction' }
+        ];
+
+        // ── Generate large datasets ─────────────────────────────────────
+
+        function generateLargeTree(count) {
+            const data = [];
+            let id = 1;
+            const topLevelCount = Math.min(count, 20);
+            const perBranch = Math.floor(count / topLevelCount);
+
+            for (let i = 1; i <= topLevelCount; i++) {
+                data.push({ id: id++, path: `${i}`, name: `Branch ${i}` });
+                const childCount = Math.min(perBranch, 50);
+                for (let j = 1; j <= childCount; j++) {
+                    data.push({ id: id++, path: `${i}.${j}`, name: `Item ${i}.${j}` });
+                    const subCount = Math.floor((count - topLevelCount * childCount) / (topLevelCount * childCount));
+                    for (let k = 1; k <= Math.min(subCount, 10); k++) {
+                        data.push({ id: id++, path: `${i}.${j}.${k}`, name: `Detail ${i}.${j}.${k}` });
+                        if (id > count) break;
+                    }
+                    if (id > count) break;
+                }
+                if (id > count) break;
+            }
+            return data;
+        }
+
+        // ── Initialize trees ────────────────────────────────────────────
+
+        customElements.whenDefined('web-treeview').then(() => {
+
+            // Tree 1: Simple file tree
+            const tree1 = document.getElementById('tree1');
+            tree1.data = fileTree;
+            tree1.idMember = 'id';
+            tree1.pathMember = 'path';
+            tree1.displayValueMember = 'name';
+            tree1.expandLevel = 1;
+
+            tree1.addEventListener('node-clicked', (e) => {
+                const node = e.detail.node;
+                document.getElementById('tree1-output').textContent = JSON.stringify({
+                    id: node.id,
+                    path: node.path,
+                    name: node.data?.name,
+                    level: node.level,
+                    hasChildren: node.hasChildren,
+                    isExpanded: node.isExpanded
+                }, null, 2);
+            });
+
+            // Tree 2: Org chart with expand-level=2
+            const tree2 = document.getElementById('tree2');
+            tree2.data = orgChart;
+            tree2.idMember = 'id';
+            tree2.pathMember = 'path';
+            tree2.displayValueMember = 'name';
+
+            // Tree 3: Large dataset (starts empty)
+            const tree3 = document.getElementById('tree3');
+            tree3.idMember = 'id';
+            tree3.pathMember = 'path';
+            tree3.displayValueMember = 'name';
+
+            tree3.onRenderComplete = (stats) => {
+                document.getElementById('tree3-output').textContent = JSON.stringify(stats, null, 2);
+            };
+
+            window.loadLargeTree = () => {
+                tree3.data = generateLargeTree(1000);
+            };
+            window.loadVeryLargeTree = () => {
+                tree3.data = generateLargeTree(5000);
+            };
+            window.clearLargeTree = () => {
+                tree3.data = [];
+                document.getElementById('tree3-output').textContent = 'Load data to see render statistics';
+            };
+
+            // Tree 4: Custom member mappings
+            const tree4 = document.getElementById('tree4');
+            tree4.data = categories;
+            tree4.idMember = 'categoryId';
+            tree4.pathMember = 'categoryPath';
+            tree4.displayValueMember = 'label';
+            tree4.expandLevel = 1;
+
+            // Tree 5: Events
+            const tree5 = document.getElementById('tree5');
+            tree5.data = fileTree;
+            tree5.idMember = 'id';
+            tree5.pathMember = 'path';
+            tree5.displayValueMember = 'name';
+
+            const logEl = document.getElementById('tree5-log');
+            function logEvent(name, detail) {
+                const time = new Date().toLocaleTimeString();
+                const info = detail?.node ? ` - ${detail.node.data?.name} (path: ${detail.node.path})` : '';
+                const entry = document.createElement('div');
+                entry.className = 'event-entry';
+                entry.innerHTML = `<span class="event-time">${time}</span> <span class="event-name">${name}</span>${info}`;
+                logEl.prepend(entry);
+            }
+
+            tree5.addEventListener('node-clicked', (e) => logEvent('node-clicked', e.detail));
+            tree5.addEventListener('selected-node-changed', (e) => logEvent('selected-node-changed', e.detail));
+            tree5.addEventListener('tree-changed', () => logEvent('tree-changed'));
+        });
+    </script>
+</body>
+</html>

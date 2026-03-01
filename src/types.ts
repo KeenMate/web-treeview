@@ -14,10 +14,25 @@ export type {
 // Re-export ContextMenuItem from ltree types
 export type { ContextMenuItem } from './ltree/types';
 
+// Re-export controller types
+export type {
+  NodeCallbacks,
+  NodeConfig,
+  TreeControllerConfig,
+  TreeControllerSnapshot,
+  TreeControllerEvents
+} from './controller/types';
+
+// Re-export renderer types
+export type { TreeViewRenderer, RendererConfig } from './renderer/types';
+export type { RenderCoordinator, RenderStats, RenderCoordinatorCallbacks } from './renderer/render-coordinator';
+
 // ── Configuration ──────────────────────────────────────────────────────
 
 import type { LTreeNode } from './ltree/ltree-node';
 import type { DropPosition } from './ltree/ltree-node';
+import type { DragDropMode, DropOperation, ContextMenuItem } from './ltree/types';
+import type { RenderStats } from './renderer/render-coordinator';
 
 export interface TreeViewConfig<T = any> {
   // Required
@@ -54,10 +69,14 @@ export interface TreeViewConfig<T = any> {
   indexerBatchSize?: number | null;
   indexerTimeout?: number | null;
 
-  // Progressive rendering (for future use)
+  // Progressive rendering
   progressiveRender?: boolean | null;
   initialBatchSize?: number | null;
   maxBatchSize?: number | null;
+
+  // Flat rendering
+  useFlatRendering?: boolean | null;
+  flatIndentSize?: string | null;
 
   // Visual
   bodyClass?: string | null;
@@ -73,6 +92,9 @@ export interface TreeViewConfig<T = any> {
   searchText?: string | null;
   selectedNode?: LTreeNode<T> | null;
 
+  // Loading
+  isLoading?: boolean | null;
+
   // Callbacks
   getDisplayValueCallback?: (node: LTreeNode<T>) => string;
   getSearchValueCallback?: (node: LTreeNode<T>) => string;
@@ -80,7 +102,7 @@ export interface TreeViewConfig<T = any> {
   getIsCollapsibleCallback?: (node: LTreeNode<T>) => boolean;
   getAllowedDropPositionsCallback?: (node: LTreeNode<T>) => DropPosition[] | null | undefined;
   sortCallback?: (items: LTreeNode<T>[]) => LTreeNode<T>[];
-  contextMenuCallback?: (node: LTreeNode<T>, closeMenuCallback: () => void) => import('./ltree/types').ContextMenuItem[];
+  contextMenuCallback?: (node: LTreeNode<T>, closeMenuCallback: () => void) => ContextMenuItem[];
   indexingCompleteCallback?: () => void;
 
   // Context Menu
@@ -90,11 +112,55 @@ export interface TreeViewConfig<T = any> {
   // Debug
   shouldDisplayDebugInformation?: boolean | null;
 
+  // Drag and Drop
+  dragDropMode?: DragDropMode;
+  dropZoneMode?: 'floating' | 'glow';
+  dropZoneLayout?: 'around' | 'above' | 'below' | 'wave' | 'wave2';
+  dropZoneStart?: number | string;
+  dropZoneMaxWidth?: number;
+  allowCopy?: boolean;
+  autoHandleCopy?: boolean;
+
   // Event handlers
   onNodeClicked?: (node: LTreeNode<T>) => void;
   onNodeDragStart?: (node: LTreeNode<T>, event: DragEvent) => void;
   onNodeDragOver?: (node: LTreeNode<T>, event: DragEvent) => void;
-  onNodeDrop?: (node: LTreeNode<T>, draggedNode: LTreeNode<T>, event: DragEvent) => void;
+  beforeDropCallback?: (
+    dropNode: LTreeNode<T> | null,
+    draggedNode: LTreeNode<T>,
+    position: DropPosition,
+    event: DragEvent | TouchEvent,
+    operation: DropOperation
+  ) =>
+    | boolean
+    | { position?: DropPosition; operation?: DropOperation }
+    | void
+    | Promise<
+        | boolean
+        | { position?: DropPosition; operation?: DropOperation }
+        | void
+      >;
+  onNodeDrop?: (
+    dropNode: LTreeNode<T> | null,
+    draggedNode: LTreeNode<T>,
+    position: DropPosition,
+    event: DragEvent | TouchEvent,
+    operation: DropOperation
+  ) => void;
+
+  // Render callbacks
+  onRenderStart?: () => void;
+  onRenderProgress?: (stats: RenderStats) => void;
+  onRenderComplete?: (stats: RenderStats) => void;
+
+  // Template callbacks (for DomRenderer)
+  nodeTemplate?: (node: LTreeNode<T>, container: HTMLElement) => void;
+  emptyTemplate?: (container: HTMLElement) => void;
+  loadingTemplate?: (container: HTMLElement) => void;
+  headerTemplate?: (container: HTMLElement) => void;
+  footerTemplate?: (container: HTMLElement) => void;
+  contextMenuTemplate?: (node: LTreeNode<T>, close: () => void, container: HTMLElement) => void;
+  dropPlaceholderTemplate?: (container: HTMLElement) => void;
 }
 
 // ── Methods ────────────────────────────────────────────────────────────
@@ -132,4 +198,10 @@ export interface ScrollToPathOptions {
   behavior?: ScrollBehavior;
   block?: ScrollLogicalPosition;
   inline?: ScrollLogicalPosition;
+  expand?: boolean;
+  expandTarget?: boolean;
+  highlight?: boolean;
+  scrollOptions?: ScrollIntoViewOptions;
+  containerScroll?: boolean;
+  containerElement?: HTMLElement;
 }

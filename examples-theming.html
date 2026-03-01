@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TreeView - Theming</title>
+    <link rel="stylesheet" href="examples-shared.css">
+    <style>
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .theme-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .theme-card h3 {
+            margin-bottom: 0.75rem;
+        }
+        .theme-card .tree-container {
+            margin-bottom: 0;
+        }
+
+        /* Theme: Dark */
+        .theme-dark {
+            --ltree-bg: #1e293b;
+            --ltree-text: #e2e8f0;
+            --ltree-hover-bg: #334155;
+            --ltree-selected-bg: #1e40af;
+            --ltree-selected-text: #dbeafe;
+            --ltree-primary: #60a5fa;
+            --ltree-icon-color: #94a3b8;
+            --ltree-border-color: #475569;
+        }
+        .theme-dark-wrapper {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        /* Theme: Forest */
+        .theme-forest {
+            --ltree-primary: #16a34a;
+            --ltree-hover-bg: #f0fdf4;
+            --ltree-selected-bg: #166534;
+            --ltree-selected-text: #dcfce7;
+            --ltree-icon-color: #22c55e;
+        }
+
+        /* Theme: Warm */
+        .theme-warm {
+            --ltree-primary: #ea580c;
+            --ltree-hover-bg: #fff7ed;
+            --ltree-selected-bg: #9a3412;
+            --ltree-selected-text: #ffedd5;
+            --ltree-icon-color: #f97316;
+        }
+
+        /* Theme: Compact */
+        .theme-compact web-treeview {
+            font-size: 0.8rem;
+        }
+        .theme-compact {
+            --ltree-node-height: 24px;
+            --ltree-node-padding: 2px 6px;
+            --ltree-indent-size: 14px;
+        }
+
+        /* Custom icon demo */
+        .icon-arrows .ltree-icon-expand::before { content: '\u25B6'; }
+        .icon-arrows .ltree-icon-collapse::before { content: '\u25BC'; }
+        .icon-arrows .ltree-icon-leaf::before { content: '\u2022'; }
+
+        .icon-plus-minus .ltree-icon-expand::before { content: '[+]'; font-family: monospace; }
+        .icon-plus-minus .ltree-icon-collapse::before { content: '[-]'; font-family: monospace; }
+        .icon-plus-minus .ltree-icon-leaf::before { content: ' \u00B7 '; font-family: monospace; }
+
+        /* Live theming controls */
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .color-row label {
+            min-width: 140px;
+            font-size: 0.875rem;
+            color: #4a5568;
+        }
+        .color-row input[type="color"] {
+            width: 40px;
+            height: 30px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 2px;
+        }
+        .color-row code {
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-link">&larr; Back to Examples</a>
+            <h1>Theming</h1>
+            <p class="subtitle">Customize appearance with CSS custom properties, dark mode, and icon styles</p>
+        </header>
+
+        <!-- Example 1: Preset Themes -->
+        <div class="card">
+            <h2>Example 1: Preset Themes</h2>
+            <p>Apply different themes using CSS custom properties. Each tree below uses a different set of <code>--ltree-*</code> variables.</p>
+
+            <div class="theme-grid">
+                <div class="theme-card">
+                    <h3>Default</h3>
+                    <div class="tree-container" id="tree-default-container">
+                        <web-treeview id="tree-default"></web-treeview>
+                    </div>
+                </div>
+
+                <div class="theme-card">
+                    <h3>Dark</h3>
+                    <div class="theme-dark-wrapper">
+                        <div class="tree-container theme-dark" id="tree-dark-container" style="border-color: #475569;">
+                            <web-treeview id="tree-dark"></web-treeview>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="theme-card">
+                    <h3>Forest</h3>
+                    <div class="tree-container theme-forest" id="tree-forest-container">
+                        <web-treeview id="tree-forest"></web-treeview>
+                    </div>
+                </div>
+
+                <div class="theme-card">
+                    <h3>Warm</h3>
+                    <div class="tree-container theme-warm" id="tree-warm-container">
+                        <web-treeview id="tree-warm"></web-treeview>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Example 2: Compact Mode -->
+        <div class="card">
+            <h2>Example 2: Compact Mode</h2>
+            <p>Reduce spacing and font size for a compact layout. Useful for dense data displays.</p>
+
+            <div class="grid-2">
+                <div>
+                    <h3>Normal</h3>
+                    <div class="tree-container" id="tree-normal-container">
+                        <web-treeview id="tree-normal"></web-treeview>
+                    </div>
+                </div>
+                <div>
+                    <h3>Compact</h3>
+                    <div class="tree-container theme-compact" id="tree-compact-container">
+                        <web-treeview id="tree-compact"></web-treeview>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Example 3: Custom Icons -->
+        <div class="card">
+            <h2>Example 3: Custom Icon Classes</h2>
+            <p>Override the default expand/collapse/leaf icons using <code>expandIconClass</code>, <code>collapseIconClass</code>, and <code>leafIconClass</code> attributes, or use CSS.</p>
+
+            <div class="grid-2">
+                <div>
+                    <h3>Arrow Icons (CSS)</h3>
+                    <div class="tree-container icon-arrows" id="tree-arrows-container">
+                        <web-treeview id="tree-arrows"></web-treeview>
+                    </div>
+                </div>
+                <div>
+                    <h3>Plus/Minus Icons (CSS)</h3>
+                    <div class="tree-container icon-plus-minus" id="tree-plusminus-container">
+                        <web-treeview id="tree-plusminus"></web-treeview>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Example 4: Live Theme Editor -->
+        <div class="card">
+            <h2>Example 4: Live Theme Editor</h2>
+            <p>Adjust CSS custom properties in real time using the color pickers.</p>
+
+            <div class="grid-2">
+                <div>
+                    <div class="color-row">
+                        <label>Primary color</label>
+                        <input type="color" id="cp-primary" value="#059669" onchange="updateLiveTheme()">
+                        <code>--ltree-primary</code>
+                    </div>
+                    <div class="color-row">
+                        <label>Hover background</label>
+                        <input type="color" id="cp-hover" value="#f0fdf4" onchange="updateLiveTheme()">
+                        <code>--ltree-hover-bg</code>
+                    </div>
+                    <div class="color-row">
+                        <label>Selected background</label>
+                        <input type="color" id="cp-selected-bg" value="#065f46" onchange="updateLiveTheme()">
+                        <code>--ltree-selected-bg</code>
+                    </div>
+                    <div class="color-row">
+                        <label>Selected text</label>
+                        <input type="color" id="cp-selected-text" value="#dcfce7" onchange="updateLiveTheme()">
+                        <code>--ltree-selected-text</code>
+                    </div>
+                    <div class="color-row">
+                        <label>Icon color</label>
+                        <input type="color" id="cp-icon" value="#059669" onchange="updateLiveTheme()">
+                        <code>--ltree-icon-color</code>
+                    </div>
+                    <button onclick="resetLiveTheme()" class="btn-outline" style="margin-top: 0.5rem">Reset to defaults</button>
+                </div>
+                <div>
+                    <div class="tree-container" id="tree-live-container">
+                        <web-treeview id="tree-live"></web-treeview>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CSS Variables Reference -->
+        <div class="card">
+            <h2>CSS Custom Properties Reference</h2>
+
+            <div class="code-block">
+<pre><code>/* Core colors */
+--ltree-primary: #059669;          /* Accent/primary color */
+--ltree-text: #1e293b;             /* Default text color */
+--ltree-bg: transparent;           /* Tree background */
+
+/* Interaction states */
+--ltree-hover-bg: #f0fdf4;         /* Node hover background */
+--ltree-selected-bg: #065f46;      /* Selected node background */
+--ltree-selected-text: #dcfce7;    /* Selected node text color */
+
+/* Icons */
+--ltree-icon-color: #059669;       /* Toggle icon color */
+--ltree-icon-size: 0.8em;          /* Toggle icon size */
+
+/* Layout */
+--ltree-indent-size: 20px;         /* Per-level indentation */
+--ltree-node-height: auto;         /* Node row height */
+--ltree-node-padding: 4px 8px;     /* Node content padding */
+
+/* Borders & misc */
+--ltree-border-color: #e2e8f0;     /* Border color */
+--ltree-border-radius: 4px;        /* Node border radius */</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        // ── Sample Data ──────────────────────────────────────────────────
+
+        const sampleData = [
+            { id: 1, path: '1', name: 'Project' },
+            { id: 2, path: '1.1', name: 'Source' },
+            { id: 3, path: '1.1.1', name: 'Components' },
+            { id: 4, path: '1.1.1.1', name: 'Header.tsx' },
+            { id: 5, path: '1.1.1.2', name: 'Footer.tsx' },
+            { id: 6, path: '1.1.2', name: 'Pages' },
+            { id: 7, path: '1.1.2.1', name: 'Home.tsx' },
+            { id: 8, path: '1.1.2.2', name: 'About.tsx' },
+            { id: 9, path: '1.2', name: 'Assets' },
+            { id: 10, path: '1.2.1', name: 'styles.css' },
+            { id: 11, path: '1.2.2', name: 'logo.svg' },
+            { id: 12, path: '2', name: 'Config' },
+            { id: 13, path: '2.1', name: 'tsconfig.json' },
+            { id: 14, path: '2.2', name: 'vite.config.ts' },
+            { id: 15, path: '3', name: 'README.md' }
+        ];
+
+        // ── Initialize ─────────────────────────────────────────────────
+
+        function initTree(id, opts = {}) {
+            const el = document.getElementById(id);
+            el.data = sampleData;
+            el.idMember = 'id';
+            el.pathMember = 'path';
+            el.displayValueMember = 'name';
+            el.expandLevel = opts.expandLevel ?? 2;
+            return el;
+        }
+
+        customElements.whenDefined('web-treeview').then(() => {
+            // Preset themes
+            initTree('tree-default');
+            initTree('tree-dark');
+            initTree('tree-forest');
+            initTree('tree-warm');
+
+            // Compact comparison
+            initTree('tree-normal');
+            initTree('tree-compact');
+
+            // Custom icons
+            initTree('tree-arrows');
+            initTree('tree-plusminus');
+
+            // Live theme editor
+            const liveContainer = document.getElementById('tree-live-container');
+            initTree('tree-live');
+
+            window.updateLiveTheme = () => {
+                liveContainer.style.setProperty('--ltree-primary', document.getElementById('cp-primary').value);
+                liveContainer.style.setProperty('--ltree-hover-bg', document.getElementById('cp-hover').value);
+                liveContainer.style.setProperty('--ltree-selected-bg', document.getElementById('cp-selected-bg').value);
+                liveContainer.style.setProperty('--ltree-selected-text', document.getElementById('cp-selected-text').value);
+                liveContainer.style.setProperty('--ltree-icon-color', document.getElementById('cp-icon').value);
+            };
+
+            window.resetLiveTheme = () => {
+                document.getElementById('cp-primary').value = '#059669';
+                document.getElementById('cp-hover').value = '#f0fdf4';
+                document.getElementById('cp-selected-bg').value = '#065f46';
+                document.getElementById('cp-selected-text').value = '#dcfce7';
+                document.getElementById('cp-icon').value = '#059669';
+                // Remove inline styles
+                liveContainer.style.removeProperty('--ltree-primary');
+                liveContainer.style.removeProperty('--ltree-hover-bg');
+                liveContainer.style.removeProperty('--ltree-selected-bg');
+                liveContainer.style.removeProperty('--ltree-selected-text');
+                liveContainer.style.removeProperty('--ltree-icon-color');
+            };
+        });
+    </script>
+</body>
+</html>

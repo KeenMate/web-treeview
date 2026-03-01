@@ -16,6 +16,23 @@ export type { Ltree } from './ltree/types';
 export type { LTreeNode, NodeId, DropPosition } from './ltree/ltree-node';
 export { VisualState } from './ltree/ltree-node';
 
+// Controller
+export { TreeController } from './controller/tree-controller';
+export { EventEmitter } from './controller/event-emitter';
+export type {
+  NodeCallbacks,
+  NodeConfig,
+  TreeControllerConfig,
+  TreeControllerSnapshot,
+  TreeControllerEvents
+} from './controller/types';
+
+// Renderer
+export { DomRenderer } from './renderer/dom-renderer';
+export { createRenderCoordinator } from './renderer/render-coordinator';
+export type { TreeViewRenderer, RendererConfig } from './renderer/types';
+export type { RenderCoordinator, RenderStats, RenderCoordinatorCallbacks } from './renderer/render-coordinator';
+
 // Export types
 export type {
   TreeNode,

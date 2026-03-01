@@ -1,134 +1,248 @@
-import { createLTree } from './ltree/ltree';
-import type { Ltree } from './ltree/types';
+import { TreeController } from './controller/tree-controller';
+import type { TreeControllerConfig } from './controller/types';
+import type { TreeViewRenderer, RendererConfig } from './renderer/types';
+import { DomRenderer } from './renderer/dom-renderer';
 import type { LTreeNode } from './ltree/ltree-node';
+import type { Ltree, DropPosition, TreeChange, ApplyChangesResult } from './ltree/types';
 import type { TreeViewConfig, ScrollToPathOptions } from './types';
+import type { SearchOptions } from 'flexsearch';
 
 /**
- * Core treeview engine — wraps createLTree for web component usage.
+ * WebTreeView<T> — thin facade wrapping TreeController + TreeViewRenderer.
  * Can be used standalone or wrapped by WebTreeViewElement.
  */
 export class WebTreeView<T = any> {
-  private tree: Ltree<T>;
+  private controller: TreeController<T>;
+  private renderer: TreeViewRenderer<T>;
   private element: HTMLElement;
-  private config: Partial<TreeViewConfig<T>>;
 
-  constructor(element: HTMLElement, options: Partial<TreeViewConfig<T>> = {}) {
+  constructor(
+    element: HTMLElement,
+    options: Partial<TreeViewConfig<T>> = {},
+    renderer?: TreeViewRenderer<T>
+  ) {
     this.element = element;
-    this.config = { ...options };
 
-    this.tree = createLTree<T>(
-      options.idMember!,
-      options.pathMember!,
-      options.parentPathMember,
-      options.levelMember,
-      options.hasChildrenMember,
-      options.isExpandedMember,
-      options.isSelectableMember,
-      options.isDraggableMember,
-      options.getIsDraggableCallback,
-      options.isDropAllowedMember,
-      options.allowedDropPositionsMember,
-      options.displayValueMember,
-      options.getDisplayValueCallback,
-      options.searchValueMember,
-      options.getSearchValueCallback,
-      options.getAllowedDropPositionsCallback,
-      options.isCollapsibleMember,
-      options.getIsCollapsibleCallback,
-      options.orderMember,
-      options.treeId || undefined,
-      options.treePathSeparator,
-      options.expandLevel,
-      options.shouldUseInternalSearchIndex,
-      undefined, // initializeIndexCallback
-      options.indexerBatchSize,
-      options.indexerTimeout,
-      {
-        isSorted: options.isSorted ?? false,
-        sortCallback: options.sortCallback,
-        indexingCompleteCallback: options.indexingCompleteCallback,
-        shouldDisplayDebugInformation: options.shouldDisplayDebugInformation ?? false,
-      } as any
-    );
+    // Map TreeViewConfig to TreeControllerConfig
+    const controllerConfig = mapToControllerConfig(options);
+    this.controller = new TreeController<T>(controllerConfig);
 
-    // Wire up change callback to dispatch events
-    this.tree.onChange = () => this.onTreeChanged();
+    // Use provided renderer or default DomRenderer
+    this.renderer = renderer ?? new DomRenderer<T>();
+    this.renderer.mount(element, this.controller, mapToRendererConfig(options));
 
-    // Insert initial data if provided
-    if (options.data?.length) {
-      this.tree.insertArray(options.data);
-    }
+    // Dispatch tree-changed events on the host element
+    this.controller.on('state-change', () => {
+      this.element.dispatchEvent(new CustomEvent('tree-changed', { bubbles: true }));
+    });
   }
 
-  // ── Public API ─────────────────────────────────────────────────────
+  // ── Public API (proxy to controller) ────────────────────────────────
 
   update(props: Partial<TreeViewConfig<T>>): void {
-    Object.assign(this.config, props);
-    if (props.data) {
-      this.tree.insertArray(props.data);
+    this.controller.updateProps(mapToControllerConfig(props));
+    const rendererConfig = mapToRendererConfig(props);
+    if (Object.keys(rendererConfig).length > 0) {
+      this.renderer.updateConfig(rendererConfig);
     }
   }
 
   expandNodes(nodePath: string): void {
-    this.tree.expandNodes(nodePath);
+    this.controller.expandNodes(nodePath);
   }
 
   collapseNodes(nodePath: string): void {
-    this.tree.collapseNodes(nodePath);
+    this.controller.collapseNodes(nodePath);
   }
 
   expandAll(nodePath?: string | null): void {
-    this.tree.expandAll(nodePath);
+    this.controller.expandAll(nodePath);
   }
 
   collapseAll(nodePath?: string | null): void {
-    this.tree.collapseAll(nodePath);
+    this.controller.collapseAll(nodePath);
   }
 
-  filterNodes(searchText: string): void {
-    this.tree.filterNodes(searchText);
+  filterNodes(searchText: string, searchOptions?: SearchOptions): void {
+    this.controller.filterNodes(searchText, searchOptions);
   }
 
-  searchNodes(searchText: string | null): LTreeNode<T>[] {
+  searchNodes(searchText: string | null, searchOptions?: SearchOptions): LTreeNode<T>[] {
     if (!searchText) return [];
-    return this.tree.searchNodes(searchText);
+    return this.controller.searchNodes(searchText, searchOptions);
   }
 
   scrollToPath(path: string, options?: ScrollToPathOptions): Promise<boolean> {
-    // TODO: implement DOM scroll when rendering is added
-    return Promise.resolve(false);
+    return this.controller.scrollToPath(path, options);
   }
 
   closeContextMenu(): void {
-    // TODO: implement context menu when rendering is added
+    this.controller.closeContextMenu();
   }
 
-  // Access visible nodes for rendering
   getVisibleFlatNodes(): LTreeNode<T>[] {
-    return this.tree.visibleFlatNodes;
+    return this.controller.flatNodesToRender;
   }
 
-  // Access the tree roots
   getTreeNodes(): LTreeNode<T>[] {
-    return this.tree.tree;
+    return this.controller.tree.tree;
   }
 
-  // Access the underlying LTree for advanced usage
   getTree(): Ltree<T> {
-    return this.tree;
+    return this.controller.tree;
+  }
+
+  getController(): TreeController<T> {
+    return this.controller;
   }
 
   getConfig(): Partial<TreeViewConfig<T>> {
-    return { ...this.config };
+    // Return snapshot of current config from controller
+    return {};
   }
 
-  // Change notification
-  private onTreeChanged(): void {
-    this.element.dispatchEvent(new CustomEvent('tree-changed', { bubbles: true }));
+  // ── Tree mutation (proxy to controller) ─────────────────────────────
+
+  moveNode(sourcePath: string, targetPath: string, position: DropPosition) {
+    return this.controller.moveNode(sourcePath, targetPath, position);
   }
+
+  removeNode(path: string, includeDescendants?: boolean) {
+    return this.controller.removeNode(path, includeDescendants);
+  }
+
+  addNode(parentPath: string, nodeData: T, pathSegment?: string) {
+    return this.controller.addNode(parentPath, nodeData, pathSegment);
+  }
+
+  updateNode(path: string, dataUpdates: Partial<T>) {
+    return this.controller.updateNode(path, dataUpdates);
+  }
+
+  applyChanges(changes: TreeChange<T>[]): ApplyChangesResult {
+    return this.controller.applyChanges(changes);
+  }
+
+  getExpandedPaths(): string[] {
+    return this.controller.getExpandedPaths();
+  }
+
+  setExpandedPaths(paths: string[]): void {
+    this.controller.setExpandedPaths(paths);
+  }
+
+  getAllData(): T[] {
+    return this.controller.getAllData();
+  }
+
+  getNodeByPath(path: string): LTreeNode<T> | null {
+    return this.controller.getNodeByPath(path);
+  }
+
+  // ── Renderer swap ───────────────────────────────────────────────────
+
+  /** Swap renderer at runtime without losing tree state. */
+  setRenderer(renderer: TreeViewRenderer<T>, config?: Partial<RendererConfig<T>>): void {
+    this.renderer.destroy();
+    this.renderer = renderer;
+    this.renderer.mount(this.element, this.controller, config || {});
+  }
+
+  // ── Lifecycle ───────────────────────────────────────────────────────
 
   destroy(): void {
-    this.tree.onChange = null;
-    this.element.innerHTML = '';
+    this.renderer.destroy();
+    this.controller.destroy();
   }
+}
+
+// ── Config mappers ────────────────────────────────────────────────────────
+
+function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeControllerConfig<T> {
+  return {
+    idMember: options.idMember || 'id',
+    pathMember: options.pathMember || 'path',
+    parentPathMember: options.parentPathMember,
+    levelMember: options.levelMember,
+    isExpandedMember: options.isExpandedMember,
+    isSelectedMember: options.isSelectedMember ?? options.isSelectableMember,
+    isDraggableMember: options.isDraggableMember,
+    getIsDraggableCallback: options.getIsDraggableCallback,
+    isDropAllowedMember: options.isDropAllowedMember,
+    allowedDropPositionsMember: options.allowedDropPositionsMember,
+    getAllowedDropPositionsCallback: options.getAllowedDropPositionsCallback,
+    isCollapsibleMember: options.isCollapsibleMember,
+    getIsCollapsibleCallback: options.getIsCollapsibleCallback,
+    hasChildrenMember: options.hasChildrenMember,
+    isSorted: options.isSorted,
+    displayValueMember: options.displayValueMember,
+    getDisplayValueCallback: options.getDisplayValueCallback,
+    searchValueMember: options.searchValueMember,
+    getSearchValueCallback: options.getSearchValueCallback,
+    orderMember: options.orderMember,
+    treeId: options.treeId,
+    treePathSeparator: options.treePathSeparator,
+    sortCallback: options.sortCallback,
+
+    data: options.data || [],
+    selectedNode: options.selectedNode,
+
+    expandLevel: options.expandLevel,
+    shouldToggleOnNodeClick: options.shouldToggleOnNodeClick,
+    searchText: options.searchText,
+    shouldUseInternalSearchIndex: options.shouldUseInternalSearchIndex,
+    indexerBatchSize: options.indexerBatchSize,
+    indexerTimeout: options.indexerTimeout,
+    shouldDisplayDebugInformation: options.shouldDisplayDebugInformation ?? false,
+    isLoading: options.isLoading ?? false,
+
+    progressiveRender: options.progressiveRender ?? true,
+    initialBatchSize: options.initialBatchSize,
+    maxBatchSize: options.maxBatchSize,
+    useFlatRendering: options.useFlatRendering ?? true,
+    flatIndentSize: options.flatIndentSize,
+
+    dragDropMode: options.dragDropMode,
+    dropZoneMode: options.dropZoneMode,
+    dropZoneLayout: options.dropZoneLayout,
+    dropZoneStart: options.dropZoneStart,
+    dropZoneMaxWidth: options.dropZoneMaxWidth,
+    allowCopy: options.allowCopy,
+    autoHandleCopy: options.autoHandleCopy,
+
+    onNodeClicked: options.onNodeClicked,
+    onNodeDragStart: options.onNodeDragStart,
+    onNodeDragOver: options.onNodeDragOver,
+    beforeDropCallback: options.beforeDropCallback,
+    onNodeDrop: options.onNodeDrop,
+    contextMenuCallback: options.contextMenuCallback,
+    hasContextMenuTemplate: !!(options.contextMenuCallback),
+
+    bodyClass: options.bodyClass,
+    selectedNodeClass: options.selectedNodeClass,
+    dragOverNodeClass: options.dragOverNodeClass,
+    expandIconClass: options.expandIconClass,
+    collapseIconClass: options.collapseIconClass,
+    leafIconClass: options.leafIconClass,
+    scrollHighlightTimeout: options.scrollHighlightTimeout,
+    scrollHighlightClass: options.scrollHighlightClass,
+    contextMenuXOffset: options.contextMenuXOffset,
+    contextMenuYOffset: options.contextMenuYOffset,
+
+    onRenderStart: options.onRenderStart,
+    onRenderProgress: options.onRenderProgress,
+    onRenderComplete: options.onRenderComplete,
+  } as TreeControllerConfig<T>;
+}
+
+function mapToRendererConfig<T>(options: Partial<TreeViewConfig<T>>): RendererConfig<T> {
+  return {
+    nodeTemplate: options.nodeTemplate,
+    emptyTemplate: options.emptyTemplate,
+    loadingTemplate: options.loadingTemplate,
+    headerTemplate: options.headerTemplate,
+    footerTemplate: options.footerTemplate,
+    contextMenuTemplate: options.contextMenuTemplate,
+    dropPlaceholderTemplate: options.dropPlaceholderTemplate,
+  };
 }

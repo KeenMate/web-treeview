@@ -82,13 +82,21 @@ function createColorMethodFactory(originalFactory: any) {
 }
 
 // Create category-specific loggers
+export const initLogger: Logger = log.getLogger('TREEVIEW:INIT');
 export const dataLogger: Logger = log.getLogger('TREEVIEW:DATA');
 export const indexLogger: Logger = log.getLogger('TREEVIEW:INDEX');
+export const uiLogger: Logger = log.getLogger('TREEVIEW:UI');
+export const dragLogger: Logger = log.getLogger('TREEVIEW:DRAG');
+export const renderLogger: Logger = log.getLogger('TREEVIEW:RENDER');
 
 // Apply prefix and color styling to all category loggers
 const allLoggers: Logger[] = [
+    initLogger,
     dataLogger,
-    indexLogger
+    indexLogger,
+    uiLogger,
+    dragLogger,
+    renderLogger
 ];
 
 allLoggers.forEach(logger => {
@@ -98,6 +106,9 @@ allLoggers.forEach(logger => {
     logger.setLevel('silent');
 });
 
+// INIT logger is enabled by default at debug level
+initLogger.setLevel('debug');
+
 // Export the default logger
 export default log;
 
@@ -105,8 +116,12 @@ export default log;
  * List of all logging categories
  */
 export const LOGGING_CATEGORIES = [
+    'TREEVIEW:INIT',
     'TREEVIEW:DATA',
-    'TREEVIEW:INDEX'
+    'TREEVIEW:INDEX',
+    'TREEVIEW:UI',
+    'TREEVIEW:DRAG',
+    'TREEVIEW:RENDER'
 ];
 
 /**
@@ -135,12 +150,16 @@ export const disableLogging = () => {
  * Set log level for a specific category
  */
 export const setCategoryLevel = (
-    category: 'TREEVIEW:DATA' | 'TREEVIEW:INDEX',
+    category: 'TREEVIEW:INIT' | 'TREEVIEW:DATA' | 'TREEVIEW:INDEX' | 'TREEVIEW:UI' | 'TREEVIEW:DRAG' | 'TREEVIEW:RENDER',
     level: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'silent' = 'debug'
 ) => {
     const loggerMap: Record<string, Logger> = {
+        'TREEVIEW:INIT': initLogger,
         'TREEVIEW:DATA': dataLogger,
-        'TREEVIEW:INDEX': indexLogger
+        'TREEVIEW:INDEX': indexLogger,
+        'TREEVIEW:UI': uiLogger,
+        'TREEVIEW:DRAG': dragLogger,
+        'TREEVIEW:RENDER': renderLogger
     };
     loggerMap[category]?.setLevel(level);
 };
