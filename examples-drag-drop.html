@@ -186,7 +186,7 @@
             el.pathMember = 'path';
             el.displayValueMember = 'name';
             el.expandLevel = opts.expandLevel ?? 2;
-            el.dragDropMode = opts.dragDropMode ?? 'internal';
+            el.dragDropMode = opts.dragDropMode ?? 'both';
             if (opts.dropZoneMode) el.dropZoneMode = opts.dropZoneMode;
             if (opts.allowCopy) el.allowCopy = true;
             if (opts.autoHandleCopy) el.autoHandleCopy = true;
@@ -199,7 +199,7 @@
         customElements.whenDefined('web-treeview').then(() => {
 
             // Tree 1: Basic DnD
-            const tree1 = initTree('tree1', taskList, { dragDropMode: 'internal' });
+            const tree1 = initTree('tree1', taskList, { dragDropMode: 'both' });
             tree1.onNodeDrop = (dropNode, draggedNode, position, event, operation) => {
                 document.getElementById('tree1-output').textContent = JSON.stringify({
                     dragged: draggedNode.data?.name,
@@ -210,13 +210,13 @@
             };
 
             // Tree 2: Drop zone modes
-            const tree2 = initTree('tree2', taskList, { dragDropMode: 'internal', dropZoneMode: 'floating' });
+            const tree2 = initTree('tree2', taskList, { dragDropMode: 'both', dropZoneMode: 'floating' });
             window.setDropZoneMode = (mode) => {
                 tree2.dropZoneMode = mode;
             };
 
             // Tree 3: Copy
-            const tree3 = initTree('tree3', taskList, { dragDropMode: 'internal', allowCopy: true, autoHandleCopy: true });
+            const tree3 = initTree('tree3', taskList, { dragDropMode: 'both', allowCopy: true, autoHandleCopy: true });
             tree3.onNodeDrop = (dropNode, draggedNode, position, event, operation) => {
                 document.getElementById('tree3-output').textContent = JSON.stringify({
                     dragged: draggedNode.data?.name,
@@ -227,8 +227,8 @@
             };
 
             // Tree 4: Cross-tree
-            const tree4a = initTree('tree4a', sourceData, { dragDropMode: 'cross-tree', treeId: 'source', allowCopy: true, autoHandleCopy: true });
-            const tree4b = initTree('tree4b', targetData, { dragDropMode: 'cross-tree', treeId: 'target' });
+            const tree4a = initTree('tree4a', sourceData, { dragDropMode: 'cross', treeId: 'source', allowCopy: true, autoHandleCopy: true });
+            const tree4b = initTree('tree4b', targetData, { dragDropMode: 'cross', treeId: 'target' });
 
             const log4 = document.getElementById('tree4-log');
             function logCrossTree(treeName, dropNode, draggedNode, position, event, operation) {
@@ -243,7 +243,7 @@
             tree4b.onNodeDrop = (d, g, p, e, o) => logCrossTree('Target', d, g, p, e, o);
 
             // Tree 5: Validation
-            const tree5 = initTree('tree5', validationData, { dragDropMode: 'internal' });
+            const tree5 = initTree('tree5', validationData, { dragDropMode: 'both' });
             const log5 = document.getElementById('tree5-log');
 
             tree5.beforeDropCallback = (dropNode, draggedNode, position, event, operation) => {

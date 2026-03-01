@@ -69,15 +69,6 @@
             --ltree-indent-size: 14px;
         }
 
-        /* Custom icon demo */
-        .icon-arrows .ltree-icon-expand::before { content: '\u25B6'; }
-        .icon-arrows .ltree-icon-collapse::before { content: '\u25BC'; }
-        .icon-arrows .ltree-icon-leaf::before { content: '\u2022'; }
-
-        .icon-plus-minus .ltree-icon-expand::before { content: '[+]'; font-family: monospace; }
-        .icon-plus-minus .ltree-icon-collapse::before { content: '[-]'; font-family: monospace; }
-        .icon-plus-minus .ltree-icon-leaf::before { content: ' \u00B7 '; font-family: monospace; }
-
         /* Live theming controls */
         .color-row {
             display: flex;
@@ -173,18 +164,25 @@
         <!-- Example 3: Custom Icons -->
         <div class="card">
             <h2>Example 3: Custom Icon Classes</h2>
-            <p>Override the default expand/collapse/leaf icons using <code>expandIconClass</code>, <code>collapseIconClass</code>, and <code>leafIconClass</code> attributes, or use CSS.</p>
+            <p>Override the default expand/collapse/leaf icons using the <code>expand-icon-class</code>, <code>collapse-icon-class</code>, and <code>leaf-icon-class</code> attributes. These set CSS classes on the icon elements inside the shadow DOM.</p>
+
+            <div class="note warning">
+                <strong>Note:</strong> Since the tree renders inside Shadow DOM, external CSS selectors cannot target internal elements. Use the icon class attributes to swap icon classes instead.
+            </div>
 
             <div class="grid-2">
                 <div>
-                    <h3>Arrow Icons (CSS)</h3>
-                    <div class="tree-container icon-arrows" id="tree-arrows-container">
-                        <web-treeview id="tree-arrows"></web-treeview>
+                    <h3>Custom Icon Classes</h3>
+                    <div class="tree-container" id="tree-arrows-container">
+                        <web-treeview id="tree-arrows"
+                            expand-icon-class="custom-expand"
+                            collapse-icon-class="custom-collapse"
+                            leaf-icon-class="custom-leaf"></web-treeview>
                     </div>
                 </div>
                 <div>
-                    <h3>Plus/Minus Icons (CSS)</h3>
-                    <div class="tree-container icon-plus-minus" id="tree-plusminus-container">
+                    <h3>Default Icons</h3>
+                    <div class="tree-container" id="tree-plusminus-container">
                         <web-treeview id="tree-plusminus"></web-treeview>
                     </div>
                 </div>
@@ -236,30 +234,30 @@
         <!-- CSS Variables Reference -->
         <div class="card">
             <h2>CSS Custom Properties Reference</h2>
+            <p>Two namespaces of CSS custom properties are available. <code>--tv-*</code> variables control layout and sizing. <code>--ltree-*</code> variables control tree-specific colors. All inherit through Shadow DOM.</p>
 
             <div class="code-block">
-<pre><code>/* Core colors */
---ltree-primary: #059669;          /* Accent/primary color */
---ltree-text: #1e293b;             /* Default text color */
---ltree-bg: transparent;           /* Tree background */
+<pre><code>/* ── Host-level (--tv-*) ── set on &lt;web-treeview&gt; or its ancestors */
 
-/* Interaction states */
---ltree-hover-bg: #f0fdf4;         /* Node hover background */
---ltree-selected-bg: #065f46;      /* Selected node background */
---ltree-selected-text: #dcfce7;    /* Selected node text color */
+--tv-accent-color: #3b82f6;        /* Accent/primary color */
+--tv-text-color: #1e293b;          /* Default text color */
+--tv-bg-color: #ffffff;            /* Background color */
+--tv-hover-bg: #f1f5f9;           /* Node hover background */
+--tv-selected-bg: #eff6ff;        /* Selected node background */
+--tv-indent-size: 20px;           /* Per-level indentation */
+--tv-node-height: 32px;           /* Node row height */
+--tv-node-padding: 4px 8px;       /* Node content padding */
+--tv-icon-size: 16px;             /* Toggle icon size */
+--tv-border-radius: 4px;          /* Node border radius */
+--tv-font-size: 14px;             /* Tree font size */
+--tv-border-color: #e2e8f0;       /* Border color */
 
-/* Icons */
---ltree-icon-color: #059669;       /* Toggle icon color */
---ltree-icon-size: 0.8em;          /* Toggle icon size */
+/* ── Tree-level (--ltree-*) ── set on :root or inherited */
 
-/* Layout */
---ltree-indent-size: 20px;         /* Per-level indentation */
---ltree-node-height: auto;         /* Node row height */
---ltree-node-padding: 4px 8px;     /* Node content padding */
-
-/* Borders & misc */
---ltree-border-color: #e2e8f0;     /* Border color */
---ltree-border-radius: 4px;        /* Node border radius */</code></pre>
+--ltree-primary: #0d6efd;         /* Primary accent color */
+--ltree-body-color: #212529;      /* Tree text color */
+--ltree-border: #dee2e6;          /* Tree border color */
+--ltree-light: #f8f9fa;           /* Light background */</code></pre>
             </div>
         </div>
     </div>

@@ -5,7 +5,7 @@ import type { LTreeNode, DropPosition } from './ltree-node';
 export type { LTreeNode, DropPosition } from './ltree-node';
 
 export type Tuple<T, U> = [T, U];
-export type DragDropMode = 'none' | 'self' | 'cross' | 'both';
+export type DragDropMode = 'none' | 'cross' | 'both';
 export type DropZoneLayout = 'around' | 'above' | 'below' | 'wave' | 'wave2';
 export type DropOperation = 'move' | 'copy';
 

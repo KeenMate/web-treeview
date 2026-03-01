@@ -208,7 +208,7 @@ disablePerfLogging();</code></pre>
 
         customElements.whenDefined('web-treeview').then(() => {
             const tree1 = initTree('tree1', sampleData, { expandLevel: 2 });
-            const tree2 = initTree('tree2', sampleData, { expandLevel: 2, dragDropMode: 'internal' });
+            const tree2 = initTree('tree2', sampleData, { expandLevel: 2, dragDropMode: 'both' });
             const tree3 = initTree('tree3', [], { expandLevel: 0 });
             const tree4 = initTree('tree4', sampleData, { expandLevel: 2 });
 

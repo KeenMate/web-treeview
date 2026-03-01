@@ -1386,7 +1386,6 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private isDropAllowedByMode(draggedNodeTreeId: string | undefined): boolean {
     if (this._dragDropMode === 'none') return false;
     const isSameTree = draggedNodeTreeId === this._treeId;
-    if (this._dragDropMode === 'self' && !isSameTree) return false;
     if (this._dragDropMode === 'cross' && isSameTree) return false;
     return true;
   }

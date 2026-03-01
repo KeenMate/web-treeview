@@ -30,7 +30,7 @@ Complete rewrite as a framework-agnostic web component. The rendering engine, co
   - `setRenderer()` on `WebTreeView` to swap renderers at runtime without losing tree state
   - `RenderCoordinator` for progressive rendering with `requestAnimationFrame` batching
 - **Drag and Drop** - Full DnD support ported from svelte-treeview
-  - `dragDropMode`: `'none'` | `'internal'` | `'cross-tree'`
+  - `dragDropMode`: `'none'` | `'cross'` | `'both'`
   - Drop zone modes: `'glow'` (CSS highlight) and `'floating'` (positioned drop targets)
   - Drop positions: `'before'` | `'after'` | `'child'`
   - Copy operations with `allowCopy` / `autoHandleCopy`
@@ -48,6 +48,11 @@ Complete rewrite as a framework-agnostic web component. The rendering engine, co
 - **Batched Property Updates** - Web component property setters use `queueMicrotask` to coalesce multiple sync changes into a single update
 - **Global API** - `window.components['web-treeview'].version()`, `.config`, `.register()`, `.getInstances()`
 - **Example Pages** - 8 interactive example pages: basic usage, drag-drop, templates, programmatic API, logging, theming
+- **DOM Events** - Web component dispatches proper CustomEvents with `composed: true` to cross shadow DOM boundary
+  - `node-clicked` with `{ node }` detail
+  - `selected-node-changed` with `{ selectedNode }` detail
+  - `node-drop` with `{ node, draggedNode, position, event, operation }` detail
+  - `tree-changed` on every state change
 
 ### Changed
 

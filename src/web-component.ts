@@ -57,6 +57,8 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _expandLevel?: number;
   private _shouldToggleOnNodeClick?: boolean;
   private _isSorted?: boolean;
+  private _isLoading?: boolean;
+  private _shouldDisplayDebugInformation?: boolean;
 
   // Search/indexer config
   private _shouldUseInternalSearchIndex?: boolean;
@@ -132,8 +134,8 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       // Context menu
       'context-menu-x-offset', 'context-menu-y-offset',
 
-      // Debug
-      'should-display-debug-information',
+      // Debug / Loading
+      'should-display-debug-information', 'is-loading',
 
       // DnD
       'drag-drop-mode', 'drop-zone-mode', 'drop-zone-layout',
@@ -260,6 +262,12 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get isSorted(): boolean | undefined { return this._isSorted; }
   set isSorted(value: boolean | undefined) { this._isSorted = value; this._scheduleUpdate(); }
 
+  get isLoading(): boolean | undefined { return this._isLoading; }
+  set isLoading(value: boolean | undefined) { this._isLoading = value; this._scheduleUpdate(); }
+
+  get shouldDisplayDebugInformation(): boolean | undefined { return this._shouldDisplayDebugInformation; }
+  set shouldDisplayDebugInformation(value: boolean | undefined) { this._shouldDisplayDebugInformation = value; this._scheduleUpdate(); }
+
   get shouldUseInternalSearchIndex(): boolean | undefined { return this._shouldUseInternalSearchIndex; }
   set shouldUseInternalSearchIndex(value: boolean | undefined) { this._shouldUseInternalSearchIndex = value; }
 
@@ -330,10 +338,54 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get nodeTemplate() { return this._nodeTemplate; }
   set nodeTemplate(value: ((node: LTreeNode<T>, container: HTMLElement) => void) | undefined) {
     this._nodeTemplate = value;
-    if (this.treeview && value) {
-      this.treeview.update({ nodeTemplate: value } as any);
-    }
+    if (this.treeview) this.treeview.update({ nodeTemplate: value } as any);
   }
+
+  get emptyTemplate() { return this._emptyTemplate; }
+  set emptyTemplate(value: ((container: HTMLElement) => void) | undefined) {
+    this._emptyTemplate = value;
+    if (this.treeview) this.treeview.update({ emptyTemplate: value } as any);
+  }
+
+  get loadingTemplate() { return this._loadingTemplate; }
+  set loadingTemplate(value: ((container: HTMLElement) => void) | undefined) {
+    this._loadingTemplate = value;
+    if (this.treeview) this.treeview.update({ loadingTemplate: value } as any);
+  }
+
+  get headerTemplate() { return this._headerTemplate; }
+  set headerTemplate(value: ((container: HTMLElement) => void) | undefined) {
+    this._headerTemplate = value;
+    if (this.treeview) this.treeview.update({ headerTemplate: value } as any);
+  }
+
+  get footerTemplate() { return this._footerTemplate; }
+  set footerTemplate(value: ((container: HTMLElement) => void) | undefined) {
+    this._footerTemplate = value;
+    if (this.treeview) this.treeview.update({ footerTemplate: value } as any);
+  }
+
+  get contextMenuTemplate() { return this._contextMenuTemplate; }
+  set contextMenuTemplate(value: ((node: LTreeNode<T>, close: () => void, container: HTMLElement) => void) | undefined) {
+    this._contextMenuTemplate = value;
+    if (this.treeview) this.treeview.update({ contextMenuTemplate: value } as any);
+  }
+
+  get dropPlaceholderTemplate() { return this._dropPlaceholderTemplate; }
+  set dropPlaceholderTemplate(value: ((container: HTMLElement) => void) | undefined) {
+    this._dropPlaceholderTemplate = value;
+    if (this.treeview) this.treeview.update({ dropPlaceholderTemplate: value } as any);
+  }
+
+  // Render callbacks
+  get onRenderStart() { return this._onRenderStart; }
+  set onRenderStart(value: (() => void) | undefined) { this._onRenderStart = value; }
+
+  get onRenderProgress() { return this._onRenderProgress; }
+  set onRenderProgress(value: ((stats: any) => void) | undefined) { this._onRenderProgress = value; }
+
+  get onRenderComplete() { return this._onRenderComplete; }
+  set onRenderComplete(value: ((stats: any) => void) | undefined) { this._onRenderComplete = value; }
 
   // Event callbacks
   get onNodeClicked() { return this._onNodeClicked; }
@@ -395,6 +447,42 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     this.treeview?.closeContextMenu();
   }
 
+  getExpandedPaths(): string[] {
+    return this.treeview?.getExpandedPaths() ?? [];
+  }
+
+  setExpandedPaths(paths: string[]): void {
+    this.treeview?.setExpandedPaths(paths);
+  }
+
+  getVisibleFlatNodes(): LTreeNode<T>[] {
+    return this.treeview?.getVisibleFlatNodes() ?? [];
+  }
+
+  getNodeByPath(path: string): LTreeNode<T> | null {
+    return this.treeview?.getNodeByPath(path) ?? null;
+  }
+
+  getAllData(): T[] {
+    return this.treeview?.getAllData() ?? [];
+  }
+
+  moveNode(sourcePath: string, targetPath: string, position: DropPosition): any {
+    return this.treeview?.moveNode(sourcePath, targetPath, position);
+  }
+
+  removeNode(path: string, includeDescendants?: boolean): any {
+    return this.treeview?.removeNode(path, includeDescendants);
+  }
+
+  addNode(parentPath: string, nodeData: T, pathSegment?: string): any {
+    return this.treeview?.addNode(parentPath, nodeData, pathSegment);
+  }
+
+  updateNode(path: string, dataUpdates: Partial<T>): any {
+    return this.treeview?.updateNode(path, dataUpdates);
+  }
+
   update(props: Partial<TreeViewConfig<T>>): void {
     this.treeview?.update(props);
   }
@@ -449,7 +537,50 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       displayValueMember: config.displayValueMember,
       dataLength: config.data?.length ?? 0
     });
+
+    // Wrap user's onNodeClicked to also dispatch DOM event
+    const userOnNodeClicked = config.onNodeClicked;
+    config.onNodeClicked = (node) => {
+      userOnNodeClicked?.(node);
+      this.dispatchEvent(new CustomEvent('node-clicked', {
+        bubbles: true,
+        composed: true,
+        detail: { node }
+      }));
+    };
+
+    // Wrap user's onNodeDrop to also dispatch DOM event
+    const userOnNodeDrop = config.onNodeDrop;
+    config.onNodeDrop = (dropNode, draggedNode, position, event, operation) => {
+      userOnNodeDrop?.(dropNode, draggedNode, position, event, operation);
+      this.dispatchEvent(new CustomEvent('node-drop', {
+        bubbles: true,
+        composed: true,
+        detail: { node: dropNode, draggedNode, position, event, operation }
+      }));
+    };
+
     this.treeview = new WebTreeView<T>(this.containerElement, config, this._renderer);
+
+    // Dispatch tree-changed and selected-node-changed from controller state changes
+    let prevSelectedPath: string | null = null;
+    const controller = this.treeview.getController();
+    controller.on('state-change', (snapshot) => {
+      this.dispatchEvent(new CustomEvent('tree-changed', {
+        bubbles: true,
+        composed: true
+      }));
+
+      const currentPath = snapshot.selectedNode?.path ?? null;
+      if (currentPath !== prevSelectedPath) {
+        prevSelectedPath = currentPath;
+        this.dispatchEvent(new CustomEvent('selected-node-changed', {
+          bubbles: true,
+          composed: true,
+          detail: { selectedNode: snapshot.selectedNode ?? null }
+        }));
+      }
+    });
   }
 
   private buildConfig(): Partial<TreeViewConfig<T>> {
@@ -566,8 +697,12 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     if (ctxYOff !== null) config.contextMenuYOffset = parseInt(ctxYOff, 10);
 
     // Debug
-    const debugInfo = this.getAttribute('should-display-debug-information');
-    if (debugInfo !== null) config.shouldDisplayDebugInformation = debugInfo !== 'false';
+    const debugInfo = this._shouldDisplayDebugInformation ?? (this.getAttribute('should-display-debug-information') !== null ? this.getAttribute('should-display-debug-information') !== 'false' : undefined);
+    if (debugInfo !== undefined) config.shouldDisplayDebugInformation = debugInfo;
+
+    // Loading
+    const isLoading = this._isLoading ?? (this.getAttribute('is-loading') !== null ? this.getAttribute('is-loading') !== 'false' : undefined);
+    if (isLoading !== undefined) config.isLoading = isLoading;
 
     // DnD attributes
     const dragDropMode = this._dragDropMode ?? this.getAttribute('drag-drop-mode') as DragDropMode;

@@ -126,7 +126,7 @@ All attributes use kebab-case. Equivalent camelCase property setters are availab
 | `expand-level` | `number` | — | Auto-expand nodes up to this depth |
 | `tree-path-separator` | `string` | `'.'` | Separator character in paths |
 | `tree-id` | `string` | — | Unique tree identifier (for cross-tree DnD) |
-| `drag-drop-mode` | `string` | `'none'` | `'none'` \| `'internal'` \| `'cross-tree'` |
+| `drag-drop-mode` | `string` | `'none'` | `'none'` \| `'cross'` \| `'both'` |
 | `drop-zone-mode` | `string` | `'glow'` | `'glow'` \| `'floating'` |
 | `drop-zone-layout` | `string` | `'around'` | `'around'` \| `'above'` \| `'below'` \| `'wave'` \| `'wave2'` |
 | `allow-copy` | `boolean` | `false` | Enable copy operations (Ctrl+drag) |
@@ -187,12 +187,12 @@ These properties are set via JavaScript, not HTML attributes:
 Enable drag-and-drop with the `drag-drop-mode` attribute:
 
 ```html
-<!-- Internal reordering -->
-<web-treeview drag-drop-mode="internal"></web-treeview>
+<!-- Internal + cross-tree reordering -->
+<web-treeview drag-drop-mode="both"></web-treeview>
 
-<!-- Cross-tree drag between multiple trees -->
-<web-treeview id="tree-a" drag-drop-mode="cross-tree" tree-id="source"></web-treeview>
-<web-treeview id="tree-b" drag-drop-mode="cross-tree" tree-id="target"></web-treeview>
+<!-- Cross-tree only (no internal reordering) -->
+<web-treeview id="tree-a" drag-drop-mode="cross" tree-id="source"></web-treeview>
+<web-treeview id="tree-b" drag-drop-mode="cross" tree-id="target"></web-treeview>
 ```
 
 ### Drop Validation
