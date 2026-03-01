@@ -1,0 +1,21 @@
+:host {
+  display: block;
+  font-family: inherit;
+  color: var(--tv-text-color);
+  font-size: var(--tv-font-size);
+}
+
+:host([hidden]) {
+  display: none !important;
+}
+
+/* FOUC prevention — hide until ready */
+:host(:not([data-ready])) {
+  visibility: hidden;
+}
+
+.web-treeview {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}

@@ -1,0 +1,26 @@
+:host {
+  /* Base unit */
+  --tv-rem: var(--base-rem, 10px);
+
+  /* Colors — with --base fallbacks */
+  --tv-accent-color: var(--base-accent-color, #3b82f6);
+  --tv-text-color: var(--base-text-color, #1e293b);
+  --tv-text-color-2: var(--base-text-color-2, #64748b);
+  --tv-bg-color: var(--base-bg-color, #ffffff);
+  --tv-border-color: var(--base-border-color, #e2e8f0);
+
+  /* Hover / active */
+  --tv-hover-bg: var(--base-hover-bg, #f1f5f9);
+  --tv-active-bg: var(--base-active-bg, #e2e8f0);
+  --tv-selected-bg: #eff6ff;
+  --tv-selected-border-color: var(--tv-accent-color);
+
+  /* Tree-specific */
+  --tv-indent-size: calc(var(--tv-rem) * 2);
+  --tv-node-height: calc(var(--tv-rem) * 3.2);
+  --tv-icon-size: calc(var(--tv-rem) * 1.6);
+  --tv-node-padding: calc(var(--tv-rem) * 0.4) calc(var(--tv-rem) * 0.8);
+  --tv-border-radius: calc(var(--tv-rem) * 0.4);
+  --tv-font-size: calc(var(--tv-rem) * 1.4);
+  --tv-transition-speed: 150ms;
+}

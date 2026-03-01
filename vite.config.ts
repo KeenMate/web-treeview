@@ -1,41 +1,36 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
+import { readFileSync } from 'fs';
 import dts from 'vite-plugin-dts';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
+
+// Read package.json for build-time constants
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
 export default defineConfig({
-  css: {
-    // This should be enabled by default, but just in case
-    modules: false
-  },
-  assetsInclude: ['**/*.css'], // If needed
   plugins: [
-    svelte({
-      compilerOptions: {
-        customElement: false,
-      },
-    }),
-    dts({
-      insertTypesEntry: true,
-    }),
+    dts({ rollupTypes: true, exclude: ['src/vendor/**'] })
   ],
+  define: {
+    '__VERSION__': JSON.stringify(pkg.version),
+    '__PACKAGE_NAME__': JSON.stringify(pkg.name),
+    '__AUTHOR__': JSON.stringify(pkg.author),
+    '__LICENSE__': JSON.stringify(pkg.license),
+    '__REPOSITORY__': JSON.stringify(pkg.repository.url),
+    '__HOMEPAGE__': JSON.stringify(pkg.homepage)
+  },
   build: {
     lib: {
-      entry: 'src/index.ts',
+      entry: resolve(__dirname, 'src/index.ts'),
       name: 'WebTreeView',
       formats: ['es', 'umd'],
-      fileName: (format) => `web-treeview.${format === 'es' ? 'js' : 'umd.js'}`,
+      fileName: (format) => `web-treeview.${format === 'es' ? 'js' : 'umd.js'}`
     },
     rollupOptions: {
       external: [],
       output: {
-        globals: {},
-      },
+        globals: {}
+      }
     },
-    sourcemap: true,
-  },
-	optimizeDeps: {
-		exclude: [
-			"@keenmate/svelte-treeview"
-		]
-	}
+    sourcemap: true
+  }
 });

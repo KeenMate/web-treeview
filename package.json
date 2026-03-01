@@ -1,50 +1,56 @@
 {
   "name": "@keenmate/web-treeview",
-  "version": "1.0.0",
-  "description": "Framework-agnostic web component wrapper for @keenmate/svelte-treeview. Works with React, Vue, Angular, or vanilla JavaScript.",
+  "version": "2.0.0",
+  "description": "Lightweight treeview web component with hierarchical data display, search, expand/collapse, drag-drop, and keyboard navigation",
   "type": "module",
   "main": "./dist/web-treeview.umd.js",
   "module": "./dist/web-treeview.js",
-  "types": "./dist/web-treeview.d.ts",
+  "types": "./dist/index.d.ts",
+  "style": "./dist/web-treeview.css",
   "exports": {
     ".": {
-      "types": "./dist/web-treeview.d.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/web-treeview.js",
-      "require": "./dist/web-treeview.umd.js"
-    }
+      "require": "./dist/web-treeview.umd.js",
+      "default": "./dist/web-treeview.js"
+    },
+    "./style.css": "./dist/web-treeview.css",
+    "./css": "./src/css/main.css",
+    "./dist/*": "./dist/*",
+    "./src/css/*": "./src/css/*",
+    "./package.json": "./package.json"
   },
+  "sideEffects": [
+    "./dist/web-treeview.js",
+    "./dist/web-treeview.umd.js",
+    "*.css"
+  ],
   "files": [
     "dist",
-    "examples",
-    "README.md",
-    "CHANGELOG.md",
-    "!dist/**/*.test.*",
-    "!dist/**/*.spec.*"
+    "src/css"
   ],
   "scripts": {
     "dev": "vite --port 21111",
-    "build": "tsc && vite build",
+    "build": "npm run clean:dist && vite build",
     "preview": "vite preview",
-    "type-check": "tsc --noEmit",
+    "package": "npm run build && npm pack",
+    "clean": "rimraf dist --glob \"*.tgz\"",
+    "clean:dist": "rimraf dist",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
     "web-component",
     "custom-element",
     "treeview",
-    "svelte",
-    "framework-agnostic",
+    "tree",
     "hierarchical",
     "ltree",
     "drag-drop",
     "search",
-    "flexsearch",
-    "react",
-    "vue", 
-    "angular",
-    "vanilla-js",
+    "framework-agnostic",
     "shadow-dom",
-    "typescript"
+    "typescript",
+    "keenmate"
   ],
   "author": "KeenMate",
   "license": "MIT",
@@ -57,14 +63,11 @@
     "url": "https://github.com/KeenMate/web-treeview/issues"
   },
   "dependencies": {
-    "@keenmate/svelte-treeview": "^4.0.0",
-    "flexsearch": "^0.8.212",
-    "svelte": "^5.38.9"
+    "flexsearch": "^0.8.212"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^6.2.0",
     "@types/node": "^24.3.1",
-    "sass": "^1.92.1",
+    "rimraf": "^5.0.5",
     "typescript": "^5.9.2",
     "vite": "^7.1.5",
     "vite-plugin-dts": "^4.5.4"

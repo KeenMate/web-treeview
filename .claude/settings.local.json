@@ -7,7 +7,11 @@
       "WebFetch(domain:svelte.dev)",
       "Bash(npm run dev:*)",
       "Bash(npm install:*)",
-      "Read(//c/Git/KM/dhl-rdm-organiogram/frontend/src/lib/features/rule-sets/components/**)"
+      "Read(//c/Git/KM/dhl-rdm-organiogram/frontend/src/lib/features/rule-sets/components/**)",
+      "Bash(xargs grep:*)",
+      "Bash(rm:*)",
+      "Bash(make help:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

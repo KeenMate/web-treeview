@@ -1,22 +1,97 @@
-import { SvelteTreeView } from './svelte-treeview.js';
-import type { TreeEventMap, TreeWebComponentMethods, TreeWebComponentProps } from './types.js';
+// Import styles
+import './css/main.css';
 
-// Register the custom element
-if (!customElements.get('svelte-tree-view')) {
-  customElements.define('svelte-tree-view', SvelteTreeView);
+// Import for export and global API
+import { getAllInstances, WebTreeViewElement } from './web-component';
+
+// Export the web component
+export { WebTreeViewElement };
+
+// Export the core engine wrapper
+export { WebTreeView } from './treeview';
+
+// Core LTree (for direct usage without web component)
+export { createLTree } from './ltree/ltree';
+export type { Ltree } from './ltree/types';
+export type { LTreeNode, NodeId, DropPosition } from './ltree/ltree-node';
+export { VisualState } from './ltree/ltree-node';
+
+// Export types
+export type {
+  TreeNode,
+  TreeViewConfig,
+  TreeViewMethods,
+  TreeEventMap,
+  ContextMenuItem,
+  ScrollToPathOptions,
+  InsertArrayResult,
+  TreeChange,
+  ApplyChangesResult,
+  DragDropMode,
+  DropZoneLayout,
+  DropOperation
+} from './types';
+
+// Logging
+export { enableLogging, disableLogging, setLogLevel, setCategoryLevel, LOGGING_CATEGORIES } from './logger';
+export { enablePerfLogging, disablePerfLogging, setPerfThreshold } from './perf-logger';
+
+// Auto-register the custom element
+import './web-component';
+
+// Type declarations for build-time constants
+declare const __VERSION__: string;
+declare const __PACKAGE_NAME__: string;
+declare const __AUTHOR__: string;
+declare const __LICENSE__: string;
+declare const __REPOSITORY__: string;
+declare const __HOMEPAGE__: string;
+
+// Global API interface
+export interface GlobalTreeViewAPI {
+  version: () => string;
+  config: {
+    name: string;
+    version: string;
+    author: string;
+    license: string;
+    repository: string;
+    homepage: string;
+  };
+  register: () => void;
+  getInstances: () => HTMLElement[];
 }
 
-// Export everything for programmatic usage
-export { SvelteTreeView };
-export type { TreeEventMap, TreeWebComponentMethods, TreeWebComponentProps };
-export type { LTreeNode, Ltree } from '@keenmate/svelte-treeview';
-export type { NodeTemplateFunction as TemplateFunction, HeaderFooterTemplate, TemplateSlots } from './template-system.js';
-
-// Global declaration for TypeScript
+// Declare global namespace
 declare global {
   interface HTMLElementTagNameMap {
-    'svelte-tree-view': SvelteTreeView;
+    'web-treeview': WebTreeViewElement;
+  }
+  interface Window {
+    components?: {
+      'web-treeview'?: GlobalTreeViewAPI;
+    };
   }
 }
 
-export default SvelteTreeView;
+// Initialize global API
+if (typeof window !== 'undefined') {
+  window.components = window.components || {};
+  window.components['web-treeview'] = {
+    version: () => __VERSION__,
+    config: {
+      name: __PACKAGE_NAME__,
+      version: __VERSION__,
+      author: __AUTHOR__,
+      license: __LICENSE__,
+      repository: __REPOSITORY__,
+      homepage: __HOMEPAGE__
+    },
+    register: () => {
+      if (typeof customElements !== 'undefined' && !customElements.get('web-treeview')) {
+        customElements.define('web-treeview', WebTreeViewElement);
+      }
+    },
+    getInstances: () => getAllInstances()
+  };
+}
