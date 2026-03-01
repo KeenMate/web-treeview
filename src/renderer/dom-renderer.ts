@@ -487,8 +487,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       el.style.marginLeft = `calc((${node.level} - 1) * ${snapshot.flatIndentSize})`;
     }
 
-    // Draggable
-    if (this.controller?.getNodeIsDraggable(node)) {
+    // Draggable — only when drag-drop is enabled
+    if (this.controller?.dragDropMode !== 'none' && this.controller?.getNodeIsDraggable(node)) {
       el.setAttribute('draggable', 'true');
       el.classList.add('ltree-draggable');
     }
@@ -591,8 +591,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       }
     }
 
-    // Update draggable
-    if (this.controller?.getNodeIsDraggable(node)) {
+    // Update draggable — only when drag-drop is enabled
+    if (this.controller?.dragDropMode !== 'none' && this.controller?.getNodeIsDraggable(node)) {
       el.setAttribute('draggable', 'true');
       el.classList.add('ltree-draggable');
     } else {

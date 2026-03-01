@@ -651,8 +651,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   /** Call from ondragstart. Sets up dataTransfer, stores drag state, fires callback. */
   startDrag(node: LTreeNode<T>, event: DragEvent): void {
-    dragLogger.debug('startDrag', { path: node.path, isDraggable: this.getNodeIsDraggable(node), hasDataTransfer: !!event.dataTransfer });
-    if (!this.getNodeIsDraggable(node) || !event.dataTransfer) return;
+    dragLogger.debug('startDrag', { path: node.path, isDraggable: this.getNodeIsDraggable(node), dragDropMode: this._dragDropMode, hasDataTransfer: !!event.dataTransfer });
+    if (this._dragDropMode === 'none' || !this.getNodeIsDraggable(node) || !event.dataTransfer) return;
     event.dataTransfer.effectAllowed = this._allowCopy ? 'copyMove' : 'move';
     event.dataTransfer.setData('application/svelte-treeview', JSON.stringify(node));
     const displayValue = this.tree.getNodeDisplayValue(node);
