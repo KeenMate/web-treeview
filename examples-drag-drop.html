@@ -81,6 +81,10 @@
                         <option value="floating">Floating (popup zones)</option>
                     </select>
                 </label>
+                <label>
+                    Zone Start:
+                    <input type="text" id="ctrl-zone-start" value="33%" placeholder="33% or 50px" onchange="applySettings()">
+                </label>
                 <span id="floating-controls" style="display: none;">
                     <label>
                         Layout:
@@ -91,10 +95,6 @@
                             <option value="wave">Wave (stacked vertically)</option>
                             <option value="wave2">Wave2 (diagonal pattern)</option>
                         </select>
-                    </label>
-                    <label>
-                        Zone Start:
-                        <input type="text" id="ctrl-zone-start" value="33%" placeholder="33% or 50px" onchange="applySettings()">
                     </label>
                     <label>
                         Max Width (px):
@@ -128,7 +128,32 @@
             </div>
         </div>
 
-        <!-- Example 2: beforeDropCallback -->
+        <!-- Example 2: Restricted Drop Positions -->
+        <div class="card">
+            <h2>Restricted Drop Positions</h2>
+            <p>Control which drop positions are valid per node using <code>allowedDropPositionsMember</code>.
+                Try dragging items to different targets:</p>
+
+            <div class="note">
+                <p style="margin: 0 0 0.25rem; font-weight: 600;">Node Types</p>
+                <ul style="margin: 0; padding: 0 0 0 1.5rem;">
+                    <li><strong>&#x1F5D1;&#xFE0F; Trash</strong> - Only accepts <code>child</code> drops (drop INTO, not above/below)</li>
+                    <li><strong>&#x1F4C2; Projects</strong> - All positions allowed (default behavior)</li>
+                    <li><strong>&#x1F4C4; Files</strong> - Only <code>above</code> and <code>below</code> (can't drop INTO a file)</li>
+                </ul>
+            </div>
+
+            <div class="tree-container" id="tree-restricted-container">
+                <web-treeview id="tree-restricted"></web-treeview>
+            </div>
+
+            <div class="output" id="restricted-output" style="display: none;">
+                <p class="output-label">Activity Log:</p>
+                <pre id="restricted-log"></pre>
+            </div>
+        </div>
+
+        <!-- Example 3: beforeDropCallback -->
         <div class="card">
             <h2>Drop Validation</h2>
             <p>Use <code>beforeDropCallback</code> to validate or reject drops. In this example, "Important" nodes cannot be moved.</p>
@@ -161,6 +186,27 @@
             { id: 5, path: '2', name: 'Another Folder', sortOrder: 20 },
             { id: 6, path: '2.1', name: 'Document 1', sortOrder: 10 },
             { id: 7, path: '2.2', name: 'Document 2', sortOrder: 20 }
+        ];
+
+        const restrictedData = [
+            // Trash folder: only accepts drops as children (can't drop above/below)
+            { id: 101, path: '1', name: 'Trash', icon: '\u{1F5D1}\uFE0F', sortOrder: 10, allowedDropPositions: ['child'] },
+            { id: 102, path: '1.1', name: 'Deleted Item 1', icon: '\u{1F4C4}', sortOrder: 10 },
+            { id: 103, path: '1.2', name: 'Deleted Item 2', icon: '\u{1F4C4}', sortOrder: 20 },
+
+            // Regular folder: all drop positions allowed (default)
+            { id: 104, path: '2', name: 'Projects', icon: '\u{1F4C2}', sortOrder: 20 },
+            { id: 105, path: '2.1', name: 'Project A', icon: '\u{1F4C2}', sortOrder: 10 },
+            { id: 106, path: '2.2', name: 'Project B', icon: '\u{1F4C2}', sortOrder: 20 },
+
+            // Files: only accept drops above/below (can't drop INTO a file)
+            { id: 107, path: '3', name: 'Readme.md', icon: '\u{1F4C4}', sortOrder: 30, allowedDropPositions: ['above', 'below'] },
+            { id: 108, path: '4', name: 'Config.json', icon: '\u{1F4C4}', sortOrder: 40, allowedDropPositions: ['above', 'below'] },
+
+            // Source items to drag
+            { id: 109, path: '5', name: 'Source Items', icon: '\u{1F4C2}', sortOrder: 50 },
+            { id: 110, path: '5.1', name: 'Drag me!', icon: '\u{1F535}', sortOrder: 10 },
+            { id: 111, path: '5.2', name: 'Drag me too!', icon: '\u{1F7E2}', sortOrder: 20 },
         ];
 
         const validationData = [
@@ -394,6 +440,36 @@
 
             // Apply all settings from controls
             applySettings();
+
+            // Restricted Drop Positions tree
+            const restrictedTree = initTree('tree-restricted', restrictedData, { dragDropMode: 'both' });
+            restrictedTree.allowedDropPositionsMember = 'allowedDropPositions';
+            restrictedTree.orderMember = 'sortOrder';
+            restrictedTree.nodeTemplate = (node, el) => {
+                const label = document.createElement('span');
+                const icon = node.data?.icon ? node.data.icon + ' ' : '';
+                label.textContent = icon + (node.data?.name || String(node.id));
+                el.appendChild(label);
+                if (node.data?.allowedDropPositions) {
+                    const hint = document.createElement('small');
+                    hint.style.cssText = 'color: #888; margin-left: 0.5rem; font-size: 0.7em;';
+                    hint.textContent = `(${node.data.allowedDropPositions.join('/')})`;
+                    el.appendChild(hint);
+                }
+            };
+            const restrictedLogEl = document.getElementById('restricted-log');
+            const restrictedOutputEl = document.getElementById('restricted-output');
+            let restrictedLogEntries = [];
+            restrictedTree.onNodeDrop = (dropNode, draggedNode, position) => {
+                const posLabel = dropNode?.data?.allowedDropPositions?.length === 1
+                    ? `(only ${dropNode.data.allowedDropPositions[0]} allowed)`
+                    : '';
+                restrictedLogEntries = [...restrictedLogEntries.slice(-4),
+                    `${new Date().toLocaleTimeString()} - Dropped "${draggedNode.data?.name}" ${position} "${dropNode?.data?.name || 'root'}" ${posLabel}`
+                ];
+                restrictedOutputEl.style.display = '';
+                restrictedLogEl.textContent = restrictedLogEntries.join('\n');
+            };
 
             // Validation tree
             const tree5 = initTree('tree5', validationData, { dragDropMode: 'both' });

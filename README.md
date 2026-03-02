@@ -129,6 +129,8 @@ All attributes use kebab-case. Equivalent camelCase property setters are availab
 | `drag-drop-mode` | `string` | `'none'` | `'none'` \| `'cross'` \| `'both'` |
 | `drop-zone-mode` | `string` | `'glow'` | `'glow'` \| `'floating'` |
 | `drop-zone-layout` | `string` | `'around'` | `'around'` \| `'above'` \| `'below'` \| `'wave'` \| `'wave2'` |
+| `drop-zone-start` | `number\|string` | `33` | Child zone threshold (number = %, string = CSS value) |
+| `allowed-drop-positions-member` | `string` | — | Property name for per-node allowed drop positions array |
 | `allow-copy` | `boolean` | `false` | Enable copy operations (Ctrl+drag) |
 | `should-toggle-on-node-click` | `boolean` | `true` | Toggle expand/collapse on node click |
 | `progressive-render` | `boolean` | `true` | Enable progressive rendering for large trees |
@@ -193,6 +195,33 @@ Enable drag-and-drop with the `drag-drop-mode` attribute:
 <!-- Cross-tree only (no internal reordering) -->
 <web-treeview id="tree-a" drag-drop-mode="cross" tree-id="source"></web-treeview>
 <web-treeview id="tree-b" drag-drop-mode="cross" tree-id="target"></web-treeview>
+```
+
+### Restricted Drop Positions
+
+Control which drop positions (`above`, `below`, `child`) are valid per node:
+
+```javascript
+tree.data = [
+  // Trash: only accept drops as children
+  { id: 1, path: '1', name: 'Trash', allowedDropPositions: ['child'] },
+
+  // Regular folder: all positions (default)
+  { id: 2, path: '2', name: 'Projects' },
+
+  // Files: can't drop INTO them
+  { id: 3, path: '3', name: 'Readme.md', allowedDropPositions: ['above', 'below'] },
+];
+
+tree.allowedDropPositionsMember = 'allowedDropPositions';
+```
+
+### Drop Zone Start
+
+The `dropZoneStart` property controls where the "child" zone begins (as a percentage of the node width). It applies to both glow and floating modes:
+
+```javascript
+tree.dropZoneStart = '50%';  // Child zone starts at 50% (default: 33%)
 ```
 
 ### Drop Validation

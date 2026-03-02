@@ -211,6 +211,36 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _onBodyDragOver = (event: DragEvent) => {
     if (!this.controller) return;
     const target = event.target as HTMLElement;
+
+    // Drop zone handling — allow drop and highlight active zone
+    const zoneEl = target.closest('.ltree-drop-zone') as HTMLElement;
+    if (zoneEl) {
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+      const parent = zoneEl.parentElement as HTMLElement;
+      if (parent) {
+        // Toggle active class on hovered zone
+        for (const sibling of parent.querySelectorAll('.ltree-drop-zone')) {
+          sibling.classList.toggle('ltree-drop-zone-active', sibling === zoneEl);
+        }
+        // Refresh position for scroll tracking
+        const path = parent.getAttribute('data-tree-path');
+        if (path) {
+          const key = this._findKeyByPath(path);
+          const hoveredEl = this.nodeElements.get(key);
+          const row = hoveredEl?.querySelector('.ltree-node-row') as HTMLElement;
+          if (row) {
+            const rect = row.getBoundingClientRect();
+            parent.style.top = `${rect.top}px`;
+            parent.style.left = `${rect.left}px`;
+            parent.style.width = `${rect.width}px`;
+            parent.style.height = `${rect.height}px`;
+          }
+        }
+      }
+      return;
+    }
+
     const contentEl = target.closest('.ltree-node-content') as HTMLElement;
     if (contentEl) {
       const nodeEl = contentEl.closest('.ltree-node') as HTMLElement;
@@ -232,6 +262,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
   private _onBodyDragLeave = (event: DragEvent) => {
     if (!this.controller) return;
+    // Don't clear hover when cursor moves to a floating drop zone
+    const related = event.relatedTarget as HTMLElement;
+    if (related?.closest?.('.ltree-drop-zones')) return;
     const target = event.target as HTMLElement;
     const contentEl = target.closest('.ltree-node-content') as HTMLElement;
     if (contentEl) {
@@ -255,11 +288,11 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (!this.controller) return;
     const target = event.target as HTMLElement;
 
-    // Check for drop zone
+    // Check for drop zone (zones are appended to bodyEl, not inside .ltree-node)
     const zoneEl = target.closest('.ltree-drop-zone') as HTMLElement;
     if (zoneEl) {
-      const nodeEl = zoneEl.closest('.ltree-node') as HTMLElement;
-      const path = nodeEl?.getAttribute('data-tree-path');
+      const zonesContainer = zoneEl.closest('.ltree-drop-zones') as HTMLElement;
+      const path = zonesContainer?.getAttribute('data-tree-path');
       const position = zoneEl.getAttribute('data-drop-position') as DropPosition;
       if (path && position) {
         const node = this.controller.getNodeByPath(path);
@@ -676,24 +709,46 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _updateDropZones(snapshot: TreeControllerSnapshot<T>): void {
     if (!this.bodyEl || !this.controller) return;
 
-    // Remove old drop zones
-    this.bodyEl.querySelectorAll('.ltree-drop-zones').forEach(el => el.remove());
+    const shouldShow =
+      this.lastNodeConfig?.dropZoneMode === 'floating' &&
+      snapshot.isDragInProgress &&
+      !!snapshot.hoveredNodeForDropPath;
 
-    if (
-      this.lastNodeConfig?.dropZoneMode !== 'floating' ||
-      !snapshot.isDragInProgress ||
-      !snapshot.hoveredNodeForDropPath
-    ) {
+    const existing = this.bodyEl.querySelector('.ltree-drop-zones') as HTMLElement | null;
+    const existingPath = existing?.getAttribute('data-tree-path') ?? null;
+
+    // If zones already exist for the same hovered path, just update position — don't recreate
+    if (shouldShow && existing && existingPath === snapshot.hoveredNodeForDropPath) {
+      const key = this._findKeyByPath(snapshot.hoveredNodeForDropPath!);
+      const hoveredEl = this.nodeElements.get(key);
+      const row = hoveredEl?.querySelector('.ltree-node-row') as HTMLElement;
+      if (row) {
+        const rect = row.getBoundingClientRect();
+        existing.style.top = `${rect.top}px`;
+        existing.style.left = `${rect.left}px`;
+        existing.style.width = `${rect.width}px`;
+        existing.style.height = `${rect.height}px`;
+      }
       return;
     }
 
+    // Remove stale zones (different path or conditions no longer met)
+    if (existing) existing.remove();
+
+    if (!shouldShow) return;
+
     const hoveredEl = this.nodeElements.get(
-      this._findKeyByPath(snapshot.hoveredNodeForDropPath)
+      this._findKeyByPath(snapshot.hoveredNodeForDropPath!)
     );
     if (!hoveredEl) return;
 
-    const node = this.controller.getNodeByPath(snapshot.hoveredNodeForDropPath);
+    const node = this.controller.getNodeByPath(snapshot.hoveredNodeForDropPath!);
     if (!node) return;
+
+    const row = hoveredEl.querySelector('.ltree-node-row') as HTMLElement;
+    if (!row) return;
+
+    const rect = row.getBoundingClientRect();
 
     const allowedPositions = this.controller.getNodeAllowedDropPositions(node);
     const layout = this.lastNodeConfig?.dropZoneLayout || 'around';
@@ -702,6 +757,13 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     const zones = document.createElement('div');
     zones.className = `ltree-drop-zones ltree-drop-zones-${layout}`;
+    zones.setAttribute('data-tree-path', snapshot.hoveredNodeForDropPath!);
+    zones.style.position = 'fixed';
+    zones.style.top = `${rect.top}px`;
+    zones.style.left = `${rect.left}px`;
+    zones.style.width = `${rect.width}px`;
+    zones.style.height = `${rect.height}px`;
+    zones.style.zIndex = '10000';
     zones.style.setProperty('--drop-zone-start', typeof start === 'number' ? `${start}%` : start);
     zones.style.setProperty('--drop-zone-max-width', `${maxWidth}px`);
 
@@ -711,16 +773,10 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       zone.className = `ltree-drop-zone ltree-drop-${pos}`;
       zone.setAttribute('data-drop-position', pos);
       zone.textContent = pos.charAt(0).toUpperCase() + pos.slice(1);
-      if (pos === snapshot.activeDropPosition) {
-        zone.classList.add('ltree-drop-zone-active');
-      }
       zones.appendChild(zone);
     }
 
-    const row = hoveredEl.querySelector('.ltree-node-row');
-    if (row) {
-      row.appendChild(zones);
-    }
+    this.bodyEl.appendChild(zones);
   }
 
   // ── Context menu ────────────────────────────────────────────────────

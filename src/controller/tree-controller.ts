@@ -825,8 +825,16 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     const width = rect.width;
     const height = rect.height;
 
+    // Convert dropZoneStart to pixels: number = percentage, string = as-is (px or %)
+    const dzs = this._dropZoneStart;
+    const startPx = typeof dzs === 'number'
+      ? (dzs / 100) * width
+      : String(dzs).endsWith('px')
+        ? parseFloat(String(dzs))
+        : (parseFloat(String(dzs)) / 100) * width;
+
     let idealPosition: DropPosition;
-    if (x > width / 2) {
+    if (x > startPx) {
       idealPosition = 'child';
     } else if (y < height / 2) {
       idealPosition = 'above';

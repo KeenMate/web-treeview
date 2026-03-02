@@ -466,11 +466,7 @@
 /* ── Drop zones ───────────────────────────────────────────────────── */
 
 .ltree-drop-zones {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  /* position/top/left/width/height set via inline styles (JS-calculated fixed overlay) */
   pointer-events: none;
   overflow: visible;
 }

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0-rc02] - 2026-03-02
+
+### Fixed
+
+- **Floating drop zones not reactive** — Zones were destroyed and recreated on every state change (~60ms), preventing cursor from ever landing on a stable zone element. Now zones are reused when the hovered path hasn't changed, with only position coordinates updated for scroll tracking.
+- **Drop zone hover clearing on zone transition** — When cursor moved from node content to a floating drop zone, the `dragleave` event would clear hover state and destroy the zones. Added guard to detect when `relatedTarget` is inside a drop zone container.
+- **Drop position ignored without `orderMember`** — `moveNode` and `copyNodeWithDescendants` both relied on `orderMember` for above/below positioning. Without it, `refreshSiblings` sorted alphabetically, ignoring the requested position entirely. Now manually positions nodes in the `children` object when no `orderMember` is set.
+- **Glow mode child threshold ignoring `dropZoneStart`** — `calculateDropPositionFromEvent` used a hardcoded `width / 2` threshold for the child zone. Now uses the configurable `dropZoneStart` value (matching svelte-treeview behavior).
+
+### Added
+
+- **Restricted Drop Positions example** — New "Restricted Drop Positions" section in the drag-drop example page demonstrating `allowedDropPositionsMember` with per-node drop position restrictions (child-only, above/below-only, all positions).
+- **Zone Start control always visible** — The "Zone Start" setting in the drag-drop example control panel is now visible for both glow and floating modes, since it affects the child zone threshold in glow mode too.
+
 ## [2.0.0-rc01] - RC - 2026-03-01
 
 Complete rewrite as a framework-agnostic web component. The rendering engine, controller layer, and LTree core have been ported from `@keenmate/svelte-treeview` v4.0.0 to vanilla TypeScript with zero runtime dependencies (except FlexSearch for full-text indexing).

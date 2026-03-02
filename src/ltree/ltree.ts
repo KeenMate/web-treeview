@@ -920,17 +920,16 @@ export function createLTree<T>(
 			this._updateDescendantPaths(sourceNode, oldPath, newPath);
 
 			// Insert into new parent
-			newParent.children[segmentPrefix + newSegment] = sourceNode;
 			newParent.hasChildren = true;
 
-			// If orderMember is defined and position is above/below, calculate order
-			if (this.orderMember && position !== 'child' && sourceNode.data) {
+			if (position !== 'child' && this.orderMember && sourceNode.data) {
+				// orderMember mode: calculate order value, insert, then let refreshSiblings sort
+				newParent.children[segmentPrefix + newSegment] = sourceNode;
 				const om = this.orderMember;
 				const siblings = Object.values(newParent.children) as LTreeNode<T>[];
 				const targetOrder = (targetNode.data ? getField(targetNode.data, om) : 0) ?? 0;
 
 				if (position === 'above') {
-					// Find order value just before target
 					const siblingOrders = siblings
 						.filter(s => s !== sourceNode && s.data && getField(s.data, om) !== undefined)
 						.map(s => getField(s.data!, om) as number)
@@ -939,7 +938,6 @@ export function createLTree<T>(
 					const prevOrder = siblingOrders[0] ?? targetOrder - 20;
 					(sourceNode.data as any)[om] = Math.floor((prevOrder + targetOrder) / 2);
 				} else {
-					// Find order value just after target
 					const siblingOrders = siblings
 						.filter(s => s !== sourceNode && s.data && getField(s.data, om) !== undefined)
 						.map(s => getField(s.data!, om) as number)
@@ -948,10 +946,33 @@ export function createLTree<T>(
 					const nextOrder = siblingOrders[0] ?? targetOrder + 20;
 					(sourceNode.data as any)[om] = Math.floor((targetOrder + nextOrder) / 2);
 				}
+				this.refreshSiblings(newParentPath);
+			} else if (position !== 'child') {
+				// No orderMember: manually position in children object relative to target
+				const targetSegment = segmentPrefix + targetNode.pathSegment;
+				const sourceSegmentKey = segmentPrefix + newSegment;
+				const newChildren: Record<string, LTreeNode<T>> = {};
+				for (const [key, child] of Object.entries(newParent.children)) {
+					if (key === sourceSegmentKey) continue; // skip source, we'll insert it
+					if (key === targetSegment && position === 'above') {
+						newChildren[sourceSegmentKey] = sourceNode;
+					}
+					newChildren[key] = child as LTreeNode<T>;
+					if (key === targetSegment && position === 'below') {
+						newChildren[sourceSegmentKey] = sourceNode;
+					}
+				}
+				// Fallback if target wasn't found (shouldn't happen)
+				if (!newChildren[sourceSegmentKey]) {
+					newChildren[sourceSegmentKey] = sourceNode;
+				}
+				newParent.children = newChildren;
+				this._emitTreeChanged();
+			} else {
+				// position === 'child': just insert and sort
+				newParent.children[segmentPrefix + newSegment] = sourceNode;
+				this.refreshSiblings(newParentPath);
 			}
-
-			// Re-sort siblings if needed
-			this.refreshSiblings(newParentPath);
 
 			return { success: true };
 		},
@@ -1260,36 +1281,55 @@ export function createLTree<T>(
 			// Handle positioning relative to sibling if specified
 			if (siblingPath && position && rootNode.data) {
 				const siblingNode = this.getNodeByPath(siblingPath);
-				if (siblingNode && this.orderMember) {
-					// Get the parent to access siblings
+				if (siblingNode) {
 					const parent = targetParentPath ? this.getNodeByPath(targetParentPath) : root;
 					if (parent) {
-						const siblings = Object.values(parent.children) as LTreeNode<T>[];
-						const oKey = this.orderMember!;
-						const siblingOrder = (siblingNode.data as any)?.[oKey] ?? 0;
+						if (this.orderMember) {
+							// orderMember mode: calculate order value, then let refreshSiblings sort
+							const siblings = Object.values(parent.children) as LTreeNode<T>[];
+							const oKey = this.orderMember!;
+							const siblingOrder = (siblingNode.data as any)?.[oKey] ?? 0;
 
-						if (position === 'above') {
-							// Find order value just before sibling
-							const siblingOrders = siblings
-								.filter(s => s !== rootNode && (s.data as any)?.[oKey] !== undefined)
-								.map(s => (s.data as any)[oKey] as number)
-								.filter(o => o < siblingOrder)
-								.sort((a, b) => b - a);
-							const prevOrder = siblingOrders[0] ?? siblingOrder - 20;
-							(rootNode.data as any)[oKey] = Math.floor((prevOrder + siblingOrder) / 2);
+							if (position === 'above') {
+								const siblingOrders = siblings
+									.filter(s => s !== rootNode && (s.data as any)?.[oKey] !== undefined)
+									.map(s => (s.data as any)[oKey] as number)
+									.filter(o => o < siblingOrder)
+									.sort((a, b) => b - a);
+								const prevOrder = siblingOrders[0] ?? siblingOrder - 20;
+								(rootNode.data as any)[oKey] = Math.floor((prevOrder + siblingOrder) / 2);
+							} else {
+								const siblingOrders = siblings
+									.filter(s => s !== rootNode && (s.data as any)?.[oKey] !== undefined)
+									.map(s => (s.data as any)[oKey] as number)
+									.filter(o => o > siblingOrder)
+									.sort((a, b) => a - b);
+								const nextOrder = siblingOrders[0] ?? siblingOrder + 20;
+								(rootNode.data as any)[oKey] = Math.floor((siblingOrder + nextOrder) / 2);
+							}
+
+							this.refreshSiblings(targetParentPath);
 						} else {
-							// Find order value just after sibling
-							const siblingOrders = siblings
-								.filter(s => s !== rootNode && (s.data as any)?.[oKey] !== undefined)
-								.map(s => (s.data as any)[oKey] as number)
-								.filter(o => o > siblingOrder)
-								.sort((a, b) => a - b);
-							const nextOrder = siblingOrders[0] ?? siblingOrder + 20;
-							(rootNode.data as any)[oKey] = Math.floor((siblingOrder + nextOrder) / 2);
+							// No orderMember: manually position in children object relative to sibling
+							const siblingSegment = segmentPrefix + siblingNode.pathSegment;
+							const rootSegment = segmentPrefix + rootNode.pathSegment;
+							const newChildren: Record<string, LTreeNode<T>> = {};
+							for (const [key, child] of Object.entries(parent.children)) {
+								if (key === rootSegment) continue;
+								if (key === siblingSegment && position === 'above') {
+									newChildren[rootSegment] = rootNode;
+								}
+								newChildren[key] = child as LTreeNode<T>;
+								if (key === siblingSegment && position === 'below') {
+									newChildren[rootSegment] = rootNode;
+								}
+							}
+							if (!newChildren[rootSegment]) {
+								newChildren[rootSegment] = rootNode;
+							}
+							parent.children = newChildren;
+							this._emitTreeChanged();
 						}
-
-						// Re-sort siblings
-						this.refreshSiblings(targetParentPath);
 					}
 				}
 			}
