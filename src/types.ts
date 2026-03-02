@@ -78,6 +78,12 @@ export interface TreeViewConfig<T = any> {
   useFlatRendering?: boolean | null;
   flatIndentSize?: string | null;
 
+  // Virtual scroll
+  virtualScroll?: boolean | null;
+  virtualRowHeight?: number | null;
+  virtualOverscan?: number | null;
+  virtualContainerHeight?: string | null;
+
   // Visual
   bodyClass?: string | null;
   selectedNodeClass?: string | null;

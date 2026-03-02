@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [2.0.0-rc02] - 2026-03-02
 
+### Added
+
+- **Virtual scroll rendering mode** — Only renders nodes visible in the viewport plus an overscan buffer. Three-div structure (scroll container, spacer, translateY content wrapper) with RAF-throttled scroll handler. Configurable via `virtualScroll`, `virtualRowHeight`, `virtualOverscan`, `virtualContainerHeight` attributes/properties.
+- **Fast synchronous scroll path** — Virtual scroll bypasses the controller's `queueMicrotask` batching pipeline. Scroll events compute the visible window and reconcile DOM synchronously in the RAF callback, skipping drag/drop/context-menu/debug updates for smooth 60fps scrolling.
+- **Auto row height measurement** — When no explicit `virtualRowHeight` is set, measures the first rendered node's height as fallback (32px default).
+- **Performance test example page** — New `examples-virtual-scroll.html` with flat vs virtual scroll comparison, synthetic data generation, countries+states dataset, timed expand/collapse/update operations, and search with filter/search modes.
+
+### Fixed
+
+- **Scrollbar slowly shrinking during filter** — Progressive rendering batches were running alongside virtual scroll, firing `_scheduleNotify()` on each batch and causing heavy rebuilds. Virtual scroll now bypasses progressive rendering entirely and cancels pending batches.
+- **Spurious tree rebuild from indexer completion** — FlexSearch indexer's completion callback was calling `_emitTreeChanged()`, triggering a full state-change + reconciliation even though indexing doesn't affect visible tree structure.
+- **`scrollToPath` race condition in virtual scroll** — Rapid `scrollToPath` calls (e.g. holding Enter in search) would race each other due to async 2xRAF waits. Now uses synchronous `_flushNotify()` so the renderer reconciles the target node into the DOM before querying for it.
+- **Stale scroll cache after state changes** — `_performScrollUpdate` could incorrectly early-exit after filter/expand/collapse because the cached start/end indices were stale. Now reset on every `_onStateChange`.
+
 ### Fixed
 
 - **Floating drop zones not reactive** — Zones were destroyed and recreated on every state change (~60ms), preventing cursor from ever landing on a stable zone element. Now zones are reused when the hovered path hasn't changed, with only position coordinates updated for scroll tracking.

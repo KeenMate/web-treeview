@@ -166,6 +166,15 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   // Drop placeholder
   private _isDropPlaceholderActive: boolean = false;
 
+  // Virtual scroll
+  private _virtualScroll: boolean = false;
+  private _virtualRowHeight?: number;
+  private _virtualOverscan: number = 5;
+  private _virtualContainerHeight?: string;
+  private _vsScrollTop: number = 0;
+  private _vsMeasuredRowHeight: number | null = null;
+  private _vsDetectedHeight: string | null = null;
+
   // Skip insertArray flag
   private _skipInsertArray = false;
 
@@ -187,6 +196,13 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this._dirty = false;
       this.emit('state-change', this.getSnapshot());
     });
+  }
+
+  /** Synchronously emit state-change snapshot, bypassing microtask batching.
+   *  Used when the DOM must be updated before the caller continues (e.g. scrollToPath). */
+  private _flushNotify() {
+    this._dirty = false;
+    this.emit('state-change', this.getSnapshot());
   }
 
   // ── Property accessors ──────────────────────────────────────────────
@@ -323,15 +339,89 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   get currentDropOperation() { return this._currentDropOperation; }
   get isDropPlaceholderActive() { return this._isDropPlaceholderActive; }
 
-  // ── Derived ─────────────────────────────────────────────────────────
+  // Virtual scroll accessors
+  get virtualScroll() { return this._virtualScroll; }
+  set virtualScroll(v: boolean) {
+    this._virtualScroll = v;
+    // Cancel pending progressive render batches — virtual scroll replaces progressive rendering
+    if (v && this.flatRenderAnimationFrame) {
+      cancelAnimationFrame(this.flatRenderAnimationFrame);
+      this.flatRenderAnimationFrame = null;
+      this.flatRenderQueue = [];
+    }
+    this._scheduleNotify();
+  }
 
-  get flatNodesToRender(): LTreeNode<T>[] {
-    if (this._useFlatRendering && this._progressiveRender) {
+  get virtualRowHeight() { return this._virtualRowHeight; }
+  set virtualRowHeight(v: number | undefined) { this._virtualRowHeight = v; this._scheduleNotify(); }
+
+  get virtualOverscan() { return this._virtualOverscan; }
+  set virtualOverscan(v: number) { this._virtualOverscan = v; this._scheduleNotify(); }
+
+  get virtualContainerHeight() { return this._virtualContainerHeight; }
+  set virtualContainerHeight(v: string | undefined) { this._virtualContainerHeight = v; this._scheduleNotify(); }
+
+  /** Called by renderer on scroll (triggers full state-change pipeline). */
+  setVirtualScrollTop(scrollTop: number): void {
+    this._vsScrollTop = scrollTop;
+    this._scheduleNotify();
+  }
+
+  /** Silently sync scroll position without triggering state notification.
+   *  Used by the renderer's fast synchronous scroll path. */
+  syncVirtualScrollTop(scrollTop: number): void {
+    this._vsScrollTop = scrollTop;
+  }
+
+  /** Called by renderer after first render to auto-measure row height. */
+  setMeasuredRowHeight(height: number): void {
+    if (this._vsMeasuredRowHeight !== height) {
+      this._vsMeasuredRowHeight = height;
+      this._scheduleNotify();
+    }
+  }
+
+  /** Called by renderer to report detected container height. */
+  setDetectedContainerHeight(height: string): void {
+    if (this._vsDetectedHeight !== height) {
+      this._vsDetectedHeight = height;
+      this._scheduleNotify();
+    }
+  }
+
+  /** Resolved row height: explicit > measured > 32px default */
+  get resolvedRowHeight(): number {
+    return this._virtualRowHeight ?? this._vsMeasuredRowHeight ?? 32;
+  }
+
+  /** Resolved container height string: explicit > detected > '400px' */
+  get resolvedContainerHeight(): string {
+    return this._virtualContainerHeight ?? this._vsDetectedHeight ?? '400px';
+  }
+
+  /** All visible flat nodes (before virtual scroll slicing).
+   *  When virtual scroll is active, bypasses the progressive render filter
+   *  because virtual scroll already limits rendered nodes to the visible window. */
+  get allVisibleFlatNodes(): LTreeNode<T>[] {
+    if (!this._virtualScroll && this._useFlatRendering && this._progressiveRender) {
       return this.tree?.visibleFlatNodes?.filter(
         (n) => this.flatRenderedIds.has(String(n.id))
       ) ?? [];
     }
     return this.tree?.visibleFlatNodes ?? [];
+  }
+
+  // ── Derived ─────────────────────────────────────────────────────────
+
+  get flatNodesToRender(): LTreeNode<T>[] {
+    const all = this.allVisibleFlatNodes;
+    if (!this._virtualScroll) return all;
+
+    const rowHeight = this.resolvedRowHeight;
+    const containerHeightPx = parseFloat(this.resolvedContainerHeight) || 400;
+    const startIndex = Math.max(0, Math.floor(this._vsScrollTop / rowHeight) - this._virtualOverscan);
+    const endIndex = Math.min(all.length, Math.ceil((this._vsScrollTop + containerHeightPx) / rowHeight) + this._virtualOverscan);
+    return all.slice(startIndex, endIndex);
   }
 
   get statistics() {
@@ -365,6 +455,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._dragDropMode = props.dragDropMode ?? 'none';
     this._allowCopy = props.allowCopy ?? false;
     this._autoHandleCopy = props.autoHandleCopy ?? true;
+
+    this._virtualScroll = props.virtualScroll ?? false;
+    this._virtualRowHeight = props.virtualRowHeight;
+    this._virtualOverscan = props.virtualOverscan ?? 5;
+    this._virtualContainerHeight = props.virtualContainerHeight;
 
     this._shouldToggleOnNodeClick = props.shouldToggleOnNodeClick ?? true;
     this._expandIconClass = props.expandIconClass ?? 'ltree-icon-expand';
@@ -901,6 +996,27 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       await new Promise<void>(resolve => queueMicrotask(resolve));
     }
 
+    // Virtual scroll: programmatically scroll the container to bring the node into view
+    if (this._virtualScroll) {
+      const allNodes = this.allVisibleFlatNodes;
+      const nodeIndex = allNodes.findIndex(n => n.path === path);
+      if (nodeIndex >= 0) {
+        const rowHeight = this.resolvedRowHeight;
+        const containerPx = parseFloat(this.resolvedContainerHeight) || 400;
+        const targetScrollTop = Math.max(0, nodeIndex * rowHeight - containerPx / 2 + rowHeight / 2);
+        this._vsScrollTop = targetScrollTop;
+        // Set the actual DOM scroll position
+        const scrollEl = (containerElement || this.containerElement)?.querySelector('.ltree-tree') as HTMLElement;
+        if (scrollEl) {
+          scrollEl.scrollTop = targetScrollTop;
+        }
+        // Synchronous flush — renderer reconciles the visible window immediately,
+        // so the target node element is in the DOM before we query for it below.
+        // This also prevents race conditions when scrollToPath is called rapidly.
+        this._flushNotify();
+      }
+    }
+
     const elementId = `${this._treeId}-${node.id}`;
     const rootEl = containerElement || this.containerElement;
     const element = rootEl
@@ -1026,6 +1142,12 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.contextMenuYOffset !== undefined)
       this._contextMenuYOffset = updates.contextMenuYOffset ?? 0;
 
+    // Virtual scroll
+    if (updates.virtualScroll !== undefined) this._virtualScroll = updates.virtualScroll ?? false;
+    if (updates.virtualRowHeight !== undefined) this._virtualRowHeight = updates.virtualRowHeight;
+    if (updates.virtualOverscan !== undefined) this._virtualOverscan = updates.virtualOverscan ?? 5;
+    if (updates.virtualContainerHeight !== undefined) this._virtualContainerHeight = updates.virtualContainerHeight;
+
     // Callbacks
     if (updates.onNodeClicked !== undefined) this.onNodeClickedCb = updates.onNodeClicked;
     if (updates.onNodeDragStart !== undefined) this.onNodeDragStartCb = updates.onNodeDragStart;
@@ -1135,7 +1257,19 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       useFlatRendering: this._useFlatRendering,
       flatIndentSize: this._flatIndentSize,
       shouldDisplayDebugInformation: this._shouldDisplayDebugInformation,
-      selectedNode: this._selectedNode
+      selectedNode: this._selectedNode,
+
+      // Virtual scroll
+      virtualScroll: this._virtualScroll,
+      virtualRowHeight: this.resolvedRowHeight,
+      virtualContainerHeight: this.resolvedContainerHeight,
+      virtualTotalHeight: this._virtualScroll ? this.allVisibleFlatNodes.length * this.resolvedRowHeight : 0,
+      virtualStartIndex: this._virtualScroll
+        ? Math.max(0, Math.floor(this._vsScrollTop / this.resolvedRowHeight) - this._virtualOverscan)
+        : 0,
+      virtualOffsetY: this._virtualScroll
+        ? Math.max(0, Math.floor(this._vsScrollTop / this.resolvedRowHeight) - this._virtualOverscan) * this.resolvedRowHeight
+        : 0,
     };
   }
 
@@ -1185,6 +1319,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _updateProgressiveRendering() {
     if (!this._useFlatRendering || !this._progressiveRender || !this.tree?.visibleFlatNodes)
       return;
+    // Virtual scroll already limits rendered nodes to the visible window —
+    // skip progressive rendering to avoid background batches firing _scheduleNotify
+    if (this._virtualScroll) return;
 
     const tracker = this.tree.changeTracker;
     if (tracker === this.lastFlatNodesTracker) return;

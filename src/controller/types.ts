@@ -106,6 +106,12 @@ export interface TreeControllerConfig<T> {
   useFlatRendering?: boolean;
   flatIndentSize?: string;
 
+  // Virtual scroll
+  virtualScroll?: boolean;
+  virtualRowHeight?: number;
+  virtualOverscan?: number;
+  virtualContainerHeight?: string;
+
   // DRAG AND DROP
   dragDropMode?: DragDropMode;
   dropZoneMode?: 'floating' | 'glow';
@@ -183,6 +189,14 @@ export interface TreeControllerSnapshot<T> {
   flatIndentSize: string;
   shouldDisplayDebugInformation: boolean;
   selectedNode: LTreeNode<T> | null | undefined;
+
+  // Virtual scroll
+  virtualScroll: boolean;
+  virtualRowHeight: number;
+  virtualContainerHeight: string;
+  virtualTotalHeight: number;
+  virtualStartIndex: number;
+  virtualOffsetY: number;
 }
 
 // ─── Events emitted by TreeController ─────────────────────────────────────

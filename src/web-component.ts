@@ -65,6 +65,12 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _indexerBatchSize?: number;
   private _indexerTimeout?: number;
 
+  // Virtual scroll
+  private _virtualScroll?: boolean;
+  private _virtualRowHeight?: number;
+  private _virtualOverscan?: number;
+  private _virtualContainerHeight?: string;
+
   // DnD config
   private _dragDropMode?: DragDropMode;
   private _dropZoneMode?: 'floating' | 'glow';
@@ -144,6 +150,9 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       // Rendering
       'use-flat-rendering', 'flat-indent-size',
       'progressive-render', 'initial-batch-size', 'max-batch-size',
+
+      // Virtual scroll
+      'virtual-scroll', 'virtual-row-height', 'virtual-overscan', 'virtual-container-height',
     ];
   }
 
@@ -298,6 +307,19 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
   get autoHandleCopy(): boolean | undefined { return this._autoHandleCopy; }
   set autoHandleCopy(value: boolean | undefined) { this._autoHandleCopy = value; this._scheduleUpdate(); }
+
+  // Virtual scroll properties
+  get virtualScroll(): boolean | undefined { return this._virtualScroll; }
+  set virtualScroll(value: boolean | undefined) { this._virtualScroll = value; this._scheduleUpdate(); }
+
+  get virtualRowHeight(): number | undefined { return this._virtualRowHeight; }
+  set virtualRowHeight(value: number | undefined) { this._virtualRowHeight = value; this._scheduleUpdate(); }
+
+  get virtualOverscan(): number | undefined { return this._virtualOverscan; }
+  set virtualOverscan(value: number | undefined) { this._virtualOverscan = value; this._scheduleUpdate(); }
+
+  get virtualContainerHeight(): string | undefined { return this._virtualContainerHeight; }
+  set virtualContainerHeight(value: string | undefined) { this._virtualContainerHeight = value; this._scheduleUpdate(); }
 
   // Callback properties
   get getDisplayValueCallback() { return this._getDisplayValueCallback; }
@@ -757,6 +779,19 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
     const maxBatchSize = this.getAttribute('max-batch-size');
     if (maxBatchSize !== null) config.maxBatchSize = parseInt(maxBatchSize, 10);
+
+    // Virtual scroll
+    const virtualScroll = this._virtualScroll ?? (this.getAttribute('virtual-scroll') !== null ? this.getAttribute('virtual-scroll') !== 'false' : undefined);
+    if (virtualScroll !== undefined) config.virtualScroll = virtualScroll;
+
+    const virtualRowHeight = this._virtualRowHeight ?? (this.getAttribute('virtual-row-height') ? parseFloat(this.getAttribute('virtual-row-height')!) : undefined);
+    if (virtualRowHeight !== undefined) config.virtualRowHeight = virtualRowHeight;
+
+    const virtualOverscan = this._virtualOverscan ?? (this.getAttribute('virtual-overscan') ? parseInt(this.getAttribute('virtual-overscan')!, 10) : undefined);
+    if (virtualOverscan !== undefined) config.virtualOverscan = virtualOverscan;
+
+    const virtualContainerHeight = this._virtualContainerHeight ?? this.getAttribute('virtual-container-height');
+    if (virtualContainerHeight) config.virtualContainerHeight = virtualContainerHeight;
 
     // Callbacks
     if (this._getDisplayValueCallback) config.getDisplayValueCallback = this._getDisplayValueCallback;

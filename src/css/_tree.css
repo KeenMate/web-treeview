@@ -628,6 +628,21 @@
   transform: translateY(100%);
 }
 
+/* ── Virtual scroll ──────────────────────────────────────────────── */
+
+.ltree-tree.ltree-virtual-scroll {
+  overflow: hidden auto !important;
+  overscroll-behavior: contain;
+}
+
+.ltree-vs-spacer {
+  overflow: visible;
+}
+
+.ltree-vs-content {
+  overflow: visible;
+}
+
 /* ── Container ────────────────────────────────────────────────────── */
 
 .ltree-container {

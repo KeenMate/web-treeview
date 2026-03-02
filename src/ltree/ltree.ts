@@ -370,12 +370,7 @@ export function createLTree<T>(
 			if (itemsToIndex.length > 0 && indexer) {
 				indexer.setCallbacks(
 					undefined, // no progress callback for now
-					() => {
-						// Completion callback - refresh tree when indexing is done
-						if (!noEmitChanges) {
-							this._emitTreeChanged();
-						}
-					}
+					undefined  // No tree change on completion — indexing doesn't affect visible structure
 				);
 				indexer.addToQueue(itemsToIndex);
 			}

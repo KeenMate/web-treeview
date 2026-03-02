@@ -5,6 +5,7 @@
  * - Keyed reconciliation: Map<string, HTMLElement> keyed by node path
  * - Node element matches Node.svelte template structure
  * - Uses RenderCoordinator for progressive rendering
+ * - Virtual scroll: three-div structure (scroll container → spacer → translateY content)
  */
 
 import type { TreeViewRenderer, RendererConfig } from './types';
@@ -25,6 +26,14 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private debugEl: HTMLElement | null = null;
   private contextMenuEl: HTMLElement | null = null;
   private loadingEl: HTMLElement | null = null;
+
+  // Virtual scroll DOM elements
+  private vsSpacerEl: HTMLElement | null = null;
+  private vsContentEl: HTMLElement | null = null;
+  private _vsRafPending = false;
+  private _vsMeasured = false;
+  private _vsLastStartIndex = -1;
+  private _vsLastEndIndex = -1;
 
   // Keyed node map
   private nodeElements = new Map<string, HTMLElement>();
@@ -124,6 +133,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.unsubConfig = null;
     this._detachBodyListeners();
     this.nodeElements.clear();
+    this.vsSpacerEl = null;
+    this.vsContentEl = null;
+    this._vsMeasured = false;
     if (this.container) {
       this.container.innerHTML = '';
       this.container.classList.remove('ltree-container');
@@ -352,6 +364,62 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
   };
 
+  /** RAF-throttled virtual scroll handler — uses fast synchronous path */
+  private _onVirtualScroll = () => {
+    if (this._vsRafPending || !this.bodyEl) return;
+    this._vsRafPending = true;
+    requestAnimationFrame(() => {
+      this._vsRafPending = false;
+      this._performScrollUpdate();
+    });
+  };
+
+  /**
+   * Fast synchronous virtual scroll update.
+   * Bypasses the controller's queueMicrotask + state-change event pipeline.
+   * Computes the visible window, updates DOM positioning, and reconciles
+   * only the node list — skips drag/drop/context-menu/debug updates.
+   */
+  private _performScrollUpdate(): void {
+    if (!this.bodyEl || !this.controller || !this.vsSpacerEl || !this.vsContentEl || !this.lastSnapshot) return;
+
+    const scrollTop = this.bodyEl.scrollTop;
+    const ctrl = this.controller;
+    const rowHeight = ctrl.resolvedRowHeight;
+    const containerHeightPx = parseFloat(ctrl.resolvedContainerHeight) || 400;
+    const overscan = ctrl.virtualOverscan;
+    const allNodes = ctrl.allVisibleFlatNodes;
+
+    const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
+    const endIndex = Math.min(allNodes.length, Math.ceil((scrollTop + containerHeightPx) / rowHeight) + overscan);
+
+    // Early exit — window hasn't changed
+    if (startIndex === this._vsLastStartIndex && endIndex === this._vsLastEndIndex) {
+      ctrl.syncVirtualScrollTop(scrollTop);
+      return;
+    }
+    this._vsLastStartIndex = startIndex;
+    this._vsLastEndIndex = endIndex;
+
+    const offsetY = startIndex * rowHeight;
+    const totalHeight = allNodes.length * rowHeight;
+
+    // Update spacer/content positioning synchronously
+    this.vsSpacerEl.style.height = `${totalHeight}px`;
+    this.vsContentEl.style.transform = `translateY(${offsetY}px)`;
+
+    // Reconcile nodes with the sliced window
+    const slicedNodes = allNodes.slice(startIndex, endIndex);
+    this.lastSnapshot.flatNodesToRender = slicedNodes;
+    this.lastSnapshot.virtualTotalHeight = totalHeight;
+    this.lastSnapshot.virtualStartIndex = startIndex;
+    this.lastSnapshot.virtualOffsetY = offsetY;
+    this._reconcileNodes(this.lastSnapshot);
+
+    // Sync controller state silently (so next getSnapshot() has correct scrollTop)
+    ctrl.syncVirtualScrollTop(scrollTop);
+  }
+
   private _attachBodyListeners() {
     if (!this.bodyEl) return;
     this.bodyEl.addEventListener('click', this._onBodyClick);
@@ -379,7 +447,93 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.bodyEl.removeEventListener('dragenter', this._onBodyDragEnter);
     this.bodyEl.removeEventListener('touchstart', this._onBodyTouchStart);
     this.bodyEl.removeEventListener('dragend', this._onBodyDragEnd);
+    this.bodyEl.removeEventListener('scroll', this._onVirtualScroll);
     document.removeEventListener('dragend', this._onDocumentDragEnd);
+  }
+
+  // ── Virtual scroll structure ───────────────────────────────────────
+
+  private _ensureVirtualScrollStructure(snapshot: TreeControllerSnapshot<T>): void {
+    if (!this.bodyEl) return;
+
+    if (snapshot.virtualScroll && !this.vsSpacerEl) {
+      // Enable virtual scroll: add class, create spacer + content wrapper
+      this.bodyEl.classList.add('ltree-virtual-scroll');
+      this.bodyEl.style.height = snapshot.virtualContainerHeight;
+
+      this.vsSpacerEl = document.createElement('div');
+      this.vsSpacerEl.className = 'ltree-vs-spacer';
+      this.vsSpacerEl.style.position = 'relative';
+      this.vsSpacerEl.style.width = '100%';
+
+      this.vsContentEl = document.createElement('div');
+      this.vsContentEl.className = 'ltree-vs-content';
+      this.vsContentEl.style.willChange = 'transform';
+
+      // Move existing children into vsContentEl
+      while (this.bodyEl.firstChild) {
+        this.vsContentEl.appendChild(this.bodyEl.firstChild);
+      }
+
+      this.vsSpacerEl.appendChild(this.vsContentEl);
+      this.bodyEl.appendChild(this.vsSpacerEl);
+
+      // Attach scroll listener
+      this.bodyEl.addEventListener('scroll', this._onVirtualScroll, { passive: true });
+      this._vsMeasured = false;
+      this._vsLastStartIndex = -1;
+      this._vsLastEndIndex = -1;
+
+    } else if (!snapshot.virtualScroll && this.vsSpacerEl) {
+      // Disable virtual scroll: tear down structure
+      this.bodyEl.removeEventListener('scroll', this._onVirtualScroll);
+      this.bodyEl.classList.remove('ltree-virtual-scroll');
+      this.bodyEl.style.height = '';
+
+      // Move children back from vsContentEl to bodyEl
+      if (this.vsContentEl) {
+        while (this.vsContentEl.firstChild) {
+          this.bodyEl.appendChild(this.vsContentEl.firstChild);
+        }
+      }
+      this.vsSpacerEl.remove();
+      this.vsSpacerEl = null;
+      this.vsContentEl = null;
+      this._vsMeasured = false;
+      this._vsLastStartIndex = -1;
+      this._vsLastEndIndex = -1;
+    }
+  }
+
+  private _updateVirtualScrollPositioning(snapshot: TreeControllerSnapshot<T>): void {
+    if (!snapshot.virtualScroll || !this.vsSpacerEl || !this.vsContentEl || !this.bodyEl) return;
+
+    // Update container height if changed
+    if (this.bodyEl.style.height !== snapshot.virtualContainerHeight) {
+      this.bodyEl.style.height = snapshot.virtualContainerHeight;
+    }
+
+    // Update spacer height (creates the correct scrollbar size)
+    this.vsSpacerEl.style.height = `${snapshot.virtualTotalHeight}px`;
+
+    // Position the content wrapper at the correct offset
+    this.vsContentEl.style.transform = `translateY(${snapshot.virtualOffsetY}px)`;
+  }
+
+  private _autoMeasureRowHeight(): void {
+    if (!this.controller || this._vsMeasured) return;
+
+    const renderTarget = this.vsContentEl ?? this.bodyEl;
+    if (!renderTarget) return;
+
+    const firstNode = renderTarget.querySelector('.ltree-node') as HTMLElement;
+    if (firstNode) {
+      const height = firstNode.getBoundingClientRect().height;
+      if (height > 0) {
+        this._vsMeasured = true;
+        this.controller.setMeasuredRowHeight(height);
+      }
+    }
   }
 
   // ── State change handler ────────────────────────────────────────────
@@ -387,8 +541,24 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _onStateChange(snapshot: TreeControllerSnapshot<T>): void {
     if (!this.bodyEl || !this.controller) return;
 
+    // Invalidate scroll fast-path cache — the underlying data may have changed
+    // (filter, expand, collapse, data load), so the next scroll must not early-exit
+    this._vsLastStartIndex = -1;
+    this._vsLastEndIndex = -1;
+
+    // Manage virtual scroll DOM structure
+    this._ensureVirtualScrollStructure(snapshot);
+
     // Reconcile nodes
     this._reconcileNodes(snapshot);
+
+    // Virtual scroll: update spacer/content positioning
+    this._updateVirtualScrollPositioning(snapshot);
+
+    // Virtual scroll: auto-measure row height from first rendered node
+    if (snapshot.virtualScroll && !this._vsMeasured) {
+      this._autoMeasureRowHeight();
+    }
 
     // Update drag CSS classes
     this._updateDragClasses(snapshot);
@@ -430,8 +600,14 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
   // ── Node reconciliation ─────────────────────────────────────────────
 
+  /** Get the element where node elements are rendered (vsContentEl in virtual scroll, bodyEl otherwise) */
+  private get _renderTarget(): HTMLElement | null {
+    return this.vsContentEl ?? this.bodyEl;
+  }
+
   private _reconcileNodes(snapshot: TreeControllerSnapshot<T>): void {
-    if (!this.bodyEl || !this.controller) return;
+    const target = this._renderTarget;
+    if (!target || !this.controller) return;
 
     const nodes = snapshot.flatNodesToRender;
     const newKeys = new Set<string>();
@@ -443,9 +619,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
 
     // Remove empty state if it exists
-    const emptyState = this.bodyEl.querySelector('.ltree-empty-state');
+    const emptyState = target.querySelector('.ltree-empty-state');
     if (emptyState) emptyState.remove();
-    const dropPlaceholder = this.bodyEl.querySelector('.ltree-drop-placeholder');
+    const dropPlaceholder = target.querySelector('.ltree-drop-placeholder');
     if (dropPlaceholder) dropPlaceholder.remove();
 
     // Build/update nodes
@@ -479,14 +655,14 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         this.nodeElements.set(key, el);
       }
 
-      // Ensure correct order
-      const currentChild = this.bodyEl.children[i];
+      // Ensure correct order — ensure the element is parented to the render target
+      const currentChild = target.children[i];
       if (currentChild !== el) {
-        this.bodyEl.insertBefore(el, currentChild || null);
+        target.insertBefore(el, currentChild || null);
       }
     }
 
-    // Remove absent nodes
+    // Remove absent nodes (nodes scrolled out of virtual window)
     for (const [key, el] of this.nodeElements) {
       if (!newKeys.has(key)) {
         el.remove();
@@ -496,7 +672,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   }
 
   private _renderEmpty(snapshot: TreeControllerSnapshot<T>): void {
-    if (!this.bodyEl) return;
+    const target = this._renderTarget;
+    if (!target) return;
 
     // Clear all node elements
     for (const [, el] of this.nodeElements) {
@@ -506,9 +683,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     // Show drop placeholder or empty state
     if (snapshot.isDragInProgress && snapshot.isDropPlaceholderActive) {
-      let placeholder = this.bodyEl.querySelector('.ltree-drop-placeholder');
+      let placeholder = target.querySelector('.ltree-drop-placeholder');
       if (!placeholder) {
-        const emptyState = this.bodyEl.querySelector('.ltree-empty-state');
+        const emptyState = target.querySelector('.ltree-empty-state');
         if (emptyState) emptyState.remove();
 
         placeholder = document.createElement('div');
@@ -521,13 +698,13 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           content.textContent = 'Drop here';
           placeholder.appendChild(content);
         }
-        this.bodyEl.appendChild(placeholder);
+        target.appendChild(placeholder);
       }
     } else {
-      const placeholder = this.bodyEl.querySelector('.ltree-drop-placeholder');
+      const placeholder = target.querySelector('.ltree-drop-placeholder');
       if (placeholder) placeholder.remove();
 
-      let emptyState = this.bodyEl.querySelector('.ltree-empty-state');
+      let emptyState = target.querySelector('.ltree-empty-state');
       if (!emptyState) {
         emptyState = document.createElement('div');
         emptyState.className = 'ltree-empty-state';
@@ -536,7 +713,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         } else {
           emptyState.textContent = 'No data';
         }
-        this.bodyEl.appendChild(emptyState);
+        target.appendChild(emptyState);
       }
     }
   }
@@ -875,6 +1052,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           <span>Max Level: ${stats.maxLevel}</span>
           <span>Flat: ${snapshot.useFlatRendering}</span>
           <span>Rendering: ${snapshot.isRendering}</span>
+          ${snapshot.virtualScroll ? `<span>VScroll: on</span><span>RowH: ${snapshot.virtualRowHeight}px</span>` : ''}
         </div>
       </details>
     `;

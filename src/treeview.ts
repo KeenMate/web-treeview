@@ -212,6 +212,11 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     useFlatRendering: options.useFlatRendering ?? true,
     flatIndentSize: options.flatIndentSize,
 
+    virtualScroll: options.virtualScroll ?? false,
+    virtualRowHeight: options.virtualRowHeight ?? undefined,
+    virtualOverscan: options.virtualOverscan ?? undefined,
+    virtualContainerHeight: options.virtualContainerHeight ?? undefined,
+
     dragDropMode: options.dragDropMode,
     dropZoneMode: options.dropZoneMode,
     dropZoneLayout: options.dropZoneLayout,
