@@ -222,6 +222,12 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         }
       }
     }
+
+    // Empty tree or active drop placeholder dragover
+    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-drop-placeholder') as HTMLElement;
+    if (emptyOrPlaceholder) {
+      this.controller.handleEmptyTreeDragOver(event);
+    }
   };
 
   private _onBodyDragLeave = (event: DragEvent) => {
@@ -237,6 +243,11 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           this.controller.dragLeave(node, event);
         }
       }
+    }
+
+    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-drop-placeholder') as HTMLElement;
+    if (emptyOrPlaceholder) {
+      this.controller.handleEmptyTreeDragLeave(event);
     }
   };
 
@@ -259,9 +270,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       }
     }
 
-    // Check for empty tree drop
-    const emptyState = target.closest('.ltree-empty-state') as HTMLElement;
-    if (emptyState) {
+    // Check for empty tree drop (matches both .ltree-empty-state and active .ltree-drop-placeholder)
+    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-drop-placeholder') as HTMLElement;
+    if (emptyOrPlaceholder) {
       this.controller.handleEmptyTreeDrop(event);
       return;
     }
@@ -282,6 +293,17 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
   private _onBodyDragEnter = (event: DragEvent) => {
     this.controller?.handleTreeDragEnter(event);
+  };
+
+  private _onBodyDragEnd = (event: DragEvent) => {
+    this.controller?._onNodeDragEnd(event);
+  };
+
+  /** Catches dragend from OTHER trees (cross-tree) and Esc cancellations.
+   *  dragend fires on the source element; when that element lives in a
+   *  different shadow root the event never reaches our bodyEl. */
+  private _onDocumentDragEnd = (event: DragEvent) => {
+    this.controller?.cancelDrag();
   };
 
   private _onBodyTouchStart = (event: TouchEvent) => {
@@ -307,6 +329,10 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.bodyEl.addEventListener('drop', this._onBodyDrop);
     this.bodyEl.addEventListener('dragenter', this._onBodyDragEnter);
     this.bodyEl.addEventListener('touchstart', this._onBodyTouchStart, { passive: true });
+    // dragend fires on the SOURCE element after any drag ends (drop, cancel, cross-tree)
+    this.bodyEl.addEventListener('dragend', this._onBodyDragEnd);
+    // Cross-tree / Esc: dragend from other shadow roots won't reach our bodyEl
+    document.addEventListener('dragend', this._onDocumentDragEnd);
   }
 
   private _detachBodyListeners() {
@@ -319,6 +345,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.bodyEl.removeEventListener('drop', this._onBodyDrop);
     this.bodyEl.removeEventListener('dragenter', this._onBodyDragEnter);
     this.bodyEl.removeEventListener('touchstart', this._onBodyTouchStart);
+    this.bodyEl.removeEventListener('dragend', this._onBodyDragEnd);
+    document.removeEventListener('dragend', this._onDocumentDragEnd);
   }
 
   // ── State change handler ────────────────────────────────────────────
@@ -395,10 +423,18 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
       let el = this.nodeElements.get(key);
       if (el) {
-        // Update existing node
-        const existingRev = el.getAttribute('data-rev');
-        if (existingRev !== String(node._rev)) {
+        // Always keep data-tree-path in sync (moveNode changes paths)
+        const currentPath = el.getAttribute('data-tree-path');
+        if (currentPath !== node.path) {
+          el.setAttribute('data-tree-path', node.path);
+          // Path changed — force full update regardless of _rev
           this._updateNodeElement(el, node, snapshot);
+        } else {
+          // Update existing node if _rev changed
+          const existingRev = el.getAttribute('data-rev');
+          if (existingRev !== String(node._rev)) {
+            this._updateNodeElement(el, node, snapshot);
+          }
         }
         // Update indent for flat mode
         if (snapshot.useFlatRendering) {
@@ -547,6 +583,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
   private _updateNodeElement(el: HTMLElement, node: LTreeNode<T>, snapshot: TreeControllerSnapshot<T>): void {
     el.setAttribute('data-rev', String(node._rev));
+    el.setAttribute('data-tree-path', node.path);
 
     const nodeConfig = this.lastNodeConfig;
 
@@ -612,7 +649,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
       // Clear previous drag classes
       el.classList.remove('ltree-dragged');
-      content.classList.remove('ltree-glow-before', 'ltree-glow-after', 'ltree-glow-child', 'ltree-drop-copy');
+      content.classList.remove('ltree-glow-above', 'ltree-glow-below', 'ltree-glow-child', 'ltree-drop-copy');
 
       // Dragged node style
       if (path === snapshot.draggedNodePath) {
@@ -668,7 +705,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     zones.style.setProperty('--drop-zone-start', typeof start === 'number' ? `${start}%` : start);
     zones.style.setProperty('--drop-zone-max-width', `${maxWidth}px`);
 
-    const positions: DropPosition[] = allowedPositions || ['before', 'after', 'child'];
+    const positions: DropPosition[] = allowedPositions || ['above', 'below', 'child'];
     for (const pos of positions) {
       const zone = document.createElement('div');
       zone.className = `ltree-drop-zone ltree-drop-${pos}`;

@@ -57,6 +57,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     leafIconClass: 'ltree-icon-leaf',
     selectedNodeClass: undefined,
     dragOverNodeClass: undefined,
+    dragDropMode: 'none',
     dropZoneMode: 'glow',
     dropZoneLayout: 'around',
     dropZoneStart: 33,
@@ -252,7 +253,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   set bodyClass(v: string | null | undefined) { this._bodyClass = v; this._scheduleNotify(); }
 
   get dragDropMode() { return this._dragDropMode; }
-  set dragDropMode(v: DragDropMode) { this._dragDropMode = v; }
+  set dragDropMode(v: DragDropMode) { this._dragDropMode = v; this._updateNodeConfig(); }
 
   get allowCopy() { return this._allowCopy; }
   set allowCopy(v: boolean) {
@@ -543,7 +544,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   moveNode(
     sourcePath: string,
     targetPath: string,
-    position: 'before' | 'after' | 'child'
+    position: 'above' | 'below' | 'child'
   ): { success: boolean; error?: string } {
     this._skipInsertArray = true;
     const result = this.tree?.moveNode(sourcePath, targetPath, position) || {
@@ -606,7 +607,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     targetParentPath: string,
     transformData: (data: T) => T,
     siblingPath?: string,
-    position?: 'before' | 'after'
+    position?: 'above' | 'below'
   ): { success: boolean; rootNode?: LTreeNode<T>; count: number; error?: string } {
     this._skipInsertArray = true;
     const result = this.tree?.copyNodeWithDescendants(
@@ -828,9 +829,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (x > width / 2) {
       idealPosition = 'child';
     } else if (y < height / 2) {
-      idealPosition = 'before';
+      idealPosition = 'above';
     } else {
-      idealPosition = 'after';
+      idealPosition = 'below';
     }
 
     if (!allowedPositions || allowedPositions.length === 0) {
@@ -845,8 +846,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       return allowedPositions[0];
     }
 
-    if (allowedPositions.includes('before') && allowedPositions.includes('after')) {
-      return y < height / 2 ? 'before' : 'after';
+    if (allowedPositions.includes('above') && allowedPositions.includes('below')) {
+      return y < height / 2 ? 'above' : 'below';
     }
 
     return allowedPositions[0];
@@ -1268,6 +1269,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       leafIconClass: this._leafIconClass,
       selectedNodeClass: this._selectedNodeClass,
       dragOverNodeClass: this._dragOverNodeClass,
+      dragDropMode: this._dragDropMode,
       dropZoneMode: this._dropZoneMode,
       dropZoneLayout: this._dropZoneLayout,
       dropZoneStart: this._dropZoneStart,
@@ -1397,8 +1399,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     const rect = element.getBoundingClientRect();
     const y = event.clientY - rect.top;
     const height = rect.height;
-    if (y < height * 0.25) return 'before';
-    if (y > height * 0.75) return 'after';
+    if (y < height * 0.25) return 'above';
+    if (y > height * 0.75) return 'below';
     return 'child';
   }
 

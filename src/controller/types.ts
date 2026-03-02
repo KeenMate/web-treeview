@@ -38,6 +38,7 @@ export interface NodeConfig {
   leafIconClass: string;
   selectedNodeClass: string | null | undefined;
   dragOverNodeClass: string | null | undefined;
+  dragDropMode: DragDropMode;
   dropZoneMode: 'floating' | 'glow';
   dropZoneLayout: 'around' | 'above' | 'below' | 'wave' | 'wave2';
   dropZoneStart: number | string;

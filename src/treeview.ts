@@ -119,6 +119,16 @@ export class WebTreeView<T = any> {
     return this.controller.updateNode(path, dataUpdates);
   }
 
+  copyNodeWithDescendants(
+    sourceNode: LTreeNode<T>,
+    targetParentPath: string,
+    dataTransform: (data: T) => T,
+    siblingPath?: string,
+    position?: 'above' | 'below'
+  ) {
+    return this.controller.copyNodeWithDescendants(sourceNode, targetParentPath, dataTransform, siblingPath, position);
+  }
+
   applyChanges(changes: TreeChange<T>[]): ApplyChangesResult {
     return this.controller.applyChanges(changes);
   }

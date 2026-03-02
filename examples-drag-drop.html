@@ -24,6 +24,25 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Control panel styles */
+        .controls select,
+        .controls input[type="text"],
+        .controls input[type="number"] {
+            padding: 4px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        .controls select {
+            min-width: 160px;
+        }
+        .controls input[type="text"] {
+            width: 80px;
+        }
+        .controls input[type="number"] {
+            width: 70px;
+        }
     </style>
 </head>
 <body>
@@ -34,81 +53,84 @@
             <p class="subtitle">Reorder nodes, drop zones, copy operations, and cross-tree transfers</p>
         </header>
 
-        <!-- Example 1: Basic DnD -->
+        <!-- Main DnD Example with Control Panel -->
         <div class="card">
-            <h2>Example 1: Basic Drag & Drop</h2>
-            <p>Drag nodes to reorder them within the tree. Nodes can be moved before, after, or as children of other nodes.</p>
-
-            <div class="tree-container" id="tree1-container">
-                <web-treeview id="tree1"></web-treeview>
-            </div>
-
-            <div class="output">
-                <p class="output-label">Last drop event:</p>
-                <pre id="tree1-output">Drag a node to see drop info</pre>
-            </div>
-        </div>
-
-        <!-- Example 2: Drop Zone Modes -->
-        <div class="card">
-            <h2>Example 2: Drop Zone Modes</h2>
-            <p>Switch between <code>floating</code> and <code>glow</code> drop zone visual modes.</p>
+            <h2>Drag Between Trees</h2>
+            <p><strong>Source tree (left):</strong> Drag to reorganize nodes (move). Enable "Allow Ctrl+drag to copy" then hold Ctrl while dragging to copy nodes.
+                <strong>Target tree (right):</strong> Drag from source to add nodes. Starts empty to demo drop placeholder.</p>
 
             <div class="controls">
-                <button onclick="setDropZoneMode('floating')">Floating mode</button>
-                <button onclick="setDropZoneMode('glow')">Glow mode</button>
+                <button class="btn-outline" onclick="clearTarget()">Clear Target Tree</button>
+                <button onclick="resetTarget()">Reset Target Tree (100 nodes)</button>
+                <button class="btn-outline" onclick="clearLog()">Clear Log</button>
             </div>
 
-            <div class="tree-container" id="tree2-container">
-                <web-treeview id="tree2"></web-treeview>
+            <div class="controls" id="dnd-controls">
+                <label>
+                    Source Drag Mode:
+                    <select id="ctrl-drag-mode" onchange="applySettings()">
+                        <option value="none">none (disabled)</option>
+                        <option value="cross">cross (to other trees only)</option>
+                        <option value="both" selected>both (self + cross)</option>
+                    </select>
+                </label>
+                <label>
+                    Drop Zone Mode:
+                    <select id="ctrl-drop-zone-mode" onchange="applySettings()">
+                        <option value="glow">Glow (border indicators)</option>
+                        <option value="floating">Floating (popup zones)</option>
+                    </select>
+                </label>
+                <span id="floating-controls" style="display: none;">
+                    <label>
+                        Layout:
+                        <select id="ctrl-layout" onchange="applySettings()">
+                            <option value="around">Around (above + below/child)</option>
+                            <option value="above">Above (all 3 in row above)</option>
+                            <option value="below">Below (all 3 in row below)</option>
+                            <option value="wave">Wave (stacked vertically)</option>
+                            <option value="wave2">Wave2 (diagonal pattern)</option>
+                        </select>
+                    </label>
+                    <label>
+                        Zone Start:
+                        <input type="text" id="ctrl-zone-start" value="33%" placeholder="33% or 50px" onchange="applySettings()">
+                    </label>
+                    <label>
+                        Max Width (px):
+                        <input type="number" id="ctrl-max-width" value="120" min="50" max="300" onchange="applySettings()">
+                    </label>
+                </span>
+                <label style="margin-left: 1rem;">
+                    <input type="checkbox" id="ctrl-allow-copy" onchange="applySettings()">
+                    Allow Ctrl+drag to copy
+                </label>
             </div>
-        </div>
-
-        <!-- Example 3: Copy Operation -->
-        <div class="card">
-            <h2>Example 3: Copy on Drop (Hold Ctrl)</h2>
-            <p>Hold <code>Ctrl</code> while dragging to copy a node instead of moving it. The copy indicator appears on the cursor.</p>
-
-            <div class="tree-container" id="tree3-container">
-                <web-treeview id="tree3"></web-treeview>
-            </div>
-
-            <div class="output">
-                <p class="output-label">Last operation:</p>
-                <pre id="tree3-output">Drag with Ctrl held to copy</pre>
-            </div>
-        </div>
-
-        <!-- Example 4: Cross-Tree DnD -->
-        <div class="card">
-            <h2>Example 4: Cross-Tree Drag & Drop</h2>
-            <p>Drag nodes between two separate trees. Each tree has its own data and identity.</p>
 
             <div class="tree-pair">
                 <div>
-                    <p class="tree-label">Source Tree</p>
-                    <div class="tree-container" id="tree4a-container">
-                        <web-treeview id="tree4a"></web-treeview>
+                    <p class="tree-label">Source Tree (Reorganizable)</p>
+                    <div class="tree-container" id="source-container">
+                        <web-treeview id="source-tree"></web-treeview>
                     </div>
                 </div>
                 <div>
-                    <p class="tree-label">Target Tree</p>
-                    <div class="tree-container" id="tree4b-container">
-                        <web-treeview id="tree4b"></web-treeview>
+                    <p class="tree-label" id="target-label">Target Tree (Empty - Drop Here!)</p>
+                    <div class="tree-container" id="target-container">
+                        <web-treeview id="target-tree"></web-treeview>
                     </div>
                 </div>
             </div>
 
-            <div class="output">
-                <p class="output-label">Cross-tree events:</p>
-                <div class="event-log" id="tree4-log"></div>
+            <div class="output" id="activity-output" style="display: none;">
+                <p class="output-label">Activity Log:</p>
+                <pre id="activity-log"></pre>
             </div>
-            <button onclick="document.getElementById('tree4-log').innerHTML = ''" class="btn-outline" style="margin-top: 0.5rem">Clear log</button>
         </div>
 
-        <!-- Example 5: beforeDropCallback -->
+        <!-- Example 2: beforeDropCallback -->
         <div class="card">
-            <h2>Example 5: Drop Validation</h2>
+            <h2>Drop Validation</h2>
             <p>Use <code>beforeDropCallback</code> to validate or reject drops. In this example, "Important" nodes cannot be moved.</p>
 
             <div class="tree-container" id="tree5-container">
@@ -131,39 +153,14 @@
 
         // ── Sample Data ──────────────────────────────────────────────────
 
-        const taskList = [
-            { id: 1, path: '1', name: 'Project Alpha' },
-            { id: 2, path: '1.1', name: 'Design Phase' },
-            { id: 3, path: '1.1.1', name: 'Wireframes' },
-            { id: 4, path: '1.1.2', name: 'Mockups' },
-            { id: 5, path: '1.2', name: 'Development' },
-            { id: 6, path: '1.2.1', name: 'Frontend' },
-            { id: 7, path: '1.2.2', name: 'Backend' },
-            { id: 8, path: '1.2.3', name: 'Database' },
-            { id: 9, path: '1.3', name: 'Testing' },
-            { id: 10, path: '1.3.1', name: 'Unit Tests' },
-            { id: 11, path: '1.3.2', name: 'Integration Tests' },
-            { id: 12, path: '2', name: 'Project Beta' },
-            { id: 13, path: '2.1', name: 'Research' },
-            { id: 14, path: '2.2', name: 'Prototype' },
-            { id: 15, path: '2.3', name: 'Review' }
-        ];
-
         const sourceData = [
-            { id: 1, path: '1', name: 'Available Components' },
-            { id: 2, path: '1.1', name: 'Header' },
-            { id: 3, path: '1.2', name: 'Sidebar' },
-            { id: 4, path: '1.3', name: 'Footer' },
-            { id: 5, path: '1.4', name: 'Card' },
-            { id: 6, path: '1.5', name: 'Modal' },
-            { id: 7, path: '1.6', name: 'Table' }
-        ];
-
-        const targetData = [
-            { id: 100, path: '1', name: 'Page Layout' },
-            { id: 101, path: '1.1', name: 'Top Section' },
-            { id: 102, path: '1.2', name: 'Main Content' },
-            { id: 103, path: '1.3', name: 'Bottom Section' }
+            { id: 1, path: '1', name: 'Source Folder', sortOrder: 10 },
+            { id: 2, path: '1.1', name: 'File A', sortOrder: 10 },
+            { id: 3, path: '1.2', name: 'File B', sortOrder: 20 },
+            { id: 4, path: '1.3', name: 'File C', sortOrder: 30 },
+            { id: 5, path: '2', name: 'Another Folder', sortOrder: 20 },
+            { id: 6, path: '2.1', name: 'Document 1', sortOrder: 10 },
+            { id: 7, path: '2.2', name: 'Document 2', sortOrder: 20 }
         ];
 
         const validationData = [
@@ -177,7 +174,13 @@
             { id: 8, path: '2.2', name: 'Old Task 2' }
         ];
 
-        // ── Helper ──────────────────────────────────────────────────────
+        // ── State ─────────────────────────────────────────────────────────
+
+        let activityLog = [];
+        let nextId = 100;
+        let sourceTreeEl, targetTreeEl;
+
+        // ── Helpers ───────────────────────────────────────────────────────
 
         function initTree(id, data, opts = {}) {
             const el = document.getElementById(id);
@@ -185,7 +188,7 @@
             el.idMember = 'id';
             el.pathMember = 'path';
             el.displayValueMember = 'name';
-            el.expandLevel = opts.expandLevel ?? 2;
+            el.expandLevel = opts.expandLevel ?? 3;
             el.dragDropMode = opts.dragDropMode ?? 'both';
             if (opts.dropZoneMode) el.dropZoneMode = opts.dropZoneMode;
             if (opts.allowCopy) el.allowCopy = true;
@@ -194,55 +197,205 @@
             return el;
         }
 
+        function addLog(message) {
+            activityLog = [...activityLog.slice(-9), `${new Date().toLocaleTimeString()} - ${message}`];
+            const outputEl = document.getElementById('activity-output');
+            const logEl = document.getElementById('activity-log');
+            outputEl.style.display = '';
+            logEl.textContent = activityLog.join('\n');
+        }
+
+        // ── Settings Persistence ──────────────────────────────────────────
+
+        function loadSettings() {
+            const saved = localStorage.getItem('dropZoneConfig');
+            if (!saved) return;
+            try {
+                const config = JSON.parse(saved);
+                if (config.dragDropModeSource) document.getElementById('ctrl-drag-mode').value = config.dragDropModeSource;
+                if (config.mode) document.getElementById('ctrl-drop-zone-mode').value = config.mode;
+                if (config.layout) document.getElementById('ctrl-layout').value = config.layout;
+                if (config.start !== undefined) document.getElementById('ctrl-zone-start').value = config.start;
+                if (config.maxWidth !== undefined) document.getElementById('ctrl-max-width').value = config.maxWidth;
+                if (config.allowCopy !== undefined) document.getElementById('ctrl-allow-copy').checked = config.allowCopy;
+            } catch (e) {
+                // Ignore invalid JSON
+            }
+        }
+
+        function saveSettings() {
+            const config = {
+                dragDropModeSource: document.getElementById('ctrl-drag-mode').value,
+                mode: document.getElementById('ctrl-drop-zone-mode').value,
+                layout: document.getElementById('ctrl-layout').value,
+                start: document.getElementById('ctrl-zone-start').value,
+                maxWidth: parseInt(document.getElementById('ctrl-max-width').value, 10),
+                allowCopy: document.getElementById('ctrl-allow-copy').checked
+            };
+            localStorage.setItem('dropZoneConfig', JSON.stringify(config));
+        }
+
+        // ── Apply Settings to Trees ───────────────────────────────────────
+
+        window.applySettings = function() {
+            const dragMode = document.getElementById('ctrl-drag-mode').value;
+            const dropZoneMode = document.getElementById('ctrl-drop-zone-mode').value;
+            const layout = document.getElementById('ctrl-layout').value;
+            const zoneStart = document.getElementById('ctrl-zone-start').value;
+            const maxWidth = parseInt(document.getElementById('ctrl-max-width').value, 10);
+            const allowCopy = document.getElementById('ctrl-allow-copy').checked;
+
+            // Show/hide floating-specific controls
+            const floatingControls = document.getElementById('floating-controls');
+            floatingControls.style.display = dropZoneMode === 'floating' ? 'contents' : 'none';
+
+            // Apply to source tree
+            if (sourceTreeEl) {
+                sourceTreeEl.dragDropMode = dragMode;
+                sourceTreeEl.dropZoneMode = dropZoneMode;
+                sourceTreeEl.dropZoneLayout = layout;
+                sourceTreeEl.dropZoneStart = zoneStart;
+                sourceTreeEl.dropZoneMaxWidth = maxWidth;
+                sourceTreeEl.allowCopy = allowCopy;
+            }
+
+            // Apply to target tree (always 'both' mode)
+            if (targetTreeEl) {
+                targetTreeEl.dropZoneMode = dropZoneMode;
+                targetTreeEl.dropZoneLayout = layout;
+                targetTreeEl.dropZoneStart = zoneStart;
+                targetTreeEl.dropZoneMaxWidth = maxWidth;
+                targetTreeEl.allowCopy = allowCopy;
+            }
+
+            saveSettings();
+        };
+
+        // ── Target Tree Actions ───────────────────────────────────────────
+
+        window.clearTarget = function() {
+            if (targetTreeEl) {
+                targetTreeEl.data = [];
+                document.getElementById('target-label').textContent = 'Target Tree (Empty - Drop Here!)';
+            }
+            addLog('Cleared target tree');
+        };
+
+        window.resetTarget = function() {
+            const nodes = [];
+            let id = 1000;
+            for (let i = 1; i <= 10; i++) {
+                nodes.push({ id: id++, path: `${i}`, name: `Folder ${i}`, sortOrder: i * 10 });
+                for (let j = 1; j <= 3; j++) {
+                    nodes.push({ id: id++, path: `${i}.${j}`, name: `Subfolder ${i}.${j}`, sortOrder: j * 10 });
+                    for (let k = 1; k <= 2 + (i % 2); k++) {
+                        nodes.push({ id: id++, path: `${i}.${j}.${k}`, name: `File ${i}.${j}.${k}`, sortOrder: k * 10 });
+                    }
+                }
+            }
+            if (targetTreeEl) {
+                targetTreeEl.data = nodes;
+                document.getElementById('target-label').textContent = 'Target Tree';
+            }
+            addLog(`Reset target tree with ${nodes.length} nodes`);
+        };
+
+        window.clearLog = function() {
+            activityLog = [];
+            document.getElementById('activity-log').textContent = '';
+            document.getElementById('activity-output').style.display = 'none';
+        };
+
+        // ── Cross-Tree Drop Handler ──────────────────────────────────────
+
+        function handleTargetDrop(dropNode, draggedNode, position, event, operation) {
+            // Same-tree operations are auto-handled by the library - just log
+            const isSameTreeDrag = draggedNode.treeId === 'target-tree';
+            if (isSameTreeDrag) {
+                addLog(`[${operation.toUpperCase()}] ${operation === 'move' ? 'Moved' : 'Copied'} "${draggedNode.data?.name}" ${position} "${dropNode?.data?.name || 'root'}"`);
+                return;
+            }
+
+            // Cross-tree drags - use copyNodeWithDescendants to include children
+            let parentPath;
+            let siblingPath;
+            let copyPosition;
+
+            if (dropNode === null) {
+                parentPath = '';
+            } else if (position === 'child') {
+                parentPath = dropNode.path;
+            } else {
+                parentPath = dropNode.parentPath || '';
+                siblingPath = dropNode.path;
+                copyPosition = position;
+            }
+
+            const result = targetTreeEl.copyNodeWithDescendants(
+                draggedNode,
+                parentPath,
+                (data) => ({
+                    ...data,
+                    id: nextId++,
+                    path: '',
+                    sortOrder: data.sortOrder || 10
+                }),
+                siblingPath,
+                copyPosition
+            );
+
+            if (result.success) {
+                addLog(`[CROSS-TREE ${operation.toUpperCase()}] ${operation === 'move' ? 'Moved' : 'Copied'} ${result.count} node(s) to "${parentPath || 'root'}"${siblingPath ? ` ${copyPosition} "${siblingPath}"` : ''}`);
+
+                // Move = remove from source tree
+                if (operation === 'move') {
+                    sourceTreeEl.removeNode(draggedNode.path);
+                }
+
+                // Update label
+                document.getElementById('target-label').textContent = 'Target Tree';
+            } else {
+                addLog(`Error: ${result.error}`);
+            }
+        }
+
+        function handleSourceDrop(dropNode, draggedNode, position, event, operation) {
+            if (!dropNode) {
+                addLog('Cannot drop at root level in source tree');
+                return;
+            }
+            addLog(`[${operation.toUpperCase()}] ${operation === 'move' ? 'Moved' : 'Copied'} "${draggedNode.data?.name}" ${position} "${dropNode.data?.name}"`);
+        }
+
         // ── Initialize ─────────────────────────────────────────────────
 
         customElements.whenDefined('web-treeview').then(() => {
 
-            // Tree 1: Basic DnD
-            const tree1 = initTree('tree1', taskList, { dragDropMode: 'both' });
-            tree1.onNodeDrop = (dropNode, draggedNode, position, event, operation) => {
-                document.getElementById('tree1-output').textContent = JSON.stringify({
-                    dragged: draggedNode.data?.name,
-                    droppedOn: dropNode?.data?.name ?? '(root)',
-                    position,
-                    operation
-                }, null, 2);
-            };
+            // Load settings from localStorage
+            loadSettings();
 
-            // Tree 2: Drop zone modes
-            const tree2 = initTree('tree2', taskList, { dragDropMode: 'both', dropZoneMode: 'floating' });
-            window.setDropZoneMode = (mode) => {
-                tree2.dropZoneMode = mode;
-            };
+            // Source tree
+            sourceTreeEl = initTree('source-tree', sourceData, {
+                dragDropMode: document.getElementById('ctrl-drag-mode').value,
+                treeId: 'source-tree',
+                allowCopy: document.getElementById('ctrl-allow-copy').checked,
+                autoHandleCopy: true
+            });
+            sourceTreeEl.onNodeDrop = handleSourceDrop;
 
-            // Tree 3: Copy
-            const tree3 = initTree('tree3', taskList, { dragDropMode: 'both', allowCopy: true, autoHandleCopy: true });
-            tree3.onNodeDrop = (dropNode, draggedNode, position, event, operation) => {
-                document.getElementById('tree3-output').textContent = JSON.stringify({
-                    dragged: draggedNode.data?.name,
-                    droppedOn: dropNode?.data?.name ?? '(root)',
-                    position,
-                    operation
-                }, null, 2);
-            };
+            // Target tree (always accepts drops)
+            targetTreeEl = initTree('target-tree', [], {
+                dragDropMode: 'both',
+                treeId: 'target-tree',
+                allowCopy: document.getElementById('ctrl-allow-copy').checked,
+                autoHandleCopy: true
+            });
+            targetTreeEl.onNodeDrop = handleTargetDrop;
 
-            // Tree 4: Cross-tree
-            const tree4a = initTree('tree4a', sourceData, { dragDropMode: 'cross', treeId: 'source', allowCopy: true, autoHandleCopy: true });
-            const tree4b = initTree('tree4b', targetData, { dragDropMode: 'cross', treeId: 'target' });
+            // Apply all settings from controls
+            applySettings();
 
-            const log4 = document.getElementById('tree4-log');
-            function logCrossTree(treeName, dropNode, draggedNode, position, event, operation) {
-                const time = new Date().toLocaleTimeString();
-                const entry = document.createElement('div');
-                entry.className = 'event-entry';
-                entry.innerHTML = `<span class="event-time">${time}</span> <span class="event-name">[${treeName}]</span> ${draggedNode.data?.name} &rarr; ${dropNode?.data?.name ?? '(root)'} (${position}, ${operation})`;
-                log4.prepend(entry);
-            }
-
-            tree4a.onNodeDrop = (d, g, p, e, o) => logCrossTree('Source', d, g, p, e, o);
-            tree4b.onNodeDrop = (d, g, p, e, o) => logCrossTree('Target', d, g, p, e, o);
-
-            // Tree 5: Validation
+            // Validation tree
             const tree5 = initTree('tree5', validationData, { dragDropMode: 'both' });
             const log5 = document.getElementById('tree5-log');
 

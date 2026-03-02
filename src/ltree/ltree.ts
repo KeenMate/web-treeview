@@ -834,10 +834,10 @@ export function createLTree<T>(
 		 * Move a node to a new location in the tree
 		 * @param sourcePath - Path of the node to move
 		 * @param targetPath - Path of the target node
-		 * @param position - Where to place relative to target: 'before', 'after', or 'child'
+		 * @param position - Where to place relative to target: 'above', 'below', or 'child'
 		 * @returns Object with success status and optional error message
 		 */
-		moveNode(sourcePath: string, targetPath: string, position: 'before' | 'after' | 'child'): { success: boolean; error?: string } {
+		moveNode(sourcePath: string, targetPath: string, position: 'above' | 'below' | 'child'): { success: boolean; error?: string } {
 			// Find source node
 			const sourceNode = this.getNodeByPath(sourcePath);
 			if (!sourceNode) {
@@ -923,13 +923,13 @@ export function createLTree<T>(
 			newParent.children[segmentPrefix + newSegment] = sourceNode;
 			newParent.hasChildren = true;
 
-			// If orderMember is defined and position is before/after, calculate order
+			// If orderMember is defined and position is above/below, calculate order
 			if (this.orderMember && position !== 'child' && sourceNode.data) {
 				const om = this.orderMember;
 				const siblings = Object.values(newParent.children) as LTreeNode<T>[];
 				const targetOrder = (targetNode.data ? getField(targetNode.data, om) : 0) ?? 0;
 
-				if (position === 'before') {
+				if (position === 'above') {
 					// Find order value just before target
 					const siblingOrders = siblings
 						.filter(s => s !== sourceNode && s.data && getField(s.data, om) !== undefined)
@@ -1205,7 +1205,7 @@ export function createLTree<T>(
 		 * @param targetParentPath - Path where to insert the copy (empty string for root)
 		 * @param transformData - Function to transform each node's data (e.g., assign new IDs)
 		 * @param siblingPath - Optional path of sibling to position relative to
-		 * @param position - Optional position relative to sibling ('before' or 'after')
+		 * @param position - Optional position relative to sibling ('above' or 'below')
 		 * @returns Object with success status, the created root node, and count of nodes created
 		 */
 		copyNodeWithDescendants(
@@ -1213,7 +1213,7 @@ export function createLTree<T>(
 			targetParentPath: string,
 			transformData: (data: T) => T,
 			siblingPath?: string,
-			position?: 'before' | 'after'
+			position?: 'above' | 'below'
 		): { success: boolean; rootNode?: LTreeNode<T>; count: number; error?: string } {
 			if (!sourceNode.data) {
 				return { success: false, count: 0, error: 'Source node has no data' };
@@ -1268,7 +1268,7 @@ export function createLTree<T>(
 						const oKey = this.orderMember!;
 						const siblingOrder = (siblingNode.data as any)?.[oKey] ?? 0;
 
-						if (position === 'before') {
+						if (position === 'above') {
 							// Find order value just before sibling
 							const siblingOrders = siblings
 								.filter(s => s !== rootNode && (s.data as any)?.[oKey] !== undefined)

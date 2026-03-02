@@ -32,7 +32,7 @@ Complete rewrite as a framework-agnostic web component. The rendering engine, co
 - **Drag and Drop** - Full DnD support ported from svelte-treeview
   - `dragDropMode`: `'none'` | `'cross'` | `'both'`
   - Drop zone modes: `'glow'` (CSS highlight) and `'floating'` (positioned drop targets)
-  - Drop positions: `'before'` | `'after'` | `'child'`
+  - Drop positions: `'above'` | `'below'` | `'child'`
   - Copy operations with `allowCopy` / `autoHandleCopy`
   - `beforeDropCallback` for validation/interception
   - Touch drag support with ghost element

@@ -279,19 +279,25 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
   // DnD properties
   get dragDropMode(): DragDropMode | undefined { return this._dragDropMode; }
-  set dragDropMode(value: DragDropMode | undefined) { this._dragDropMode = value; }
+  set dragDropMode(value: DragDropMode | undefined) { this._dragDropMode = value; this._scheduleUpdate(); }
 
   get dropZoneMode(): 'floating' | 'glow' | undefined { return this._dropZoneMode; }
-  set dropZoneMode(value: 'floating' | 'glow' | undefined) { this._dropZoneMode = value; }
+  set dropZoneMode(value: 'floating' | 'glow' | undefined) { this._dropZoneMode = value; this._scheduleUpdate(); }
 
   get dropZoneLayout(): 'around' | 'above' | 'below' | 'wave' | 'wave2' | undefined { return this._dropZoneLayout; }
-  set dropZoneLayout(value: 'around' | 'above' | 'below' | 'wave' | 'wave2' | undefined) { this._dropZoneLayout = value; }
+  set dropZoneLayout(value: 'around' | 'above' | 'below' | 'wave' | 'wave2' | undefined) { this._dropZoneLayout = value; this._scheduleUpdate(); }
+
+  get dropZoneStart(): number | string | undefined { return this._dropZoneStart; }
+  set dropZoneStart(value: number | string | undefined) { this._dropZoneStart = value; this._scheduleUpdate(); }
+
+  get dropZoneMaxWidth(): number | undefined { return this._dropZoneMaxWidth; }
+  set dropZoneMaxWidth(value: number | undefined) { this._dropZoneMaxWidth = value; this._scheduleUpdate(); }
 
   get allowCopy(): boolean | undefined { return this._allowCopy; }
-  set allowCopy(value: boolean | undefined) { this._allowCopy = value; }
+  set allowCopy(value: boolean | undefined) { this._allowCopy = value; this._scheduleUpdate(); }
 
   get autoHandleCopy(): boolean | undefined { return this._autoHandleCopy; }
-  set autoHandleCopy(value: boolean | undefined) { this._autoHandleCopy = value; }
+  set autoHandleCopy(value: boolean | undefined) { this._autoHandleCopy = value; this._scheduleUpdate(); }
 
   // Callback properties
   get getDisplayValueCallback() { return this._getDisplayValueCallback; }
@@ -481,6 +487,16 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
   updateNode(path: string, dataUpdates: Partial<T>): any {
     return this.treeview?.updateNode(path, dataUpdates);
+  }
+
+  copyNodeWithDescendants(
+    sourceNode: LTreeNode<T>,
+    targetParentPath: string,
+    dataTransform: (data: T) => T,
+    siblingPath?: string,
+    position?: 'above' | 'below'
+  ): any {
+    return this.treeview?.copyNodeWithDescendants(sourceNode, targetParentPath, dataTransform, siblingPath, position);
   }
 
   update(props: Partial<TreeViewConfig<T>>): void {

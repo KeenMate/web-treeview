@@ -139,7 +139,7 @@ export interface Ltree<T> {
 	refreshNode(path: string): void;
 
 	// Tree editor mutation methods
-	moveNode(sourcePath: string, targetPath: string, position: 'before' | 'after' | 'child'): { success: boolean; error?: string };
+	moveNode(sourcePath: string, targetPath: string, position: 'above' | 'below' | 'child'): { success: boolean; error?: string };
 	removeNode(path: string, includeDescendants?: boolean): { success: boolean; node?: LTreeNode<T>; error?: string };
 	addNode(parentPath: string, data: T, pathSegment?: string): { success: boolean; node?: LTreeNode<T>; error?: string };
 	updateNode(path: string, dataUpdates: Partial<T>): { success: boolean; node?: LTreeNode<T>; error?: string };
@@ -151,7 +151,7 @@ export interface Ltree<T> {
 		targetParentPath: string,
 		transformData: (data: T) => T,
 		siblingPath?: string,
-		position?: 'before' | 'after'
+		position?: 'above' | 'below'
 	): { success: boolean; rootNode?: LTreeNode<T>; count: number; error?: string };
 
 	// State persistence methods
