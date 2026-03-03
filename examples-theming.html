@@ -3,73 +3,274 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TreeView - Theming</title>
+    <title>Theming Examples - TreeView</title>
+
+    <!-- Shared example styles -->
     <link rel="stylesheet" href="examples-shared.css">
+
+    <!-- Page-specific styles -->
     <style>
+        /* Override container width for theming page */
+        .container {
+            max-width: 1400px;
+        }
+
+        /* Theme grid layout */
         .theme-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
         }
+
+        /* Theme card base styling */
         .theme-card {
-            background: white;
-            border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
         }
-        .theme-card h3 {
-            margin-bottom: 0.75rem;
+
+        .theme-card p {
+            font-size: 0.875rem;
         }
+
         .theme-card .tree-container {
             margin-bottom: 0;
         }
 
-        /* Theme: Dark */
-        .theme-dark {
-            --ltree-bg: #1e293b;
-            --ltree-text: #e2e8f0;
-            --ltree-hover-bg: #334155;
-            --ltree-selected-bg: #1e40af;
-            --ltree-selected-text: #dbeafe;
-            --ltree-primary: #60a5fa;
-            --ltree-icon-color: #94a3b8;
-            --ltree-border-color: #475569;
+        /* Dark Mode Theme */
+        .dark-theme {
+            background: #1a1a1a;
         }
-        .theme-dark-wrapper {
-            background: #0f172a;
+
+        .dark-theme h2,
+        .dark-theme p,
+        .dark-theme label {
+            color: #e5e5e5;
+        }
+
+        #dark-mode {
+            /* Base theme variables — these cascade to all components */
+            --base-bg-color: #2a2a2a;
+            --base-text-color: #e5e5e5;
+            --base-text-color-2: #808080;
+            --base-border-color: #404040;
+            --base-accent-color: #667eea;
+            --base-accent-color-hover: #7b93ff;
+            --base-hover-bg: #3a3a3a;
+            --base-active-bg: #444444;
+            --base-light-bg: #3a3a3a;
+            --base-accent-color-light: rgba(102, 126, 234, 0.15);
+
+            /* Component-specific overrides */
+            --tv-context-menu-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+            --tv-loading-bg: rgba(26, 26, 26, 0.8);
+        }
+
+        /* Neon/Cyberpunk Theme */
+        .neon-theme {
+            background: #0a0a0a;
+            position: relative;
+        }
+
+        .neon-theme::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, rgba(255,0,255,0.1), rgba(0,255,255,0.1));
+            pointer-events: none;
             border-radius: 8px;
-            padding: 4px;
         }
 
-        /* Theme: Forest */
-        .theme-forest {
-            --ltree-primary: #16a34a;
-            --ltree-hover-bg: #f0fdf4;
-            --ltree-selected-bg: #166534;
-            --ltree-selected-text: #dcfce7;
-            --ltree-icon-color: #22c55e;
+        .neon-theme h2,
+        .neon-theme p,
+        .neon-theme label {
+            color: #00ffff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
         }
 
-        /* Theme: Warm */
-        .theme-warm {
-            --ltree-primary: #ea580c;
-            --ltree-hover-bg: #fff7ed;
-            --ltree-selected-bg: #9a3412;
-            --ltree-selected-text: #ffedd5;
-            --ltree-icon-color: #f97316;
+        #neon-mode {
+            /* Base theme variables */
+            --base-bg-color: #1a0a1a;
+            --base-text-color: #00ffff;
+            --base-text-color-2: #ff00ff;
+            --base-border-color: #ff00ff;
+            --base-accent-color: #ff00ff;
+            --base-accent-color-hover: #ff66ff;
+            --base-hover-bg: rgba(255, 0, 255, 0.15);
+            --base-active-bg: rgba(255, 0, 255, 0.25);
+            --base-light-bg: rgba(255, 0, 255, 0.1);
+            --base-accent-color-light: rgba(0, 255, 255, 0.15);
+            --base-text-color-on-accent: #1a0a1a;
+
+            /* Component-specific overrides */
+            --tv-context-menu-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+            --tv-glow-above-color: rgba(0, 255, 255, 0.8);
+            --tv-glow-below-color: rgba(255, 0, 255, 0.8);
+            --tv-glow-child-color: rgba(255, 255, 0, 0.8);
         }
 
-        /* Theme: Compact */
-        .theme-compact web-treeview {
-            font-size: 0.8rem;
-        }
-        .theme-compact {
-            --ltree-node-height: 24px;
-            --ltree-node-padding: 2px 6px;
-            --ltree-indent-size: 14px;
+        /* Audi Corporate Theme */
+        .audi-theme {
+            background: #f7f7f7;
         }
 
-        /* Live theming controls */
+        .audi-theme h2 {
+            color: #bb0a30;
+            font-weight: 300;
+            letter-spacing: 0.05em;
+        }
+
+        .audi-theme p,
+        .audi-theme label {
+            color: #555;
+        }
+
+        #audi-mode {
+            /* Base theme variables */
+            --base-text-color: #333333;
+            --base-text-color-2: #666666;
+            --base-border-color: #d0d0d0;
+            --base-accent-color: #bb0a30;
+            --base-accent-color-hover: #990825;
+            --base-hover-bg: #f5f5f5;
+            --base-light-bg: #f5f5f5;
+            --base-accent-color-light: rgba(187, 10, 48, 0.08);
+
+            /* Component-specific overrides */
+            --tv-border-radius-sm: 2px;
+            --tv-border-radius-md: 2px;
+            --tv-border-radius-lg: 4px;
+            --tv-context-menu-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Rounded/Soft Theme */
+        .rounded-theme {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+
+        #rounded-mode {
+            /* Base theme variables */
+            --base-text-color: #5a3e36;
+            --base-text-color-2: #8b6e60;
+            --base-border-color: #f0d0c0;
+            --base-accent-color: #ff6b9d;
+            --base-accent-color-hover: #ff3b7a;
+            --base-hover-bg: #fff5f0;
+            --base-light-bg: #fff5f0;
+            --base-accent-color-light: #ffe5f0;
+
+            /* Component-specific overrides */
+            --tv-border-radius-sm: 12px;
+            --tv-border-radius-md: 16px;
+            --tv-border-radius-lg: 20px;
+            --tv-context-menu-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Sharp/Minimal Theme */
+        .sharp-theme {
+            background: #ffffff;
+            border: 2px solid #000000;
+        }
+
+        #sharp-mode {
+            /* Base theme variables */
+            --base-text-color: #000000;
+            --base-text-color-2: #555555;
+            --base-border-color: #000000;
+            --base-accent-color: #000000;
+            --base-accent-color-hover: #333333;
+            --base-hover-bg: #f0f0f0;
+            --base-light-bg: #f0f0f0;
+            --base-accent-color-light: #e0e0e0;
+
+            /* Component-specific overrides */
+            --tv-border-radius-sm: 0;
+            --tv-border-radius-md: 0;
+            --tv-border-radius-lg: 0;
+            --tv-context-menu-shadow: none;
+            --tv-context-menu-border: 2px solid #000000;
+        }
+
+        /* Material Design Theme */
+        .material-theme {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+        }
+
+        #material-mode {
+            /* Base theme variables */
+            --base-text-color: #212121;
+            --base-text-color-2: #757575;
+            --base-border-color: transparent;
+            --base-accent-color: #1976d2;
+            --base-accent-color-hover: #1565c0;
+            --base-hover-bg: #e3f2fd;
+            --base-light-bg: #f5f5f5;
+            --base-accent-color-light: #e3f2fd;
+
+            /* Component-specific overrides */
+            --tv-border-radius-sm: 4px;
+            --tv-border-radius-md: 4px;
+            --tv-border-radius-lg: 4px;
+            --tv-context-menu-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Glassmorphism Theme */
+        .glass-theme {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            overflow: visible;
+        }
+
+        .glass-theme::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="15" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="20" fill="rgba(255,255,255,0.05)"/><circle cx="50" cy="80" r="25" fill="rgba(255,255,255,0.08)"/></svg>');
+            background-size: 200px 200px;
+            pointer-events: none;
+            border-radius: 8px;
+        }
+
+        .glass-theme h2,
+        .glass-theme p,
+        .glass-theme label {
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #glass-mode {
+            /* Base theme variables */
+            --base-bg-color: rgba(255, 255, 255, 0.15);
+            --base-text-color: #ffffff;
+            --base-text-color-2: rgba(255, 255, 255, 0.7);
+            --base-border-color: rgba(255, 255, 255, 0.3);
+            --base-accent-color: #a5b4fc;
+            --base-accent-color-hover: #c7d2fe;
+            --base-hover-bg: rgba(255, 255, 255, 0.2);
+            --base-active-bg: rgba(255, 255, 255, 0.3);
+            --base-light-bg: rgba(255, 255, 255, 0.1);
+            --base-accent-color-light: rgba(255, 255, 255, 0.2);
+            --base-text-color-on-accent: #1e1b4b;
+
+            /* Component-specific overrides */
+            --tv-context-menu-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            --tv-loading-bg: rgba(102, 126, 234, 0.3);
+        }
+
+        .glass-theme .tree-container {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-text {
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        /* Live theme editor */
         .color-row {
             display: flex;
             align-items: center;
@@ -99,127 +300,149 @@
         <header>
             <a href="index.html" class="back-link">&larr; Back to Examples</a>
             <h1>Theming</h1>
-            <p class="subtitle">Customize appearance with CSS custom properties, dark mode, and icon styles</p>
+            <p class="subtitle">Customize appearance with CSS custom properties. Dark mode, neon, corporate, and more</p>
         </header>
 
-        <!-- Example 1: Preset Themes -->
-        <div class="card">
-            <h2>Example 1: Preset Themes</h2>
-            <p>Apply different themes using CSS custom properties. Each tree below uses a different set of <code>--ltree-*</code> variables.</p>
+        <!-- Theme Examples -->
+        <h2 style="margin-bottom: 1.5rem;">Theme Examples</h2>
 
-            <div class="theme-grid">
-                <div class="theme-card">
-                    <h3>Default</h3>
-                    <div class="tree-container" id="tree-default-container">
-                        <web-treeview id="tree-default"></web-treeview>
+        <div class="theme-grid">
+            <!-- Default Theme -->
+            <div class="theme-card" style="background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h2>Default</h2>
+                <p>Out-of-the-box appearance with no variable overrides</p>
+                <div class="form-group">
+                    <label>Project Files</label>
+                    <div class="tree-container">
+                        <web-treeview id="default-mode"></web-treeview>
                     </div>
+                    <span class="form-text">Blue accent with light neutral backgrounds</span>
                 </div>
+            </div>
 
-                <div class="theme-card">
-                    <h3>Dark</h3>
-                    <div class="theme-dark-wrapper">
-                        <div class="tree-container theme-dark" id="tree-dark-container" style="border-color: #475569;">
-                            <web-treeview id="tree-dark"></web-treeview>
-                        </div>
+            <!-- Dark Mode Theme -->
+            <div class="theme-card dark-theme">
+                <h2>Dark Mode</h2>
+                <p>High contrast dark theme for low-light environments</p>
+                <div class="form-group">
+                    <label>Project Files</label>
+                    <div class="tree-container" style="border-color: #404040; background: #2a2a2a;">
+                        <web-treeview id="dark-mode"></web-treeview>
                     </div>
+                    <span class="form-text">Dark backgrounds with light text and purple accents</span>
                 </div>
+            </div>
 
-                <div class="theme-card">
-                    <h3>Forest</h3>
-                    <div class="tree-container theme-forest" id="tree-forest-container">
-                        <web-treeview id="tree-forest"></web-treeview>
+            <!-- Neon/Cyberpunk Theme -->
+            <div class="theme-card neon-theme">
+                <h2>Neon/Cyberpunk</h2>
+                <p>Bright neon colors with glowing effects</p>
+                <div class="form-group">
+                    <label>Project Files</label>
+                    <div class="tree-container" style="border-color: #ff00ff; background: #1a0a1a;">
+                        <web-treeview id="neon-mode"></web-treeview>
                     </div>
+                    <span class="form-text">Cyan and magenta with glowing shadows</span>
                 </div>
+            </div>
 
-                <div class="theme-card">
-                    <h3>Warm</h3>
-                    <div class="tree-container theme-warm" id="tree-warm-container">
-                        <web-treeview id="tree-warm"></web-treeview>
+            <!-- Audi Corporate Theme -->
+            <div class="theme-card audi-theme">
+                <h2>Audi Corporate</h2>
+                <p>Clean, minimal corporate styling with subtle borders</p>
+                <div class="form-group">
+                    <label>Project Files</label>
+                    <div class="tree-container">
+                        <web-treeview id="audi-mode"></web-treeview>
                     </div>
+                    <span class="form-text">Professional gray with Audi red accents</span>
+                </div>
+            </div>
+
+            <!-- Rounded/Soft Theme -->
+            <div class="theme-card rounded-theme">
+                <h2>Rounded/Soft</h2>
+                <p>Large border-radius with soft shadows and pastel colors</p>
+                <div class="form-group">
+                    <label>Project Files</label>
+                    <div class="tree-container" style="border-radius: 16px;">
+                        <web-treeview id="rounded-mode"></web-treeview>
+                    </div>
+                    <span class="form-text">Warm gradient background with pink accents</span>
+                </div>
+            </div>
+
+            <!-- Sharp/Minimal Theme -->
+            <div class="theme-card sharp-theme">
+                <h2>Sharp/Minimal</h2>
+                <p>No border-radius, flat design, pure black and white</p>
+                <div class="form-group">
+                    <label>Project Files</label>
+                    <div class="tree-container" style="border: 2px solid #000000; border-radius: 0;">
+                        <web-treeview id="sharp-mode"></web-treeview>
+                    </div>
+                    <span class="form-text">Brutalist design with sharp edges</span>
+                </div>
+            </div>
+
+            <!-- Material Design Theme -->
+            <div class="theme-card material-theme">
+                <h2>Material Design</h2>
+                <p>Elevation shadows, vibrant colors, standard radius</p>
+                <div class="form-group">
+                    <label>Project Files</label>
+                    <div class="tree-container" style="border-color: transparent; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
+                        <web-treeview id="material-mode"></web-treeview>
+                    </div>
+                    <span class="form-text">Google Material Design principles</span>
+                </div>
+            </div>
+
+            <!-- Glassmorphism Theme -->
+            <div class="theme-card glass-theme">
+                <h2>Glassmorphism</h2>
+                <p>Frosted glass effect with backdrop blur and transparency</p>
+                <div class="form-group">
+                    <label>Project Files</label>
+                    <div class="tree-container" style="border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1);">
+                        <web-treeview id="glass-mode"></web-treeview>
+                    </div>
+                    <span class="form-text">Translucent with blur effect (requires modern browser)</span>
                 </div>
             </div>
         </div>
 
-        <!-- Example 2: Compact Mode -->
+        <!-- Live Theme Editor -->
         <div class="card">
-            <h2>Example 2: Compact Mode</h2>
-            <p>Reduce spacing and font size for a compact layout. Useful for dense data displays.</p>
-
-            <div class="grid-2">
-                <div>
-                    <h3>Normal</h3>
-                    <div class="tree-container" id="tree-normal-container">
-                        <web-treeview id="tree-normal"></web-treeview>
-                    </div>
-                </div>
-                <div>
-                    <h3>Compact</h3>
-                    <div class="tree-container theme-compact" id="tree-compact-container">
-                        <web-treeview id="tree-compact"></web-treeview>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Example 3: Custom Icons -->
-        <div class="card">
-            <h2>Example 3: Custom Icon Classes</h2>
-            <p>Override the default expand/collapse/leaf icons using the <code>expand-icon-class</code>, <code>collapse-icon-class</code>, and <code>leaf-icon-class</code> attributes. These set CSS classes on the icon elements inside the shadow DOM.</p>
-
-            <div class="note warning">
-                <strong>Note:</strong> Since the tree renders inside Shadow DOM, external CSS selectors cannot target internal elements. Use the icon class attributes to swap icon classes instead.
-            </div>
-
-            <div class="grid-2">
-                <div>
-                    <h3>Custom Icon Classes</h3>
-                    <div class="tree-container" id="tree-arrows-container">
-                        <web-treeview id="tree-arrows"
-                            expand-icon-class="custom-expand"
-                            collapse-icon-class="custom-collapse"
-                            leaf-icon-class="custom-leaf"></web-treeview>
-                    </div>
-                </div>
-                <div>
-                    <h3>Default Icons</h3>
-                    <div class="tree-container" id="tree-plusminus-container">
-                        <web-treeview id="tree-plusminus"></web-treeview>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Example 4: Live Theme Editor -->
-        <div class="card">
-            <h2>Example 4: Live Theme Editor</h2>
+            <h2>Live Theme Editor</h2>
             <p>Adjust CSS custom properties in real time using the color pickers.</p>
 
             <div class="grid-2">
                 <div>
                     <div class="color-row">
-                        <label>Primary color</label>
-                        <input type="color" id="cp-primary" value="#059669" onchange="updateLiveTheme()">
-                        <code>--ltree-primary</code>
+                        <label>Accent color</label>
+                        <input type="color" id="cp-accent" value="#3b82f6">
+                        <code>--tv-accent-color</code>
+                    </div>
+                    <div class="color-row">
+                        <label>Text color</label>
+                        <input type="color" id="cp-text" value="#1e293b">
+                        <code>--tv-text-color</code>
+                    </div>
+                    <div class="color-row">
+                        <label>Secondary text</label>
+                        <input type="color" id="cp-text2" value="#64748b">
+                        <code>--tv-text-color-2</code>
                     </div>
                     <div class="color-row">
                         <label>Hover background</label>
-                        <input type="color" id="cp-hover" value="#f0fdf4" onchange="updateLiveTheme()">
-                        <code>--ltree-hover-bg</code>
+                        <input type="color" id="cp-hover" value="#f1f5f9">
+                        <code>--tv-hover-bg</code>
                     </div>
                     <div class="color-row">
-                        <label>Selected background</label>
-                        <input type="color" id="cp-selected-bg" value="#065f46" onchange="updateLiveTheme()">
-                        <code>--ltree-selected-bg</code>
-                    </div>
-                    <div class="color-row">
-                        <label>Selected text</label>
-                        <input type="color" id="cp-selected-text" value="#dcfce7" onchange="updateLiveTheme()">
-                        <code>--ltree-selected-text</code>
-                    </div>
-                    <div class="color-row">
-                        <label>Icon color</label>
-                        <input type="color" id="cp-icon" value="#059669" onchange="updateLiveTheme()">
-                        <code>--ltree-icon-color</code>
+                        <label>Border color</label>
+                        <input type="color" id="cp-border" value="#e2e8f0">
+                        <code>--tv-border-color</code>
                     </div>
                     <button onclick="resetLiveTheme()" class="btn-outline" style="margin-top: 0.5rem">Reset to defaults</button>
                 </div>
@@ -234,30 +457,39 @@
         <!-- CSS Variables Reference -->
         <div class="card">
             <h2>CSS Custom Properties Reference</h2>
-            <p>Two namespaces of CSS custom properties are available. <code>--tv-*</code> variables control layout and sizing. <code>--ltree-*</code> variables control tree-specific colors. All inherit through Shadow DOM.</p>
+            <p>Two layers of CSS custom properties are available. <code>--base-*</code> variables come from the design system and cascade to all components. <code>--tv-*</code> variables are treeview-specific and reference <code>--base-*</code> with hardcoded fallbacks.</p>
 
             <div class="code-block">
-<pre><code>/* ── Host-level (--tv-*) ── set on &lt;web-treeview&gt; or its ancestors */
+<pre><code>/* ── Design System tokens (--base-*) ── set on :root or container */
+/* These cascade to ALL components sharing the design system */
 
---tv-accent-color: #3b82f6;        /* Accent/primary color */
---tv-text-color: #1e293b;          /* Default text color */
---tv-bg-color: #ffffff;            /* Background color */
---tv-hover-bg: #f1f5f9;           /* Node hover background */
---tv-selected-bg: #eff6ff;        /* Selected node background */
---tv-indent-size: 20px;           /* Per-level indentation */
---tv-node-height: 32px;           /* Node row height */
---tv-node-padding: 4px 8px;       /* Node content padding */
---tv-icon-size: 16px;             /* Toggle icon size */
---tv-border-radius: 4px;          /* Node border radius */
---tv-font-size: 14px;             /* Tree font size */
---tv-border-color: #e2e8f0;       /* Border color */
+--base-accent-color: #3b82f6;        /* Primary accent color */
+--base-text-color: #1e293b;          /* Primary text color */
+--base-text-color-2: #64748b;        /* Secondary text color */
+--base-bg-color: #ffffff;            /* Background color */
+--base-border-color: #e2e8f0;        /* Border color */
+--base-hover-bg: #f1f5f9;           /* Hover background */
+--base-active-bg: #e2e8f0;          /* Active/pressed background */
+--base-light-bg: #f8f9fa;           /* Light background */
+--base-accent-color-light: #eff6ff; /* Light accent background */
+--base-rem: 10px;                    /* Base unit for sizing */
 
-/* ── Tree-level (--ltree-*) ── set on :root or inherited */
+/* ── Component tokens (--tv-*) ── set on &lt;web-treeview&gt; */
+/* These override the design system for this component only */
 
---ltree-primary: #0d6efd;         /* Primary accent color */
---ltree-body-color: #212529;      /* Tree text color */
---ltree-border: #dee2e6;          /* Tree border color */
---ltree-light: #f8f9fa;           /* Light background */</code></pre>
+--tv-accent-color     /* = --base-accent-color */
+--tv-text-color       /* = --base-text-color */
+--tv-text-color-2     /* = --base-text-color-2 */
+--tv-bg-color         /* = --base-bg-color */
+--tv-border-color     /* = --base-border-color */
+--tv-hover-bg         /* = --base-hover-bg */
+--tv-selected-bg      /* = --base-accent-color-light */
+--tv-node-height      /* = calc(--tv-rem * 3.2) */
+--tv-node-padding     /* = --tv-spacing-sm --tv-spacing-md */
+--tv-indent-size      /* = calc(--tv-rem * 2) */
+--tv-font-size        /* = --tv-font-size-sm (14px) */
+--tv-border-radius-sm /* = calc(--base-border-radius-sm * --tv-rem) */
+--tv-transition-speed /* = 150ms */</code></pre>
             </div>
         </div>
     </div>
@@ -289,6 +521,7 @@
 
         function initTree(id, opts = {}) {
             const el = document.getElementById(id);
+            if (!el) return;
             el.data = sampleData;
             el.idMember = 'id';
             el.pathMember = 'path';
@@ -298,45 +531,53 @@
         }
 
         customElements.whenDefined('web-treeview').then(() => {
-            // Preset themes
-            initTree('tree-default');
-            initTree('tree-dark');
-            initTree('tree-forest');
-            initTree('tree-warm');
-
-            // Compact comparison
-            initTree('tree-normal');
-            initTree('tree-compact');
-
-            // Custom icons
-            initTree('tree-arrows');
-            initTree('tree-plusminus');
+            // Theme examples
+            const themeIds = [
+                'default-mode', 'dark-mode', 'neon-mode', 'audi-mode',
+                'rounded-mode', 'sharp-mode', 'material-mode', 'glass-mode'
+            ];
+            themeIds.forEach(id => initTree(id));
 
             // Live theme editor
-            const liveContainer = document.getElementById('tree-live-container');
             initTree('tree-live');
 
-            window.updateLiveTheme = () => {
-                liveContainer.style.setProperty('--ltree-primary', document.getElementById('cp-primary').value);
-                liveContainer.style.setProperty('--ltree-hover-bg', document.getElementById('cp-hover').value);
-                liveContainer.style.setProperty('--ltree-selected-bg', document.getElementById('cp-selected-bg').value);
-                liveContainer.style.setProperty('--ltree-selected-text', document.getElementById('cp-selected-text').value);
-                liveContainer.style.setProperty('--ltree-icon-color', document.getElementById('cp-icon').value);
+            const liveEl = document.getElementById('tree-live');
+            const inputs = {
+                accent: document.getElementById('cp-accent'),
+                text: document.getElementById('cp-text'),
+                text2: document.getElementById('cp-text2'),
+                hover: document.getElementById('cp-hover'),
+                border: document.getElementById('cp-border'),
             };
 
-            window.resetLiveTheme = () => {
-                document.getElementById('cp-primary').value = '#059669';
-                document.getElementById('cp-hover').value = '#f0fdf4';
-                document.getElementById('cp-selected-bg').value = '#065f46';
-                document.getElementById('cp-selected-text').value = '#dcfce7';
-                document.getElementById('cp-icon').value = '#059669';
-                // Remove inline styles
-                liveContainer.style.removeProperty('--ltree-primary');
-                liveContainer.style.removeProperty('--ltree-hover-bg');
-                liveContainer.style.removeProperty('--ltree-selected-bg');
-                liveContainer.style.removeProperty('--ltree-selected-text');
-                liveContainer.style.removeProperty('--ltree-icon-color');
+            const varMap = {
+                accent: '--tv-accent-color',
+                text: '--tv-text-color',
+                text2: '--tv-text-color-2',
+                hover: '--tv-hover-bg',
+                border: '--tv-border-color',
             };
+
+            function updateLiveTheme() {
+                for (const [key, input] of Object.entries(inputs)) {
+                    liveEl.style.setProperty(varMap[key], input.value);
+                }
+            }
+
+            window.resetLiveTheme = () => {
+                inputs.accent.value = '#3b82f6';
+                inputs.text.value = '#1e293b';
+                inputs.text2.value = '#64748b';
+                inputs.hover.value = '#f1f5f9';
+                inputs.border.value = '#e2e8f0';
+                for (const varName of Object.values(varMap)) {
+                    liveEl.style.removeProperty(varName);
+                }
+            };
+
+            for (const input of Object.values(inputs)) {
+                input.addEventListener('input', updateLiveTheme);
+            }
         });
     </script>
 </body>

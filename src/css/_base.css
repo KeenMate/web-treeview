@@ -1,6 +1,5 @@
 :host {
   display: block;
-  font-family: inherit;
   color: var(--tv-text-color);
   font-size: var(--tv-font-size);
 }

@@ -1,26 +1,93 @@
 :host {
-  /* Base unit */
+  /* ── Base unit ──────────────────────────────────────────────────── */
   --tv-rem: var(--base-rem, 10px);
 
-  /* Colors — with --base fallbacks */
+  /* ── Font family ────────────────────────────────────────────────── */
+  font-family: var(--tv-font-family, var(--base-font-family, inherit));
+
+  /* ── Colors ─────────────────────────────────────────────────────── */
   --tv-accent-color: var(--base-accent-color, #3b82f6);
+  --tv-accent-color-hover: var(--base-accent-color-hover, #2563eb);
   --tv-text-color: var(--base-text-color, #1e293b);
   --tv-text-color-2: var(--base-text-color-2, #64748b);
+  --tv-text-color-on-accent: var(--base-text-color-on-accent, #ffffff);
   --tv-bg-color: var(--base-bg-color, #ffffff);
   --tv-border-color: var(--base-border-color, #e2e8f0);
+  --tv-success-color: var(--base-success-color, #198754);
+  --tv-danger-color: var(--base-danger-color, #dc3545);
+  --tv-light-bg: var(--base-light-bg, #f8f9fa);
 
-  /* Hover / active */
+  /* ── Hover / active ─────────────────────────────────────────────── */
   --tv-hover-bg: var(--base-hover-bg, #f1f5f9);
   --tv-active-bg: var(--base-active-bg, #e2e8f0);
-  --tv-selected-bg: #eff6ff;
+  --tv-selected-bg: var(--base-accent-color-light, #eff6ff);
   --tv-selected-border-color: var(--tv-accent-color);
 
-  /* Tree-specific */
+  /* ── Typography scale ───────────────────────────────────────────── */
+  --tv-font-size-xs: calc(var(--base-font-size-xs, 1.2) * var(--tv-rem));
+  --tv-font-size-sm: calc(var(--base-font-size-sm, 1.4) * var(--tv-rem));
+  --tv-font-size-base: calc(var(--base-font-size-base, 1.6) * var(--tv-rem));
+  --tv-font-size: var(--tv-font-size-sm);
+  --tv-font-weight-medium: var(--base-font-weight-medium, 500);
+  --tv-font-weight-semibold: var(--base-font-weight-semibold, 600);
+
+  /* ── Border radius scale ────────────────────────────────────────── */
+  --tv-border-radius-sm: calc(var(--base-border-radius-sm, 0.4) * var(--tv-rem));
+  --tv-border-radius-md: calc(var(--base-border-radius-md, 0.6) * var(--tv-rem));
+  --tv-border-radius-lg: calc(var(--base-border-radius-lg, 0.8) * var(--tv-rem));
+
+  /* ── Spacing scale ──────────────────────────────────────────────── */
+  --tv-spacing-xs: calc(0.2 * var(--tv-rem));
+  --tv-spacing-sm: calc(0.4 * var(--tv-rem));
+  --tv-spacing-md: calc(0.8 * var(--tv-rem));
+  --tv-spacing-lg: calc(1.2 * var(--tv-rem));
+  --tv-spacing-xl: calc(1.6 * var(--tv-rem));
+
+  /* ── Transitions ────────────────────────────────────────────────── */
+  --tv-transition-speed: 150ms;
+  --tv-transition-normal: 200ms;
+  --tv-easing: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Tree-specific ──────────────────────────────────────────────── */
   --tv-indent-size: calc(var(--tv-rem) * 2);
+  --tv-node-padding: var(--tv-spacing-sm) var(--tv-spacing-md);
   --tv-node-height: calc(var(--tv-rem) * 3.2);
   --tv-icon-size: calc(var(--tv-rem) * 1.6);
-  --tv-node-padding: calc(var(--tv-rem) * 0.4) calc(var(--tv-rem) * 0.8);
-  --tv-border-radius: calc(var(--tv-rem) * 0.4);
-  --tv-font-size: calc(var(--tv-rem) * 1.4);
-  --tv-transition-speed: 150ms;
+
+  /* Toggle icon */
+  --tv-toggle-size: calc(var(--tv-rem) * 2);
+  --tv-toggle-color: var(--tv-text-color-2);
+
+  /* ── DnD glow colors ────────────────────────────────────────────── */
+  --tv-glow-above-color: rgba(134, 179, 152, 0.8);
+  --tv-glow-below-color: rgba(242, 182, 158, 0.8);
+  --tv-glow-child-color: rgba(167, 155, 198, 0.8);
+  --tv-glow-above-bg: rgba(134, 179, 152, 0.25);
+  --tv-glow-below-bg: rgba(242, 182, 158, 0.25);
+  --tv-glow-child-bg: rgba(167, 155, 198, 0.25);
+
+  /* ── Context menu ───────────────────────────────────────────────── */
+  --tv-context-menu-bg: var(--tv-bg-color);
+  --tv-context-menu-border: 1px solid var(--tv-border-color);
+  --tv-context-menu-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  --tv-context-menu-min-width: calc(var(--tv-rem) * 15);
+
+  /* ── Loading ────────────────────────────────────────────────────── */
+  --tv-spinner-size: calc(var(--tv-rem) * 3.2);
+  --tv-spinner-track: var(--tv-border-color);
+  --tv-spinner-color: var(--tv-accent-color);
+  --tv-loading-bg: rgba(255, 255, 255, 0.8);
+
+  /* ── Drop placeholder ───────────────────────────────────────────── */
+  --tv-drop-placeholder-border: 2px dashed var(--tv-accent-color);
+  --tv-drop-placeholder-bg: color-mix(in srgb, var(--tv-accent-color) 10%, transparent);
+  --tv-drop-placeholder-radius: var(--tv-border-radius-lg);
+
+  /* ── Z-index ────────────────────────────────────────────────────── */
+  --tv-z-index-dropdown: 1000;
+  --tv-z-index-ghost: 10000;
+  --tv-z-index-overlay: 10;
+
+  /* ── Misc ───────────────────────────────────────────────────────── */
+  --tv-dragged-opacity: 0.5;
 }
