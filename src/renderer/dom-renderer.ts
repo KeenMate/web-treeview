@@ -13,6 +13,27 @@ import type { TreeController } from '../controller/tree-controller';
 import type { TreeControllerSnapshot, NodeConfig } from '../controller/types';
 import type { LTreeNode } from '../ltree/ltree-node';
 import type { DropPosition, ContextMenuItem } from '../ltree/types';
+import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom';
+
+/** Add space-separated class string to an element (classList.add doesn't support spaces) */
+function addClasses(el: HTMLElement, classes: string): void {
+  for (const cls of classes.split(' ')) {
+    if (cls) el.classList.add(cls);
+  }
+}
+
+/** Remove space-separated class string from an element */
+function removeClasses(el: HTMLElement, classes: string): void {
+  for (const cls of classes.split(' ')) {
+    if (cls) el.classList.remove(cls);
+  }
+}
+
+/** Toggle space-separated class string on an element */
+function toggleClasses(el: HTMLElement, classes: string, force: boolean): void {
+  if (force) addClasses(el, classes);
+  else removeClasses(el, classes);
+}
 
 export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private container: HTMLElement | null = null;
@@ -25,6 +46,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private footerEl: HTMLElement | null = null;
   private debugEl: HTMLElement | null = null;
   private contextMenuEl: HTMLElement | null = null;
+  private _ctxSubmenus: HTMLElement[] = [];
+  private _ctxCleanupAutoUpdate: (() => void) | null = null;
   private loadingEl: HTMLElement | null = null;
 
   // Virtual scroll DOM elements
@@ -59,8 +82,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.headerEl = document.createElement('div');
     this.headerEl.className = 'ltree-header';
     this.container.appendChild(this.headerEl);
-    if (config.headerTemplate) {
-      config.headerTemplate(this.headerEl);
+    if (config.renderHeaderCallback) {
+      config.renderHeaderCallback(this.headerEl);
     }
 
     // Debug info
@@ -78,8 +101,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.footerEl = document.createElement('div');
     this.footerEl.className = 'ltree-footer';
     this.container.appendChild(this.footerEl);
-    if (config.footerTemplate) {
-      config.footerTemplate(this.footerEl);
+    if (config.renderFooterCallback) {
+      config.renderFooterCallback(this.footerEl);
     }
 
     // Loading overlay
@@ -112,16 +135,16 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
   updateConfig(config: Partial<RendererConfig<T>>): void {
     Object.assign(this.config, config);
-    if (config.headerTemplate && this.headerEl) {
+    if (config.renderHeaderCallback && this.headerEl) {
       this.headerEl.innerHTML = '';
-      config.headerTemplate(this.headerEl);
+      config.renderHeaderCallback(this.headerEl);
     }
-    if (config.footerTemplate && this.footerEl) {
+    if (config.renderFooterCallback && this.footerEl) {
       this.footerEl.innerHTML = '';
-      config.footerTemplate(this.footerEl);
+      config.renderFooterCallback(this.footerEl);
     }
-    // Re-render nodes if nodeTemplate changed
-    if (config.nodeTemplate && this.controller) {
+    // Re-render nodes if renderNodeCallback changed
+    if (config.renderNodeCallback && this.controller) {
       this._fullRender(this.controller.getSnapshot());
     }
   }
@@ -132,6 +155,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.unsubState = null;
     this.unsubConfig = null;
     this._detachBodyListeners();
+    this._closeAllSubmenus();
+    this._ctxCleanupAutoUpdate?.();
+    this._ctxCleanupAutoUpdate = null;
     this.nodeElements.clear();
     this.vsSpacerEl = null;
     this.vsContentEl = null;
@@ -188,6 +214,24 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           this.controller.nodeCallbacks.onNodeClicked(node);
         }
       }
+      return;
+    }
+
+    // Indent zone click — treat like content click
+    const nodeEl = target.closest('.ltree-node') as HTMLElement;
+    const path = nodeEl?.getAttribute('data-tree-path');
+    if (path) {
+      const node = this.controller.getNodeByPath(path);
+      if (node) {
+        if (this.lastNodeConfig?.shouldToggleOnNodeClick && node.hasChildren) {
+          if (node.isExpanded) {
+            this.controller.collapseNodes(path);
+          } else {
+            this.controller.expandNodes(path);
+          }
+        }
+        this.controller.nodeCallbacks.onNodeClicked(node);
+      }
     }
   };
 
@@ -195,14 +239,12 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (!this.controller) return;
     const target = event.target as HTMLElement;
     const contentEl = target.closest('.ltree-node-content') as HTMLElement;
-    if (contentEl) {
-      const nodeEl = contentEl.closest('.ltree-node') as HTMLElement;
-      const path = nodeEl?.getAttribute('data-tree-path');
-      if (path) {
-        const node = this.controller.getNodeByPath(path);
-        if (node) {
-          this.controller.nodeCallbacks.onNodeRightClicked(node, event);
-        }
+    const nodeEl = (contentEl || target).closest('.ltree-node') as HTMLElement;
+    const path = nodeEl?.getAttribute('data-tree-path');
+    if (path) {
+      const node = this.controller.getNodeByPath(path);
+      if (node) {
+        this.controller.nodeCallbacks.onNodeRightClicked(node, event);
       }
     }
   };
@@ -639,15 +681,16 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           // Path changed — force full update regardless of _rev
           this._updateNodeElement(el, node, snapshot);
         } else {
-          // Update existing node if _rev changed
+          // Update existing node if _rev or expanded state changed
           const existingRev = el.getAttribute('data-rev');
-          if (existingRev !== String(node._rev)) {
+          const existingExpanded = el.getAttribute('data-expanded');
+          if (existingRev !== String(node._rev) || existingExpanded !== String(!!node.isExpanded)) {
             this._updateNodeElement(el, node, snapshot);
           }
         }
         // Update indent for flat mode
         if (snapshot.useFlatRendering) {
-          el.style.marginLeft = `calc((${node.level} - 1) * ${snapshot.flatIndentSize})`;
+          el.style.paddingLeft = `calc((${node.level} - 1) * ${snapshot.flatIndentSize})`;
         }
       } else {
         // Create new node
@@ -690,8 +733,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
         placeholder = document.createElement('div');
         placeholder.className = 'ltree-drop-placeholder';
-        if (this.config.dropPlaceholderTemplate) {
-          this.config.dropPlaceholderTemplate(placeholder as HTMLElement);
+        if (this.config.renderDropPlaceholderCallback) {
+          this.config.renderDropPlaceholderCallback(placeholder as HTMLElement);
         } else {
           const content = document.createElement('div');
           content.className = 'ltree-drop-placeholder-content';
@@ -708,8 +751,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       if (!emptyState) {
         emptyState = document.createElement('div');
         emptyState.className = 'ltree-empty-state';
-        if (this.config.emptyTemplate) {
-          this.config.emptyTemplate(emptyState as HTMLElement);
+        if (this.config.renderEmptyZoneCallback) {
+          this.config.renderEmptyZoneCallback(emptyState as HTMLElement);
         } else {
           emptyState.textContent = 'No data';
         }
@@ -723,6 +766,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     el.className = 'ltree-node';
     el.setAttribute('data-tree-path', node.path);
     el.setAttribute('data-rev', String(node._rev));
+    el.setAttribute('data-expanded', String(!!node.isExpanded));
 
     if (this.controller && node.id) {
       el.id = `${this.controller.treeId}-${node.id}`;
@@ -730,13 +774,19 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     // Flat mode indent
     if (snapshot.useFlatRendering) {
-      el.style.marginLeft = `calc((${node.level} - 1) * ${snapshot.flatIndentSize})`;
+      el.style.paddingLeft = `calc((${node.level} - 1) * ${snapshot.flatIndentSize})`;
     }
 
     // Draggable — only when drag-drop is enabled
     if (this.controller?.dragDropMode !== 'none' && this.controller?.getNodeIsDraggable(node)) {
       el.setAttribute('draggable', 'true');
       el.classList.add('ltree-draggable');
+    }
+
+    // Selected state
+    const nodeConfig = this.lastNodeConfig;
+    if (node.isSelected && nodeConfig?.selectedNodeClass) {
+      el.classList.add(nodeConfig.selectedNodeClass);
     }
 
     // Node row
@@ -747,17 +797,27 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     const toggle = document.createElement('span');
     toggle.className = 'ltree-toggle-icon';
 
-    const nodeConfig = this.lastNodeConfig;
     if (node.hasChildren) {
-      if (node.isExpanded) {
-        toggle.classList.add(nodeConfig?.collapseIconClass || 'ltree-icon-collapse');
-        toggle.classList.add('expanded');
+      const isSwap = nodeConfig?.toggleIconMode === 'swap';
+      if (isSwap) {
+        addClasses(toggle, node.isExpanded
+          ? (nodeConfig?.collapseIconClass || 'ltree-icon-collapse')
+          : (nodeConfig?.expandIconClass || 'ltree-icon-expand'));
       } else {
-        toggle.classList.add(nodeConfig?.expandIconClass || 'ltree-icon-expand');
+        addClasses(toggle, nodeConfig?.expandIconClass || 'ltree-icon-expand');
+        if (node.isExpanded) {
+          toggle.classList.add('expanded');
+        }
       }
       toggle.classList.add('ltree-clickable');
     } else {
-      toggle.classList.add(nodeConfig?.leafIconClass || 'ltree-icon-leaf');
+      // Leaf node: use per-node icon if available, otherwise fall back to leafIconClass
+      const nodeIcon = this.controller?.hasIconSupport ? this.controller.getNodeIcon(node) : null;
+      if (nodeIcon) {
+        addClasses(toggle, nodeIcon);
+      } else {
+        addClasses(toggle, nodeConfig?.leafIconClass || 'ltree-icon-leaf');
+      }
     }
 
     row.appendChild(toggle);
@@ -770,14 +830,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       content.classList.add('ltree-clickable');
     }
 
-    // Selected state
-    if (node.isSelected && nodeConfig?.selectedNodeClass) {
-      content.classList.add(nodeConfig.selectedNodeClass);
-    }
-
     // Custom or default content
-    if (this.config.nodeTemplate) {
-      this.config.nodeTemplate(node, content);
+    if (this.config.renderNodeCallback) {
+      this.config.renderNodeCallback(node, content);
     } else {
       const label = document.createElement('span');
       label.className = 'ltree-node-label';
@@ -793,24 +848,30 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
   private _updateNodeElement(el: HTMLElement, node: LTreeNode<T>, snapshot: TreeControllerSnapshot<T>): void {
     el.setAttribute('data-rev', String(node._rev));
+    el.setAttribute('data-expanded', String(!!node.isExpanded));
     el.setAttribute('data-tree-path', node.path);
 
     const nodeConfig = this.lastNodeConfig;
 
+    // Selected state on node element
+    if (nodeConfig?.selectedNodeClass) {
+      el.classList.toggle(nodeConfig.selectedNodeClass, !!node.isSelected);
+    }
+
     // Update toggle icon
     const toggle = el.querySelector('.ltree-toggle-icon') as HTMLElement;
-    if (toggle) {
-      toggle.className = 'ltree-toggle-icon';
-      if (node.hasChildren) {
-        if (node.isExpanded) {
-          toggle.classList.add(nodeConfig?.collapseIconClass || 'ltree-icon-collapse');
-          toggle.classList.add('expanded');
-        } else {
-          toggle.classList.add(nodeConfig?.expandIconClass || 'ltree-icon-expand');
-        }
-        toggle.classList.add('ltree-clickable');
+    if (toggle && node.hasChildren) {
+      const isExpanded = node.isExpanded;
+
+      if (nodeConfig?.toggleIconMode === 'swap') {
+        const expandCls = nodeConfig?.expandIconClass || 'ltree-icon-expand';
+        const collapseCls = nodeConfig?.collapseIconClass || 'ltree-icon-collapse';
+        // Remove old classes first, then add new (avoids shared token conflict e.g. "fa-solid")
+        removeClasses(toggle, isExpanded ? expandCls : collapseCls);
+        addClasses(toggle, isExpanded ? collapseCls : expandCls);
+        toggle.classList.remove('expanded');
       } else {
-        toggle.classList.add(nodeConfig?.leafIconClass || 'ltree-icon-leaf');
+        toggle.classList.toggle('expanded', !!isExpanded);
       }
     }
 
@@ -822,14 +883,11 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       if (nodeConfig?.shouldToggleOnNodeClick && node.hasChildren) {
         content.classList.add('ltree-clickable');
       }
-      if (node.isSelected && nodeConfig?.selectedNodeClass) {
-        content.classList.add(nodeConfig.selectedNodeClass);
-      }
 
       // Re-render content if using template
-      if (this.config.nodeTemplate) {
+      if (this.config.renderNodeCallback) {
         content.innerHTML = '';
-        this.config.nodeTemplate(node, content);
+        this.config.renderNodeCallback(node, content);
       } else {
         const label = content.querySelector('.ltree-node-label') as HTMLElement;
         if (label) {
@@ -956,28 +1014,30 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.bodyEl.appendChild(zones);
   }
 
-  // ── Context menu ────────────────────────────────────────────────────
+  // ── Context menu (Floating UI) ──────────────────────────────────────
 
   private _updateContextMenu(snapshot: TreeControllerSnapshot<T>): void {
     if (!this.contextMenuEl || !this.controller) return;
 
     if (!snapshot.contextMenuVisible || !snapshot.contextMenuNode) {
+      this._closeAllSubmenus();
+      this._ctxCleanupAutoUpdate?.();
+      this._ctxCleanupAutoUpdate = null;
       this.contextMenuEl.style.display = 'none';
       return;
     }
 
-    this.contextMenuEl.style.display = 'block';
-    this.contextMenuEl.style.left = `${snapshot.contextMenuX}px`;
-    this.contextMenuEl.style.top = `${snapshot.contextMenuY}px`;
-
-    // Custom context menu template
-    if (this.config.contextMenuTemplate) {
+    // Custom context menu render callback
+    if (this.config.renderContextMenuCallback) {
       this.contextMenuEl.innerHTML = '';
-      this.config.contextMenuTemplate(
+      this.contextMenuEl.style.display = 'block';
+      this.config.renderContextMenuCallback(
         snapshot.contextMenuNode,
         () => this.controller!.closeContextMenu(),
         this.contextMenuEl
       );
+      // Position with Floating UI using virtual element at cursor
+      this._positionAtCursor(this.contextMenuEl, snapshot.contextMenuX, snapshot.contextMenuY);
       return;
     }
 
@@ -988,25 +1048,65 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         snapshot.contextMenuNode,
         () => this.controller!.closeContextMenu()
       );
-      this._renderContextMenuItems(items);
+      this.contextMenuEl.innerHTML = '';
+      this.contextMenuEl.style.display = 'block';
+      this._renderContextMenuItems(items, this.contextMenuEl);
+      this._positionAtCursor(this.contextMenuEl, snapshot.contextMenuX, snapshot.contextMenuY);
     }
   }
 
-  private _renderContextMenuItems(items: ContextMenuItem[]): void {
-    if (!this.contextMenuEl) return;
-    this.contextMenuEl.innerHTML = '';
+  /** Position a menu element at cursor coordinates using Floating UI */
+  private _positionAtCursor(menuEl: HTMLElement, x: number, y: number): void {
+    this._ctxCleanupAutoUpdate?.();
+    // Virtual reference element at cursor position
+    const virtualRef = {
+      getBoundingClientRect: () => ({
+        x, y, width: 0, height: 0,
+        top: y, left: x, right: x, bottom: y,
+      }),
+    };
+    this._ctxCleanupAutoUpdate = autoUpdate(virtualRef, menuEl, () => {
+      computePosition(virtualRef, menuEl, {
+        strategy: 'fixed',
+        placement: 'bottom-start',
+        middleware: [offset(4), flip(), shift({ padding: 8 })],
+      }).then(({ x: fx, y: fy }) => {
+        menuEl.style.left = `${fx}px`;
+        menuEl.style.top = `${fy}px`;
+      });
+    });
+  }
 
+  /** Position a submenu next to its parent item using Floating UI */
+  private _positionSubmenu(parentItem: HTMLElement, submenuEl: HTMLElement): () => void {
+    return autoUpdate(parentItem, submenuEl, () => {
+      if (!parentItem.isConnected || !submenuEl.isConnected) return;
+      computePosition(parentItem, submenuEl, {
+        strategy: 'fixed',
+        placement: 'right-start',
+        middleware: [offset({ mainAxis: 0, crossAxis: -4 }), flip({ fallbackPlacements: ['left-start'] }), shift({ padding: 8 })],
+      }).then(({ x: fx, y: fy }) => {
+        if (submenuEl.isConnected) {
+          submenuEl.style.left = `${fx}px`;
+          submenuEl.style.top = `${fy}px`;
+        }
+      });
+    });
+  }
+
+  private _renderContextMenuItems(items: ContextMenuItem[], container: HTMLElement, cancelParentHide?: () => void): void {
     for (const item of items) {
-      if (item.title === '---' || item.title === '-') {
+      if (item.isDivider || item.title === '---' || item.title === '-') {
         const divider = document.createElement('div');
         divider.className = 'ltree-context-menu-divider';
-        this.contextMenuEl.appendChild(divider);
+        container.appendChild(divider);
         continue;
       }
 
       const btn = document.createElement('button');
       btn.className = 'ltree-context-menu-item';
       if (item.isDisabled) btn.classList.add('ltree-context-menu-item-disabled');
+      if (item.className) btn.classList.add(item.className);
 
       if (item.icon) {
         const icon = document.createElement('span');
@@ -1015,18 +1115,78 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         btn.appendChild(icon);
       }
 
-      const text = document.createTextNode(item.title);
-      btn.appendChild(text);
+      const textSpan = document.createElement('span');
+      textSpan.className = 'ltree-context-menu-label';
+      textSpan.textContent = item.title;
+      btn.appendChild(textSpan);
 
-      if (!item.isDisabled && item.callback) {
+      // Submenu arrow + hover logic
+      if (item.children?.length) {
+        const arrow = document.createElement('span');
+        arrow.className = 'ltree-context-menu-arrow';
+        arrow.textContent = '\u25B8'; // ▸
+        btn.appendChild(arrow);
+
+        let submenuEl: HTMLElement | null = null;
+        let cleanupPos: (() => void) | null = null;
+        let hideTimeout: ReturnType<typeof setTimeout> | null = null;
+
+        const cancelHide = () => {
+          if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
+          cancelParentHide?.();
+        };
+
+        const showSubmenu = () => {
+          cancelHide();
+          if (submenuEl) return;
+          submenuEl = document.createElement('div');
+          submenuEl.className = 'ltree-context-menu ltree-context-submenu';
+          submenuEl.style.display = 'block';
+          submenuEl.style.position = 'fixed';
+          this._renderContextMenuItems(item.children!, submenuEl, cancelHide);
+          // Append to same parent as root context menu (container root)
+          this.container!.appendChild(submenuEl);
+          this._ctxSubmenus.push(submenuEl);
+          cleanupPos = this._positionSubmenu(btn, submenuEl);
+
+          submenuEl.addEventListener('mouseenter', () => {
+            cancelHide();
+          });
+          submenuEl.addEventListener('mouseleave', () => {
+            hideTimeout = setTimeout(hideSubmenu, 150);
+          });
+        };
+
+        const hideSubmenu = () => {
+          if (cleanupPos) { cleanupPos(); cleanupPos = null; }
+          if (submenuEl) {
+            const idx = this._ctxSubmenus.indexOf(submenuEl);
+            if (idx >= 0) this._ctxSubmenus.splice(idx, 1);
+            submenuEl.remove();
+            submenuEl = null;
+          }
+        };
+
+        btn.addEventListener('mouseenter', showSubmenu);
+        btn.addEventListener('mouseleave', () => {
+          hideTimeout = setTimeout(hideSubmenu, 150);
+        });
+      } else if (!item.isDisabled && item.callback) {
         btn.addEventListener('click', () => {
           item.callback?.();
           this.controller?.closeContextMenu();
         });
       }
 
-      this.contextMenuEl.appendChild(btn);
+      container.appendChild(btn);
     }
+  }
+
+  private _closeAllSubmenus(): void {
+    for (const el of this._ctxSubmenus) {
+      el.remove();
+    }
+    this._ctxSubmenus = [];
   }
 
   // ── Debug info ──────────────────────────────────────────────────────

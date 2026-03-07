@@ -463,7 +463,7 @@
                     return aVal.localeCompare(bVal);
                 });
             }
-            cfg.nodeTemplate = (node, container) => {
+            cfg.renderNodeCallback = (node, container) => {
                 const span = document.createElement('span');
                 span.innerHTML = `<span class="node-path">[${node.path}]</span> ${node.data?.name ?? node.path}`;
                 container.appendChild(span);

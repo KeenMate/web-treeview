@@ -5,14 +5,104 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [2.0.0-rc02] - 2026-03-02
+## [2.0.0-rc05] - 2026-03-06
+
+### Added
+
+- **Per-node icons** — Two new ways to assign icons to individual nodes:
+  - `iconMember` (attribute: `icon-member`) — data field name containing CSS class(es) for the node icon
+  - `iconCallback` (JS only) — function `(node) => string | null` for dynamic icon resolution; takes priority over `iconMember`
+- **`alignNodeIcons`** (attribute: `align-node-icons`, default `true`) — reserves icon column width even for nodes without icons, keeping labels aligned across the tree.
+- **Unified column grid** — `--tv-column-width` (default 24px) is a single variable controlling the toggle column, per-node icon column, and indent step. `--tv-indent-size` and `--tv-toggle-size` now alias `--tv-column-width`, so adjusting one value keeps the entire grid aligned.
+- **`examples-icons-grid.html`** — New example page demonstrating column alignment, `iconMember`, `iconCallback`, mixed icons, icons + `renderNodeCallback`, and icons + drag-and-drop.
+- **Multi-level context menu with Floating UI** — Context menus now use `@floating-ui/dom` for viewport-aware positioning (flip, shift, offset). `ContextMenuItem` supports `children` for nested submenus at any depth. Submenus open on hover with a 150ms delay and position to the right (or left if no space). Added runtime dependency: `@floating-ui/dom` (~3KB gzipped).
+- **Rendering modes documented** — The `DomRenderer` supports two rendering modes:
+  - **Flat rendering** (`useFlatRendering`, default `true`) — single DOM list with `paddingLeft` indentation
+  - **Virtual scroll** (`virtualScroll`, default `false`) — only renders rows visible in the viewport, suitable for 100k+ node trees. Configurable via `virtualRowHeight`, `virtualOverscan`, and `virtualContainerHeight`.
+
+### Changed
+
+- **`examples-virtual-scroll.html` → `examples-performance.html`** — Renamed to better reflect its purpose as a performance comparison page.
+- **`*Template` → `render*Callback`** — All template properties renamed to follow the `render*Callback` convention from `web-daterangepicker`. Migration: `nodeTemplate` → `renderNodeCallback`, `emptyTemplate` → `renderEmptyZoneCallback`, `loadingTemplate` → `renderLoadingCallback`, `headerTemplate` → `renderHeaderCallback`, `footerTemplate` → `renderFooterCallback`, `contextMenuTemplate` → `renderContextMenuCallback`, `dropPlaceholderTemplate` → `renderDropPlaceholderCallback`.
+
+- **Full-width clickable node rows** — Clicking anywhere on a node row (including the indent/padding zone left of the toggle icon) now triggers node selection and `node-clicked` event. Previously only clicks on `.ltree-node-content` or `.ltree-toggle-icon` were handled. Right-click in the indent zone also triggers `node-right-clicked`.
+- **Selected state applied to `.ltree-node`** — The `selectedNodeClass` (e.g. `ltree-selected-border`) is now applied to the `.ltree-node` element instead of `.ltree-node-content`, so selected background/border covers the full row width including the indent zone.
+- **Pointer cursor on full row** — `.ltree-node` now has `cursor: pointer` so the entire row (including indent zone) shows a hand cursor on hover.
+- **Node row layout** — Each row is `[toggle/icon column] [content]`. The toggle/icon column is a fixed-width slot (`--tv-column-width`) that shows toggle arrows for parent nodes and per-node icons (or `leafIconClass`) for leaf nodes.
+
+### Fixed
+
+- **Removed debug backgrounds** — Removed leftover debug background colors (blue on `.ltree-toggle-icon`, green on `.ltree-node-content`) from `examples-icons-grid.html`.
+
+## [2.0.0-rc04] - 2026-03-05
+
+### Added
+
+- **Semantic node state variables** — New `--tv-node-bg-hover` and `--tv-node-bg-active` variables (alias `--tv-hover-bg` / `--tv-active-bg`) following the DRP `--drp-day-bg-hover` naming pattern. Node `:hover` now uses `--tv-node-bg-hover` instead of `--tv-light-bg`.
+- **Node `:active` state** — Added `.ltree-node-content:active` rule using `--tv-node-bg-active` for press feedback.
+- **`--tv-node-transition`** — Dedicated variable for node hover/active transition. Set to `none` to disable animation without affecting other transitions.
+- **Border shorthands** — `--tv-border` (full border), `--tv-border-width-base`, `--tv-selected-border` (selected node border).
+- **Context menu hover variables** — `--tv-context-menu-bg-hover` and `--tv-context-menu-danger-bg-hover` extracted from hardcoded values.
+- **DnD state variables** — All inline `color-mix()` / `rgba()` values extracted into variables: `--tv-drag-over-bg`, `--tv-drag-over-border`, `--tv-drag-over-glow-shadow`, `--tv-drop-valid-bg`, `--tv-drop-valid-border-color`, `--tv-drop-invalid-bg`, `--tv-drop-invalid-border-color`, `--tv-dragover-highlight-bg`, `--tv-dragover-highlight-border`, `--tv-touch-ghost-bg`, `--tv-touch-ghost-shadow`, `--tv-scroll-highlight-bg`, `--tv-scroll-highlight-shadow`.
+- **Drop zone active state variables** — `--tv-glow-{above,below,child}-bg-active`, `--tv-glow-{above,below,child}-color-active`, `--tv-glow-{above,below,child}-shadow`, `--tv-glow-{above,below,child}-text` (12 variables total) extracted from hardcoded `rgba()` values in `_tree.css`.
+- **Live Theme Editor: transition slider** — Range input (0–500ms) for `--tv-node-transition` in the theming example page. Setting to 0 outputs `none`.
+- **README: CSS Custom Properties Reference** — Full variable reference with 13 categorized tables covering all 90+ variables.
+
+### Changed
+
+- **`background-color:` → `background:`** — Themed surfaces in `_tree.css` now use the `background` shorthand, allowing theme authors to pass gradients or images through variables. Affected: node hover, selected border, dragover highlight/glow, drag-over, drop-valid/invalid, drop placeholder, touch ghost, scroll highlight, context menu hover.
+- **`transition: background-color` → `transition: background`** — Node content transition updated to match the `background` shorthand change.
+- **`component-variables.manifest.json`** — Added 31 new variable entries. Updated `base-elevated-bg` usage to "Elevated surface background (debug stats badges)" and `base-hover-bg` usage to "Node hover background, context menu item hover".
+
+## [2.0.0-rc03] - 2026-03-05
+
+### Breaking — CSS variable renames (theme-designer alignment)
+
+All `--base-*` variable references in `_variables.css` have been renamed to match the canonical names generated by `@keenmate/theme-designer`. If you were setting these variables directly, update your CSS:
+
+| Old name | New name |
+|---|---|
+| `--base-text-color` | `--base-text-color-1` |
+| `--base-text-color-2` | `--base-text-color-3` |
+| `--base-bg-color` | `--base-main-bg` |
+| `--base-light-bg` | `--base-elevated-bg` |
+
+Component-level `--tv-*` variable names are unchanged.
+
+### Added
+
+- **`customStylesCallback`** — New property on `<web-treeview>` that injects a `<style>` element into the Shadow DOM, matching the `web-daterangepicker` pattern. Accepts a function returning a CSS string. Setting the callback replaces any previously injected stylesheet. Useful for injecting `--base-*` overrides, custom node classes, or `@import` rules into the shadow root.
+- **`component-variables.manifest.json`** — Machine-readable manifest describing all `--base-*` variables consumed (20 entries with required flags and usage descriptions) and all `--tv-*` component variables (58 entries organized by category). Exported from `package.json` for use by `@keenmate/theme-designer`.
+- **Theme-designer integration** — Registered `web-treeview` (prefix `tv`) in `@keenmate/theme-designer`: added generator (`generators/treeview.ts`), component prefix, and type definition.
+
+### Changed
+
+- **`_variables.css` documentation** — Added header comment block with usage examples, priority chain docs (`--tv-* → --base-* → fallback`), full `--base-*` manifest, `===` section dividers, and `/* Npx */` pixel comments on all `calc()` values. Added `:root` alongside `:host` for non-web-component usage.
+- **Live Theme Editor** — Now uses `customStylesCallback` to inject `:host { --base-*: ... }` directly into the Shadow DOM instead of setting inline styles on the host element. Listens for both `input` and `change` events on color pickers.
+
+### Fixed
+
+- **Live Theme Editor did nothing** — Setting `--tv-*` or `--base-*` CSS variables via inline style on the `<web-treeview>` host element did not override `:host` declarations inside the Shadow DOM. The editor now injects styles directly into the shadow root via `customStylesCallback`.
+
+## [2.0.0-rc02] - 2026-03-04
+
+### Changed
+
+- **CSS design system alignment** — Replaced all `--ltree-*` Bootstrap-style variables and hardcoded values in `_tree.css` with `--tv-*` tokens that reference `--base-*` design system tokens with hardcoded fallbacks. Same pattern as `web-multiselect`. Removed the `:root` block and 4 duplicate `font-family` declarations from `_tree.css`.
+- **Expanded `_variables.css` token system** — From 26 lines / 8 `--base-*` references to 93 lines with full coverage: colors (accent, success, danger, light-bg), typography scale (xs/sm/base + weights), border-radius scale (sm/md/lg), spacing scale (xs–xl), transitions, DnD glow colors, context menu, loading/spinner, drop placeholder, z-index layers, and misc tokens. All values flow from `--base-*` with hardcoded fallbacks.
+- **`rgba()` to `color-mix()`** — Replaced `rgba(var(--ltree-*-rgb), X)` patterns with modern `color-mix(in srgb, var(--tv-*) X%, transparent)` for opacity variants.
+- **Font family inheritance** — Single `font-family` declaration in `_variables.css` via `var(--tv-font-family, var(--base-font-family, inherit))`. Removed from `_base.css` and all 4 instances in `_tree.css`.
+
+### Added
+
+- **Theming example page** — Rewrote `examples-theming.html` with 8 theme cards (Default, Dark Mode, Neon/Cyberpunk, Audi Corporate, Rounded/Soft, Sharp/Minimal, Material Design, Glassmorphism), live theme editor with color pickers, and CSS variables reference. All themes use `--base-*` for design system integration, matching `web-multiselect`'s theming pattern.
 
 ### Added
 
 - **Virtual scroll rendering mode** — Only renders nodes visible in the viewport plus an overscan buffer. Three-div structure (scroll container, spacer, translateY content wrapper) with RAF-throttled scroll handler. Configurable via `virtualScroll`, `virtualRowHeight`, `virtualOverscan`, `virtualContainerHeight` attributes/properties.
 - **Fast synchronous scroll path** — Virtual scroll bypasses the controller's `queueMicrotask` batching pipeline. Scroll events compute the visible window and reconcile DOM synchronously in the RAF callback, skipping drag/drop/context-menu/debug updates for smooth 60fps scrolling.
 - **Auto row height measurement** — When no explicit `virtualRowHeight` is set, measures the first rendered node's height as fallback (32px default).
-- **Performance test example page** — New `examples-virtual-scroll.html` with flat vs virtual scroll comparison, synthetic data generation, countries+states dataset, timed expand/collapse/update operations, and search with filter/search modes.
+- **Performance test example page** — New `examples-performance.html` with flat vs virtual scroll comparison, synthetic data generation, countries+states dataset, timed expand/collapse/update operations, and search with filter/search modes.
 
 ### Fixed
 
@@ -65,9 +155,9 @@ Complete rewrite as a framework-agnostic web component. The rendering engine, co
   - `beforeDropCallback` for validation/interception
   - Touch drag support with ghost element
   - Cross-tree drag detection via shared global state
-- **Context Menu** - Right-click context menu with `contextMenuCallback` or custom `contextMenuTemplate`
+- **Context Menu** - Right-click context menu with `contextMenuCallback` or custom `renderContextMenuCallback`
 - **Custom Templates** - Callback-based templates for nodes, empty state, loading, header, footer, context menu, drop placeholder
-- **CSS Custom Properties** - Full theming via `--tv-*` and `--ltree-*` variables with `--base-*` fallbacks
+- **CSS Custom Properties** - Full theming via `--tv-*` variables with `--base-*` design system fallbacks
 - **Categorized Logging** - Runtime-configurable logging with `loglevel`
   - Categories: `TREEVIEW:INIT`, `TREEVIEW:DATA`, `TREEVIEW:INDEX`, `TREEVIEW:UI`, `TREEVIEW:DRAG`, `TREEVIEW:RENDER`
   - Color-coded console output with timestamps

@@ -445,7 +445,7 @@
             const restrictedTree = initTree('tree-restricted', restrictedData, { dragDropMode: 'both' });
             restrictedTree.allowedDropPositionsMember = 'allowedDropPositions';
             restrictedTree.orderMember = 'sortOrder';
-            restrictedTree.nodeTemplate = (node, el) => {
+            restrictedTree.renderNodeCallback = (node, el) => {
                 const label = document.createElement('span');
                 const icon = node.data?.icon ? node.data.icon + ' ' : '';
                 label.textContent = icon + (node.data?.name || String(node.id));

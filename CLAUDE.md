@@ -57,7 +57,7 @@ src/
 All CSS variables use the `--tv-` prefix and fall back to `--base-*` variables from the design system:
 ```css
 --tv-accent-color: var(--base-accent-color, #3b82f6);
---tv-text-color: var(--base-text-color, #1e293b);
+--tv-text-color: var(--base-text-color-1, #1e293b);
 --tv-indent-size: calc(var(--tv-rem) * 2);
 ```
 
@@ -97,5 +97,5 @@ All mounted `<web-treeview>` elements are tracked in a `Set` and exposed via `ge
 
 ## Dependencies
 
-- **Runtime**: None (zero dependencies)
+- **Runtime**: `@floating-ui/dom` (context menu positioning)
 - **Dev**: Vite, TypeScript, vite-plugin-dts, rimraf

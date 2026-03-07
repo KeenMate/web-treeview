@@ -31,11 +31,14 @@ export interface NodeCallbacks<T> {
   onTouchDragEnd: (node: LTreeNode<T>, event: TouchEvent) => void;
 }
 
+export type ToggleIconMode = 'rotate' | 'swap';
+
 export interface NodeConfig {
   shouldToggleOnNodeClick: boolean;
   expandIconClass: string;
   collapseIconClass: string;
   leafIconClass: string;
+  toggleIconMode: ToggleIconMode;
   selectedNodeClass: string | null | undefined;
   dragOverNodeClass: string | null | undefined;
   dragDropMode: DragDropMode;
@@ -44,6 +47,7 @@ export interface NodeConfig {
   dropZoneStart: number | string;
   dropZoneMaxWidth: number;
   allowCopy: boolean;
+  iconMember: string | null | undefined;
 }
 
 // ─── Controller props ─────────────────────────────────────────────────────
@@ -152,8 +156,8 @@ export interface TreeControllerConfig<T> {
     closeMenuCallback: () => void
   ) => ContextMenuItem[];
 
-  // Tells the controller whether a context menu template exists
-  hasContextMenuTemplate?: boolean;
+  // Tells the controller whether a context menu renderer exists
+  hasContextMenuRenderer?: boolean;
 
   // VISUALS
   bodyClass?: string | null | undefined;
@@ -162,10 +166,16 @@ export interface TreeControllerConfig<T> {
   expandIconClass?: string | null | undefined;
   collapseIconClass?: string | null | undefined;
   leafIconClass?: string | null | undefined;
+  toggleIconMode?: ToggleIconMode | null | undefined;
   scrollHighlightTimeout?: number | null | undefined;
   scrollHighlightClass?: string | null | undefined;
   contextMenuXOffset?: number | null | undefined;
   contextMenuYOffset?: number | null | undefined;
+
+  // Per-node icons
+  iconMember?: string | null | undefined;
+  iconCallback?: (node: LTreeNode<T>) => string | null;
+  alignNodeIcons?: boolean | null | undefined;
 }
 
 // ─── Snapshot ─────────────────────────────────────────────────────────────

@@ -91,8 +91,14 @@ export interface TreeViewConfig<T = any> {
   expandIconClass?: string | null;
   collapseIconClass?: string | null;
   leafIconClass?: string | null;
+  toggleIconMode?: 'rotate' | 'swap' | null;
   scrollHighlightTimeout?: number | null;
   scrollHighlightClass?: string | null;
+
+  // Per-node icons
+  iconMember?: string | null;
+  iconCallback?: (node: LTreeNode<T>) => string | null;
+  alignNodeIcons?: boolean | null;
 
   // Bindable properties
   searchText?: string | null;
@@ -159,14 +165,14 @@ export interface TreeViewConfig<T = any> {
   onRenderProgress?: (stats: RenderStats) => void;
   onRenderComplete?: (stats: RenderStats) => void;
 
-  // Template callbacks (for DomRenderer)
-  nodeTemplate?: (node: LTreeNode<T>, container: HTMLElement) => void;
-  emptyTemplate?: (container: HTMLElement) => void;
-  loadingTemplate?: (container: HTMLElement) => void;
-  headerTemplate?: (container: HTMLElement) => void;
-  footerTemplate?: (container: HTMLElement) => void;
-  contextMenuTemplate?: (node: LTreeNode<T>, close: () => void, container: HTMLElement) => void;
-  dropPlaceholderTemplate?: (container: HTMLElement) => void;
+  // Render callbacks (for DomRenderer)
+  renderNodeCallback?: (node: LTreeNode<T>, container: HTMLElement) => void;
+  renderEmptyZoneCallback?: (container: HTMLElement) => void;
+  renderLoadingCallback?: (container: HTMLElement) => void;
+  renderHeaderCallback?: (container: HTMLElement) => void;
+  renderFooterCallback?: (container: HTMLElement) => void;
+  renderContextMenuCallback?: (node: LTreeNode<T>, close: () => void, container: HTMLElement) => void;
+  renderDropPlaceholderCallback?: (container: HTMLElement) => void;
 }
 
 // ── Methods ────────────────────────────────────────────────────────────

@@ -40,7 +40,15 @@ export class WebTreeView<T = any> {
   // ── Public API (proxy to controller) ────────────────────────────────
 
   update(props: Partial<TreeViewConfig<T>>): void {
-    this.controller.updateProps(mapToControllerConfig(props));
+    const controllerConfig = mapToControllerConfig(props);
+    // If context menu callbacks changed, update controller's awareness
+    if ('renderContextMenuCallback' in props || 'contextMenuCallback' in props) {
+      controllerConfig.hasContextMenuRenderer = !!(
+        props.renderContextMenuCallback || props.contextMenuCallback ||
+        this.controller.contextMenuCallbackCb
+      );
+    }
+    this.controller.updateProps(controllerConfig);
     const rendererConfig = mapToRendererConfig(props);
     if (Object.keys(rendererConfig).length > 0) {
       this.renderer.updateConfig(rendererConfig);
@@ -231,7 +239,7 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     beforeDropCallback: options.beforeDropCallback,
     onNodeDrop: options.onNodeDrop,
     contextMenuCallback: options.contextMenuCallback,
-    hasContextMenuTemplate: !!(options.contextMenuCallback),
+    hasContextMenuRenderer: !!(options.contextMenuCallback || options.renderContextMenuCallback),
 
     bodyClass: options.bodyClass,
     selectedNodeClass: options.selectedNodeClass,
@@ -239,10 +247,14 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     expandIconClass: options.expandIconClass,
     collapseIconClass: options.collapseIconClass,
     leafIconClass: options.leafIconClass,
+    toggleIconMode: options.toggleIconMode,
     scrollHighlightTimeout: options.scrollHighlightTimeout,
     scrollHighlightClass: options.scrollHighlightClass,
     contextMenuXOffset: options.contextMenuXOffset,
     contextMenuYOffset: options.contextMenuYOffset,
+    iconMember: options.iconMember,
+    iconCallback: options.iconCallback,
+    alignNodeIcons: options.alignNodeIcons,
 
     onRenderStart: options.onRenderStart,
     onRenderProgress: options.onRenderProgress,
@@ -252,12 +264,12 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
 
 function mapToRendererConfig<T>(options: Partial<TreeViewConfig<T>>): RendererConfig<T> {
   return {
-    nodeTemplate: options.nodeTemplate,
-    emptyTemplate: options.emptyTemplate,
-    loadingTemplate: options.loadingTemplate,
-    headerTemplate: options.headerTemplate,
-    footerTemplate: options.footerTemplate,
-    contextMenuTemplate: options.contextMenuTemplate,
-    dropPlaceholderTemplate: options.dropPlaceholderTemplate,
+    renderNodeCallback: options.renderNodeCallback,
+    renderEmptyZoneCallback: options.renderEmptyZoneCallback,
+    renderLoadingCallback: options.renderLoadingCallback,
+    renderHeaderCallback: options.renderHeaderCallback,
+    renderFooterCallback: options.renderFooterCallback,
+    renderContextMenuCallback: options.renderContextMenuCallback,
+    renderDropPlaceholderCallback: options.renderDropPlaceholderCallback,
   };
 }

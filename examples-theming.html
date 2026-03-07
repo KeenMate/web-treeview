@@ -50,15 +50,15 @@
 
         #dark-mode {
             /* Base theme variables — these cascade to all components */
-            --base-bg-color: #2a2a2a;
-            --base-text-color: #e5e5e5;
-            --base-text-color-2: #808080;
+            --base-main-bg: #2a2a2a;
+            --base-text-color-1: #e5e5e5;
+            --base-text-color-3: #808080;
             --base-border-color: #404040;
             --base-accent-color: #667eea;
             --base-accent-color-hover: #7b93ff;
             --base-hover-bg: #3a3a3a;
             --base-active-bg: #444444;
-            --base-light-bg: #3a3a3a;
+            --base-elevated-bg: #3a3a3a;
             --base-accent-color-light: rgba(102, 126, 234, 0.15);
 
             /* Component-specific overrides */
@@ -90,15 +90,15 @@
 
         #neon-mode {
             /* Base theme variables */
-            --base-bg-color: #1a0a1a;
-            --base-text-color: #00ffff;
-            --base-text-color-2: #ff00ff;
+            --base-main-bg: #1a0a1a;
+            --base-text-color-1: #00ffff;
+            --base-text-color-3: #ff00ff;
             --base-border-color: #ff00ff;
             --base-accent-color: #ff00ff;
             --base-accent-color-hover: #ff66ff;
             --base-hover-bg: rgba(255, 0, 255, 0.15);
             --base-active-bg: rgba(255, 0, 255, 0.25);
-            --base-light-bg: rgba(255, 0, 255, 0.1);
+            --base-elevated-bg: rgba(255, 0, 255, 0.1);
             --base-accent-color-light: rgba(0, 255, 255, 0.15);
             --base-text-color-on-accent: #1a0a1a;
 
@@ -127,13 +127,13 @@
 
         #audi-mode {
             /* Base theme variables */
-            --base-text-color: #333333;
-            --base-text-color-2: #666666;
+            --base-text-color-1: #333333;
+            --base-text-color-3: #666666;
             --base-border-color: #d0d0d0;
             --base-accent-color: #bb0a30;
             --base-accent-color-hover: #990825;
             --base-hover-bg: #f5f5f5;
-            --base-light-bg: #f5f5f5;
+            --base-elevated-bg: #f5f5f5;
             --base-accent-color-light: rgba(187, 10, 48, 0.08);
 
             /* Component-specific overrides */
@@ -150,13 +150,13 @@
 
         #rounded-mode {
             /* Base theme variables */
-            --base-text-color: #5a3e36;
-            --base-text-color-2: #8b6e60;
+            --base-text-color-1: #5a3e36;
+            --base-text-color-3: #8b6e60;
             --base-border-color: #f0d0c0;
             --base-accent-color: #ff6b9d;
             --base-accent-color-hover: #ff3b7a;
             --base-hover-bg: #fff5f0;
-            --base-light-bg: #fff5f0;
+            --base-elevated-bg: #fff5f0;
             --base-accent-color-light: #ffe5f0;
 
             /* Component-specific overrides */
@@ -174,13 +174,13 @@
 
         #sharp-mode {
             /* Base theme variables */
-            --base-text-color: #000000;
-            --base-text-color-2: #555555;
+            --base-text-color-1: #000000;
+            --base-text-color-3: #555555;
             --base-border-color: #000000;
             --base-accent-color: #000000;
             --base-accent-color-hover: #333333;
             --base-hover-bg: #f0f0f0;
-            --base-light-bg: #f0f0f0;
+            --base-elevated-bg: #f0f0f0;
             --base-accent-color-light: #e0e0e0;
 
             /* Component-specific overrides */
@@ -198,13 +198,13 @@
 
         #material-mode {
             /* Base theme variables */
-            --base-text-color: #212121;
-            --base-text-color-2: #757575;
+            --base-text-color-1: #212121;
+            --base-text-color-3: #757575;
             --base-border-color: transparent;
             --base-accent-color: #1976d2;
             --base-accent-color-hover: #1565c0;
             --base-hover-bg: #e3f2fd;
-            --base-light-bg: #f5f5f5;
+            --base-elevated-bg: #f5f5f5;
             --base-accent-color-light: #e3f2fd;
 
             /* Component-specific overrides */
@@ -240,15 +240,15 @@
 
         #glass-mode {
             /* Base theme variables */
-            --base-bg-color: rgba(255, 255, 255, 0.15);
-            --base-text-color: #ffffff;
-            --base-text-color-2: rgba(255, 255, 255, 0.7);
+            --base-main-bg: rgba(255, 255, 255, 0.15);
+            --base-text-color-1: #ffffff;
+            --base-text-color-3: rgba(255, 255, 255, 0.7);
             --base-border-color: rgba(255, 255, 255, 0.3);
             --base-accent-color: #a5b4fc;
             --base-accent-color-hover: #c7d2fe;
             --base-hover-bg: rgba(255, 255, 255, 0.2);
             --base-active-bg: rgba(255, 255, 255, 0.3);
-            --base-light-bg: rgba(255, 255, 255, 0.1);
+            --base-elevated-bg: rgba(255, 255, 255, 0.1);
             --base-accent-color-light: rgba(255, 255, 255, 0.2);
             --base-text-color-on-accent: #1e1b4b;
 
@@ -437,12 +437,18 @@
                     <div class="color-row">
                         <label>Hover background</label>
                         <input type="color" id="cp-hover" value="#f1f5f9">
-                        <code>--tv-hover-bg</code>
+                        <code>--tv-node-bg-hover</code>
                     </div>
                     <div class="color-row">
                         <label>Border color</label>
                         <input type="color" id="cp-border" value="#e2e8f0">
                         <code>--tv-border-color</code>
+                    </div>
+                    <div class="color-row">
+                        <label>Transition time</label>
+                        <input type="range" id="cp-transition" min="0" max="500" step="10" value="150" style="width: 100px;">
+                        <span id="cp-transition-value">150ms</span>
+                        <code>--tv-node-transition</code>
                     </div>
                     <button onclick="resetLiveTheme()" class="btn-outline" style="margin-top: 0.5rem">Reset to defaults</button>
                 </div>
@@ -464,13 +470,13 @@
 /* These cascade to ALL components sharing the design system */
 
 --base-accent-color: #3b82f6;        /* Primary accent color */
---base-text-color: #1e293b;          /* Primary text color */
---base-text-color-2: #64748b;        /* Secondary text color */
---base-bg-color: #ffffff;            /* Background color */
+--base-text-color-1: #1e293b;          /* Primary text color */
+--base-text-color-3: #64748b;        /* Secondary text color */
+--base-main-bg: #ffffff;            /* Background color */
 --base-border-color: #e2e8f0;        /* Border color */
 --base-hover-bg: #f1f5f9;           /* Hover background */
 --base-active-bg: #e2e8f0;          /* Active/pressed background */
---base-light-bg: #f8f9fa;           /* Light background */
+--base-elevated-bg: #f8f9fa;           /* Light background */
 --base-accent-color-light: #eff6ff; /* Light accent background */
 --base-rem: 10px;                    /* Base unit for sizing */
 
@@ -478,9 +484,9 @@
 /* These override the design system for this component only */
 
 --tv-accent-color     /* = --base-accent-color */
---tv-text-color       /* = --base-text-color */
---tv-text-color-2     /* = --base-text-color-2 */
---tv-bg-color         /* = --base-bg-color */
+--tv-text-color       /* = --base-text-color-1 */
+--tv-text-color-2     /* = --base-text-color-3 */
+--tv-bg-color         /* = --base-main-bg */
 --tv-border-color     /* = --base-border-color */
 --tv-hover-bg         /* = --base-hover-bg */
 --tv-selected-bg      /* = --base-accent-color-light */
@@ -549,19 +555,40 @@
                 hover: document.getElementById('cp-hover'),
                 border: document.getElementById('cp-border'),
             };
+            const transitionInput = document.getElementById('cp-transition');
+            const transitionValue = document.getElementById('cp-transition-value');
 
             const varMap = {
                 accent: '--tv-accent-color',
                 text: '--tv-text-color',
                 text2: '--tv-text-color-2',
-                hover: '--tv-hover-bg',
+                hover: '--tv-node-bg-hover',
                 border: '--tv-border-color',
             };
 
             function updateLiveTheme() {
-                for (const [key, input] of Object.entries(inputs)) {
-                    liveEl.style.setProperty(varMap[key], input.value);
-                }
+                const ms = transitionInput.value;
+                transitionValue.textContent = `${ms}ms`;
+                const transitionCss = ms === '0'
+                    ? '--tv-node-transition: none;'
+                    : `--tv-node-transition: background ${ms}ms, box-shadow ${ms}ms ease;`;
+                const css = `:host {
+                    ${Object.entries(inputs).map(([key, input]) =>
+                        `${varMap[key]}: ${input.value};`
+                    ).join('\n                    ')}
+                    ${transitionCss}
+                }`;
+                liveEl.customStylesCallback = () => css;
+                // Log which values actually changed from defaults
+                const defaults = { accent: '#3b82f6', text: '#1e293b', text2: '#64748b', hover: '#f1f5f9', border: '#e2e8f0' };
+                const changed = Object.entries(inputs).filter(([key, input]) => input.value !== defaults[key]).map(([key, input]) => `${varMap[key]}: ${input.value}`);
+                console.log('[LiveThemeEditor] changed:', changed.length ? changed.join(', ') : '(none)');
+                // Check resolved --tv-* values
+                const h = getComputedStyle(liveEl);
+                console.log('[LiveThemeEditor] --tv-text-color:', h.getPropertyValue('--tv-text-color'));
+                console.log('[LiveThemeEditor] --tv-hover-bg:', h.getPropertyValue('--tv-hover-bg'));
+                console.log('[LiveThemeEditor] --tv-accent-color:', h.getPropertyValue('--tv-accent-color'));
+                console.log('[LiveThemeEditor] --tv-border-color:', h.getPropertyValue('--tv-border-color'));
             }
 
             window.resetLiveTheme = () => {
@@ -570,14 +597,16 @@
                 inputs.text2.value = '#64748b';
                 inputs.hover.value = '#f1f5f9';
                 inputs.border.value = '#e2e8f0';
-                for (const varName of Object.values(varMap)) {
-                    liveEl.style.removeProperty(varName);
-                }
+                transitionInput.value = '150';
+                transitionValue.textContent = '150ms';
+                liveEl.customStylesCallback = undefined;
             };
 
             for (const input of Object.values(inputs)) {
                 input.addEventListener('input', updateLiveTheme);
+                input.addEventListener('change', updateLiveTheme);
             }
+            transitionInput.addEventListener('input', updateLiveTheme);
         });
     </script>
 </body>

@@ -55,6 +55,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     expandIconClass: 'ltree-icon-expand',
     collapseIconClass: 'ltree-icon-collapse',
     leafIconClass: 'ltree-icon-leaf',
+    toggleIconMode: 'rotate',
     selectedNodeClass: undefined,
     dragOverNodeClass: undefined,
     dragDropMode: 'none',
@@ -62,7 +63,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     dropZoneLayout: 'around',
     dropZoneStart: 33,
     dropZoneMaxWidth: 120,
-    allowCopy: false
+    allowCopy: false,
+    iconMember: undefined
   };
 
   get nodeConfig(): NodeConfig { return this._nodeConfig; }
@@ -81,7 +83,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _shouldDisplayContextMenuInDebugMode: boolean = false;
   private _isLoading: boolean = false;
   private _useFlatRendering: boolean = true;
-  private _flatIndentSize: string = '1.5rem';
+  private _flatIndentSize: string = 'var(--tv-column-width)';
   private _progressiveRender: boolean = true;
   private _initialBatchSize: number = 20;
   private _maxBatchSize: number = 500;
@@ -109,6 +111,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _expandIconClass: string = 'ltree-icon-expand';
   private _collapseIconClass: string = 'ltree-icon-collapse';
   private _leafIconClass: string = 'ltree-icon-leaf';
+  private _toggleIconMode: import('./types').ToggleIconMode = 'rotate';
   private _selectedNodeClass: string | null | undefined = undefined;
   private _dragOverNodeClass: string | null | undefined = undefined;
   private _dropZoneMode: 'floating' | 'glow' = 'glow';
@@ -119,7 +122,12 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _scrollHighlightClass: string | null | undefined = 'ltree-scroll-highlight';
   private _contextMenuXOffset: number = 8;
   private _contextMenuYOffset: number = 0;
-  private _hasContextMenuTemplate: boolean = false;
+  private _hasContextMenuRenderer: boolean = false;
+
+  // Per-node icons
+  private _iconMember: string | null | undefined = undefined;
+  private _iconCallback: ((node: LTreeNode<T>) => string | null) | undefined = undefined;
+  private _alignNodeIcons: boolean = true;
 
   // ── Internal mutable state ──────────────────────────────────────────
 
@@ -292,6 +300,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   get leafIconClass() { return this._leafIconClass; }
   set leafIconClass(v: string) { this._leafIconClass = v; this._updateNodeConfig(); }
 
+  get toggleIconMode() { return this._toggleIconMode; }
+  set toggleIconMode(v: import('./types').ToggleIconMode) { this._toggleIconMode = v; this._updateNodeConfig(); }
+
   get selectedNodeClass() { return this._selectedNodeClass; }
   set selectedNodeClass(v: string | null | undefined) { this._selectedNodeClass = v; this._updateNodeConfig(); }
 
@@ -322,8 +333,33 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   get contextMenuYOffset() { return this._contextMenuYOffset; }
   set contextMenuYOffset(v: number) { this._contextMenuYOffset = v; }
 
-  get hasContextMenuTemplate() { return this._hasContextMenuTemplate; }
-  set hasContextMenuTemplate(v: boolean) { this._hasContextMenuTemplate = v; }
+  get hasContextMenuRenderer() { return this._hasContextMenuRenderer; }
+  set hasContextMenuRenderer(v: boolean) { this._hasContextMenuRenderer = v; }
+
+  // Per-node icons
+  get iconMember() { return this._iconMember; }
+  set iconMember(v: string | null | undefined) { this._iconMember = v; this._updateNodeConfig(); }
+
+  get iconCallback() { return this._iconCallback; }
+  set iconCallback(v: ((node: LTreeNode<T>) => string | null) | undefined) { this._iconCallback = v; this._updateNodeConfig(); }
+
+  get alignNodeIcons() { return this._alignNodeIcons; }
+  set alignNodeIcons(v: boolean) { this._alignNodeIcons = v; this._updateNodeConfig(); }
+
+  get hasIconSupport(): boolean {
+    return !!(this._iconMember || this._iconCallback);
+  }
+
+  getNodeIcon(node: LTreeNode<T>): string | null {
+    if (this._iconCallback) {
+      return this._iconCallback(node);
+    }
+    if (this._iconMember && node.data) {
+      const val = (node.data as any)[this._iconMember];
+      return val ? String(val) : null;
+    }
+    return null;
+  }
 
   // Context menu state
   get contextMenuVisible() { return this._contextMenuVisible; }
@@ -446,7 +482,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._isLoading = props.isLoading ?? false;
 
     this._useFlatRendering = props.useFlatRendering ?? true;
-    this._flatIndentSize = props.flatIndentSize ?? '1.5rem';
+    this._flatIndentSize = props.flatIndentSize ?? 'var(--tv-column-width)';
     this._progressiveRender = props.progressiveRender ?? true;
     this._initialBatchSize = props.initialBatchSize ?? 20;
     this._maxBatchSize = props.maxBatchSize ?? 500;
@@ -465,6 +501,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._expandIconClass = props.expandIconClass ?? 'ltree-icon-expand';
     this._collapseIconClass = props.collapseIconClass ?? 'ltree-icon-collapse';
     this._leafIconClass = props.leafIconClass ?? 'ltree-icon-leaf';
+    this._toggleIconMode = props.toggleIconMode ?? 'rotate';
     this._selectedNodeClass = props.selectedNodeClass;
     this._dragOverNodeClass = props.dragOverNodeClass;
     this._dropZoneMode = props.dropZoneMode ?? 'glow';
@@ -475,7 +512,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._scrollHighlightClass = props.scrollHighlightClass ?? 'ltree-scroll-highlight';
     this._contextMenuXOffset = props.contextMenuXOffset ?? 8;
     this._contextMenuYOffset = props.contextMenuYOffset ?? 0;
-    this._hasContextMenuTemplate = props.hasContextMenuTemplate ?? false;
+    this._hasContextMenuRenderer = props.hasContextMenuRenderer ?? false;
+    this._iconMember = props.iconMember ?? undefined;
+    this._iconCallback = props.iconCallback;
+    this._alignNodeIcons = props.alignNodeIcons ?? true;
 
     // Store callbacks
     this.onNodeClickedCb = props.onNodeClicked;
@@ -1116,6 +1156,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this._collapseIconClass = updates.collapseIconClass ?? 'ltree-icon-collapse';
     if (updates.leafIconClass !== undefined)
       this._leafIconClass = updates.leafIconClass ?? 'ltree-icon-leaf';
+    if (updates.toggleIconMode !== undefined)
+      this._toggleIconMode = updates.toggleIconMode ?? 'rotate';
     if (updates.selectedNodeClass !== undefined)
       this._selectedNodeClass = updates.selectedNodeClass;
     if (updates.dragOverNodeClass !== undefined)
@@ -1142,6 +1184,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.contextMenuYOffset !== undefined)
       this._contextMenuYOffset = updates.contextMenuYOffset ?? 0;
 
+    // Per-node icons
+    if (updates.iconMember !== undefined) this._iconMember = updates.iconMember ?? undefined;
+    if (updates.iconCallback !== undefined) this._iconCallback = updates.iconCallback;
+    if (updates.alignNodeIcons !== undefined) this._alignNodeIcons = updates.alignNodeIcons ?? true;
+
     // Virtual scroll
     if (updates.virtualScroll !== undefined) this._virtualScroll = updates.virtualScroll ?? false;
     if (updates.virtualRowHeight !== undefined) this._virtualRowHeight = updates.virtualRowHeight;
@@ -1155,6 +1202,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.beforeDropCallback !== undefined) this.beforeDropCallbackCb = updates.beforeDropCallback;
     if (updates.onNodeDrop !== undefined) this.onNodeDropCb = updates.onNodeDrop;
     if (updates.contextMenuCallback !== undefined) this.contextMenuCallbackCb = updates.contextMenuCallback;
+    if (updates.hasContextMenuRenderer !== undefined) this._hasContextMenuRenderer = updates.hasContextMenuRenderer;
     if (updates.onRenderStart !== undefined) this.onRenderStartCb = updates.onRenderStart;
     if (updates.onRenderProgress !== undefined) this.onRenderProgressCb = updates.onRenderProgress;
     if (updates.onRenderComplete !== undefined) this.onRenderCompleteCb = updates.onRenderComplete;
@@ -1412,6 +1460,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       expandIconClass: this._expandIconClass,
       collapseIconClass: this._collapseIconClass,
       leafIconClass: this._leafIconClass,
+      toggleIconMode: this._toggleIconMode,
       selectedNodeClass: this._selectedNodeClass,
       dragOverNodeClass: this._dragOverNodeClass,
       dragDropMode: this._dragDropMode,
@@ -1419,7 +1468,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       dropZoneLayout: this._dropZoneLayout,
       dropZoneStart: this._dropZoneStart,
       dropZoneMaxWidth: this._dropZoneMaxWidth,
-      allowCopy: this._allowCopy
+      allowCopy: this._allowCopy,
+      iconMember: this._iconMember
     };
     this.emit('config-change', this._nodeConfig);
   }
@@ -1444,11 +1494,14 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this.closeContextMenu();
     };
 
-    document.addEventListener('click', handleGlobalClick);
-    document.addEventListener('contextmenu', handleGlobalClick);
-    window.addEventListener('scroll', handleGlobalScroll, true);
-    document.addEventListener('scroll', handleGlobalScroll, true);
-    window.addEventListener('wheel', handleGlobalScroll, { passive: true });
+    // Defer to avoid catching the same event that opened the menu
+    requestAnimationFrame(() => {
+      document.addEventListener('click', handleGlobalClick);
+      document.addEventListener('contextmenu', handleGlobalClick);
+      window.addEventListener('scroll', handleGlobalScroll, true);
+      document.addEventListener('scroll', handleGlobalScroll, true);
+      window.addEventListener('wheel', handleGlobalScroll, { passive: true });
+    });
 
     this._contextMenuCleanup = () => {
       document.removeEventListener('click', handleGlobalClick);
@@ -1464,7 +1517,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _updateDebugContextMenu() {
     if (
       this._shouldDisplayContextMenuInDebugMode &&
-      (this._hasContextMenuTemplate || this.contextMenuCallbackCb) &&
+      (this._hasContextMenuRenderer || this.contextMenuCallbackCb) &&
       this.tree?.tree &&
       this.tree.tree.length > 0
     ) {
@@ -1519,7 +1572,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   }
 
   private _onNodeRightClicked(node: LTreeNode<T>, event: MouseEvent) {
-    if (!this._hasContextMenuTemplate && !this.contextMenuCallbackCb) {
+    uiLogger.debug(`Right-click on node: ${node.path}`, {
+      hasContextMenuRenderer: this._hasContextMenuRenderer,
+      hasContextMenuCallback: !!this.contextMenuCallbackCb,
+    });
+    if (!this._hasContextMenuRenderer && !this.contextMenuCallbackCb) {
       return;
     }
 

@@ -34,6 +34,8 @@
   font-size: var(--tv-font-size-sm);
   position: relative;
   overflow: visible;
+  transition: var(--tv-node-transition);
+  cursor: pointer;
 }
 
 .ltree-node .ltree-node-row {
@@ -46,9 +48,9 @@
 .ltree-node .ltree-node-content {
   display: flex;
   align-items: center;
-  padding: var(--tv-node-padding);
+  padding: var(--tv-spacing-sm) var(--tv-spacing-md) var(--tv-spacing-sm) 0;
   border-radius: 0;
-  transition: background-color var(--tv-transition-speed), box-shadow var(--tv-transition-speed) ease;
+  transition: var(--tv-node-transition);
   flex: 1;
   position: relative;
   overflow: visible;
@@ -57,8 +59,12 @@
   -webkit-touch-callout: none;
 }
 
-.ltree-node .ltree-node-content:hover {
-  background-color: var(--tv-light-bg);
+.ltree-node:hover {
+  background: var(--tv-node-bg-hover);
+}
+
+.ltree-node:active {
+  background: var(--tv-node-bg-active);
 }
 
 /* ── Glow drop indicators ─────────────────────────────────────────── */
@@ -131,10 +137,10 @@
 }
 
 .ltree-node .ltree-toggle-icon {
-  width: var(--tv-toggle-size);
-  display: inline-block;
-  text-align: center;
-  margin-right: var(--tv-spacing-md);
+  width: var(--tv-column-width);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: var(--tv-font-size-xs);
   color: var(--tv-toggle-color);
   transition: transform var(--tv-transition-speed);
@@ -142,11 +148,10 @@
 }
 
 .ltree-node .ltree-toggle-icon.expanded {
-  transform: rotate(0deg);
+  transform: rotate(90deg);
 }
 
 .ltree-node .ltree-node-icon {
-  margin-right: calc(0.6 * var(--tv-rem));
   font-size: var(--tv-font-size-sm);
 }
 
@@ -176,6 +181,7 @@
 .ltree-icon-collapse-minus::before { content: '\2212'; }
 .ltree-icon-expand-arrow::before { content: '\2192'; }
 .ltree-icon-collapse-arrow::before { content: '\2193'; }
+.ltree-icon-leaf-none::before { content: ''; }
 
 /* ── Selected node styles ─────────────────────────────────────────── */
 
@@ -185,9 +191,9 @@
 }
 
 .ltree-selected-border {
-  border: 2px solid var(--tv-accent-color) !important;
+  border: var(--tv-selected-border) !important;
   border-radius: var(--tv-border-radius-sm) !important;
-  background-color: color-mix(in srgb, var(--tv-accent-color) 10%, transparent) !important;
+  background: var(--tv-selected-bg) !important;
   padding: calc(0.6 * var(--tv-rem)) calc(1 * var(--tv-rem)) !important;
 }
 
@@ -212,14 +218,14 @@
 /* ── Drag-over node styles ────────────────────────────────────────── */
 
 .ltree-dragover-highlight {
-  background-color: color-mix(in srgb, var(--tv-success-color) 15%, transparent) !important;
-  border: 2px dashed var(--tv-success-color) !important;
+  background: var(--tv-dragover-highlight-bg) !important;
+  border: var(--tv-dragover-highlight-border) !important;
   border-radius: var(--tv-border-radius-sm) !important;
 }
 
 .ltree-dragover-glow {
-  background-color: color-mix(in srgb, var(--tv-accent-color) 10%, transparent) !important;
-  box-shadow: 0 0 8px color-mix(in srgb, var(--tv-accent-color) 40%, transparent) !important;
+  background: var(--tv-drag-over-bg) !important;
+  box-shadow: var(--tv-drag-over-glow-shadow) !important;
 }
 
 /* ── Drag and drop ────────────────────────────────────────────────── */
@@ -247,13 +253,13 @@
   position: fixed;
   transform: translate(-50%, -50%);
   padding: var(--tv-spacing-md) var(--tv-spacing-lg);
-  background: color-mix(in srgb, var(--tv-accent-color) 90%, transparent);
+  background: var(--tv-touch-ghost-bg);
   color: var(--tv-text-color-on-accent);
   border-radius: var(--tv-border-radius-sm);
   font-size: var(--tv-font-size-sm);
   pointer-events: none;
   z-index: var(--tv-z-index-ghost);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--tv-touch-ghost-shadow);
   white-space: nowrap;
   max-width: calc(20 * var(--tv-rem));
   overflow: hidden;
@@ -263,7 +269,7 @@
 /* Drop placeholder for empty trees */
 .ltree-drop-placeholder {
   border: var(--tv-drop-placeholder-border) !important;
-  background-color: var(--tv-drop-placeholder-bg) !important;
+  background: var(--tv-drop-placeholder-bg) !important;
   border-radius: var(--tv-drop-placeholder-radius);
   min-height: calc(6 * var(--tv-rem));
   display: flex;
@@ -282,8 +288,8 @@
 
 /* Drag-over content styles */
 .ltree-node-content.ltree-drag-over {
-  background-color: color-mix(in srgb, var(--tv-accent-color) 10%, transparent) !important;
-  border: 2px dashed var(--tv-accent-color);
+  background: var(--tv-drag-over-bg) !important;
+  border: var(--tv-drag-over-border);
   border-radius: var(--tv-border-radius-sm);
 }
 
@@ -300,13 +306,13 @@
 }
 
 .ltree-node-content.ltree-drop-valid {
-  border-color: var(--tv-success-color) !important;
-  background-color: color-mix(in srgb, var(--tv-success-color) 10%, transparent) !important;
+  border-color: var(--tv-drop-valid-border-color) !important;
+  background: var(--tv-drop-valid-bg) !important;
 }
 
 .ltree-node-content.ltree-drop-invalid {
-  border-color: var(--tv-danger-color) !important;
-  background-color: color-mix(in srgb, var(--tv-danger-color) 10%, transparent) !important;
+  border-color: var(--tv-drop-invalid-border-color) !important;
+  background: var(--tv-drop-invalid-bg) !important;
 }
 
 /* ── Context menu ─────────────────────────────────────────────────── */
@@ -316,55 +322,67 @@
   z-index: var(--tv-z-index-dropdown);
   background: var(--tv-context-menu-bg);
   border: var(--tv-context-menu-border);
-  border-radius: var(--tv-border-radius-sm);
+  border-radius: var(--tv-context-menu-border-radius);
   box-shadow: var(--tv-context-menu-shadow);
-  padding: var(--tv-spacing-sm) 0;
+  padding: var(--tv-context-menu-padding);
   min-width: var(--tv-context-menu-min-width);
 }
 
 .ltree-context-menu .ltree-context-menu-item {
   display: flex;
   align-items: center;
-  padding: var(--tv-spacing-md) var(--tv-spacing-xl);
+  gap: var(--tv-context-menu-item-gap);
+  padding: var(--tv-context-menu-item-padding);
   border: none;
   background: none;
   width: 100%;
   text-align: left;
   cursor: pointer;
-  color: var(--tv-text-color);
+  color: var(--tv-context-menu-text-color);
   text-decoration: none;
-  font-size: var(--tv-font-size-sm);
+  font-size: var(--tv-context-menu-font-size);
 }
 
 .ltree-context-menu .ltree-context-menu-item:hover {
-  background-color: var(--tv-light-bg);
+  background: var(--tv-context-menu-bg-hover);
 }
 
 .ltree-context-menu .ltree-context-menu-item.ltree-context-menu-item-disabled {
-  opacity: 0.5;
+  opacity: var(--tv-context-menu-disabled-opacity);
   cursor: not-allowed;
 }
 
 .ltree-context-menu .ltree-context-menu-item.danger {
-  color: var(--tv-danger-color);
+  color: var(--tv-context-menu-danger-color);
 }
 
 .ltree-context-menu .ltree-context-menu-item.danger:hover {
-  background-color: color-mix(in srgb, var(--tv-danger-color) 10%, transparent);
+  background: var(--tv-context-menu-danger-bg-hover);
 }
 
 .ltree-context-menu .ltree-context-menu-icon {
-  margin-right: var(--tv-spacing-md);
-  font-size: var(--tv-font-size-xs);
-  width: var(--tv-icon-size);
+  font-size: var(--tv-context-menu-icon-font-size);
+  width: var(--tv-context-menu-icon-size);
   text-align: center;
+  flex-shrink: 0;
+}
+
+.ltree-context-menu .ltree-context-menu-label {
+  flex: 1;
+}
+
+.ltree-context-menu .ltree-context-menu-arrow {
+  margin-left: auto;
+  font-size: var(--tv-context-menu-arrow-font-size);
+  opacity: 0.5;
+  flex-shrink: 0;
 }
 
 .ltree-context-menu .ltree-context-menu-divider,
 .ltree-context-menu .ltree-context-menu-separator {
   height: 1px;
-  background-color: var(--tv-border-color);
-  margin: var(--tv-spacing-sm) 0;
+  background-color: var(--tv-context-menu-divider-color);
+  margin: var(--tv-context-menu-divider-margin);
 }
 
 /* ── Debug info ───────────────────────────────────────────────────── */
@@ -401,7 +419,7 @@
 }
 
 .ltree-debug-info .ltree-debug-stats span {
-  background-color: var(--tv-light-bg);
+  background: var(--tv-light-bg);
   padding: calc(0.2 * var(--tv-rem)) var(--tv-spacing-sm);
   border-radius: calc(0.2 * var(--tv-rem));
   font-family: monospace;
@@ -413,8 +431,8 @@
 /* ── Scroll highlight ─────────────────────────────────────────────── */
 
 .ltree-scroll-highlight {
-  background-color: color-mix(in srgb, var(--tv-accent-color) 30%, transparent) !important;
-  box-shadow: 0 0 8px color-mix(in srgb, var(--tv-accent-color) 40%, transparent);
+  background: var(--tv-scroll-highlight-bg) !important;
+  box-shadow: var(--tv-scroll-highlight-shadow);
   border-radius: var(--tv-border-radius-sm);
 }
 
@@ -471,32 +489,32 @@
 
 .ltree-drop-zone.ltree-drop-above {
   background: var(--tv-glow-above-bg);
-  color: rgba(62, 89, 72, 0.7);
+  color: var(--tv-glow-above-text);
 }
 .ltree-drop-zone.ltree-drop-above.ltree-drop-zone-active {
-  background: rgba(134, 179, 152, 0.85);
-  color: rgb(32, 54, 40);
-  box-shadow: 0 2px 12px rgba(134, 179, 152, 0.4);
+  background: var(--tv-glow-above-bg-active);
+  color: var(--tv-glow-above-color-active);
+  box-shadow: var(--tv-glow-above-shadow);
 }
 
 .ltree-drop-zone.ltree-drop-below {
   background: var(--tv-glow-below-bg);
-  color: rgba(120, 70, 50, 0.7);
+  color: var(--tv-glow-below-text);
 }
 .ltree-drop-zone.ltree-drop-below.ltree-drop-zone-active {
-  background: rgba(242, 182, 158, 0.85);
-  color: rgb(80, 45, 30);
-  box-shadow: 0 2px 12px rgba(242, 182, 158, 0.4);
+  background: var(--tv-glow-below-bg-active);
+  color: var(--tv-glow-below-color-active);
+  box-shadow: var(--tv-glow-below-shadow);
 }
 
 .ltree-drop-zone.ltree-drop-child {
   background: var(--tv-glow-child-bg);
-  color: rgba(72, 62, 98, 0.7);
+  color: var(--tv-glow-child-text);
 }
 .ltree-drop-zone.ltree-drop-child.ltree-drop-zone-active {
-  background: rgba(167, 155, 198, 0.85);
-  color: rgb(45, 38, 62);
-  box-shadow: 0 2px 12px rgba(167, 155, 198, 0.4);
+  background: var(--tv-glow-child-bg-active);
+  color: var(--tv-glow-child-color-active);
+  box-shadow: var(--tv-glow-child-shadow);
 }
 
 /* Layout: "around" */

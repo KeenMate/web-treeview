@@ -24,9 +24,10 @@ export interface ContextMenuItem {
 	icon?: string;
 	title: string;
 	isDisabled?: boolean;
-	callback: () => void | Promise<void>;
+	callback?: () => void | Promise<void>;
 	isDivider?: boolean;
 	className?: string;
+	children?: ContextMenuItem[];
 }
 
 export interface InsertArrayResult<T> {

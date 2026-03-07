@@ -18,17 +18,17 @@ export interface TreeViewRenderer<T = any> {
 
 export interface RendererConfig<T> {
   /** Custom node content renderer. Receives the node and a container element to populate. */
-  nodeTemplate?: (node: LTreeNode<T>, container: HTMLElement) => void;
+  renderNodeCallback?: (node: LTreeNode<T>, container: HTMLElement) => void;
   /** Rendered when the tree has no data. */
-  emptyTemplate?: (container: HTMLElement) => void;
+  renderEmptyZoneCallback?: (container: HTMLElement) => void;
   /** Rendered when isLoading is true. */
-  loadingTemplate?: (container: HTMLElement) => void;
+  renderLoadingCallback?: (container: HTMLElement) => void;
   /** Rendered above the tree body. */
-  headerTemplate?: (container: HTMLElement) => void;
+  renderHeaderCallback?: (container: HTMLElement) => void;
   /** Rendered below the tree body. */
-  footerTemplate?: (container: HTMLElement) => void;
+  renderFooterCallback?: (container: HTMLElement) => void;
   /** Context menu renderer. */
-  contextMenuTemplate?: (node: LTreeNode<T>, close: () => void, container: HTMLElement) => void;
+  renderContextMenuCallback?: (node: LTreeNode<T>, close: () => void, container: HTMLElement) => void;
   /** Drop placeholder for empty tree during drag. */
-  dropPlaceholderTemplate?: (container: HTMLElement) => void;
+  renderDropPlaceholderCallback?: (container: HTMLElement) => void;
 }

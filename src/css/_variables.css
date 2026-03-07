@@ -1,64 +1,160 @@
-:host {
-  /* ── Base unit ──────────────────────────────────────────────────── */
+/* ==============================================================================
+   CSS CUSTOM PROPERTIES (:host level)
+   ==============================================================================
+   This file defines all CSS custom properties at the :host level, making them:
+   - Inspectable in browser DevTools
+   - Overridable from outside Shadow DOM
+   - Self-documenting in compiled CSS
+
+   Priority chain: --tv-* (direct override) → --base-* (theme value) → hardcoded default
+
+   Usage from outside Shadow DOM (set on :root or any ancestor):
+     :root {
+       --base-accent-color: #10b981;
+       --base-text-color-1: #111827;
+     }
+
+   Or override component-specific variables directly:
+     web-treeview {
+       --tv-accent-color: #10b981;
+       --tv-indent-size: 24px;
+     }
+
+   Or inject styles into Shadow DOM via customStylesCallback:
+     treeview.customStylesCallback = () => `:host {
+       --base-accent-color: #10b981;
+     }`;
+
+   --base-* variables used by this component:
+     --base-accent-color           Primary accent color
+     --base-accent-color-hover     Accent hover state
+     --base-accent-color-light     Light accent background (selection)
+     --base-text-color-1           Primary text color
+     --base-text-color-3           Secondary/muted text color
+     --base-text-color-on-accent   Text on accent backgrounds
+     --base-main-bg                Main background color
+     --base-elevated-bg            Elevated/subtle surface background
+     --base-hover-bg               Hover background
+     --base-border-color           Border color
+     --base-danger-color           Danger/destructive color
+     --base-font-family            Font family
+     --base-font-size-xs           Font size multiplier (× rem)
+     --base-font-size-sm           Font size multiplier (× rem)
+     --base-font-size-base         Font size multiplier (× rem)
+     --base-font-weight-medium     Font weight
+     --base-font-weight-semibold   Font weight
+     --base-border-radius-sm       Border radius multiplier (× rem)
+     --base-border-radius-md       Border radius multiplier (× rem)
+     --base-border-radius-lg       Border radius multiplier (× rem)
+   ============================================================================== */
+
+:host,
+:root {
+  /* ==========================================================================
+     BASE REM UNIT
+     ==========================================================================
+     Internal 10px-based unit for clean math. Override to scale the component.
+     Default 10px produces same visual output as standard 16px rem.
+
+     IMPORTANT: For web components, set --tv-rem on the <web-treeview>
+     element itself or on :root. Setting on wrapper divs won't work due to
+     shadow DOM encapsulation. */
   --tv-rem: var(--base-rem, 10px);
 
-  /* ── Font family ────────────────────────────────────────────────── */
+  /* ==========================================================================
+     FONT FAMILY (set at :host so all shadow DOM content inherits)
+     ========================================================================== */
   font-family: var(--tv-font-family, var(--base-font-family, inherit));
 
-  /* ── Colors ─────────────────────────────────────────────────────── */
+  /* ==========================================================================
+     COLORS & THEME
+     ========================================================================== */
+
+  /* Core Colors */
   --tv-accent-color: var(--base-accent-color, #3b82f6);
   --tv-accent-color-hover: var(--base-accent-color-hover, #2563eb);
-  --tv-text-color: var(--base-text-color, #1e293b);
-  --tv-text-color-2: var(--base-text-color-2, #64748b);
+  --tv-text-color: var(--base-text-color-1, #1e293b);
+  --tv-text-color-2: var(--base-text-color-3, #64748b);
   --tv-text-color-on-accent: var(--base-text-color-on-accent, #ffffff);
-  --tv-bg-color: var(--base-bg-color, #ffffff);
+  --tv-bg-color: var(--base-main-bg, #ffffff);
   --tv-border-color: var(--base-border-color, #e2e8f0);
   --tv-success-color: var(--base-success-color, #198754);
   --tv-danger-color: var(--base-danger-color, #dc3545);
-  --tv-light-bg: var(--base-light-bg, #f8f9fa);
+  --tv-light-bg: var(--base-elevated-bg, #f8f9fa);
 
-  /* ── Hover / active ─────────────────────────────────────────────── */
+  /* Hover / Active / Selected */
   --tv-hover-bg: var(--base-hover-bg, #f1f5f9);
   --tv-active-bg: var(--base-active-bg, #e2e8f0);
   --tv-selected-bg: var(--base-accent-color-light, #eff6ff);
   --tv-selected-border-color: var(--tv-accent-color);
 
-  /* ── Typography scale ───────────────────────────────────────────── */
-  --tv-font-size-xs: calc(var(--base-font-size-xs, 1.2) * var(--tv-rem));
-  --tv-font-size-sm: calc(var(--base-font-size-sm, 1.4) * var(--tv-rem));
-  --tv-font-size-base: calc(var(--base-font-size-base, 1.6) * var(--tv-rem));
+  /* Node state aliases (DRP semantic naming) */
+  --tv-node-bg-hover: var(--tv-hover-bg);
+  --tv-node-bg-active: var(--tv-active-bg);
+
+  /* Full border shorthand (DRP pattern) */
+  --tv-border-width-base: 1px;
+  --tv-border: var(--tv-border-width-base) solid var(--tv-border-color);
+  --tv-selected-border: 2px solid var(--tv-selected-border-color);
+
+  /* ==========================================================================
+     TYPOGRAPHY SCALE (with theme-designer integration)
+     ==========================================================================
+     Theme-designer outputs unitless multipliers (e.g., --base-font-size-sm: 1.4)
+     Component computes: calc(1.4 * 10px) = 14px */
+
+  /* Font Sizes (unitless multipliers × --tv-rem) */
+  --tv-font-size-xs: calc(var(--base-font-size-xs, 1.2) * var(--tv-rem));     /* 12px */
+  --tv-font-size-sm: calc(var(--base-font-size-sm, 1.4) * var(--tv-rem));     /* 14px */
+  --tv-font-size-base: calc(var(--base-font-size-base, 1.6) * var(--tv-rem)); /* 16px */
   --tv-font-size: var(--tv-font-size-sm);
+
+  /* Font Weights */
   --tv-font-weight-medium: var(--base-font-weight-medium, 500);
   --tv-font-weight-semibold: var(--base-font-weight-semibold, 600);
 
-  /* ── Border radius scale ────────────────────────────────────────── */
-  --tv-border-radius-sm: calc(var(--base-border-radius-sm, 0.4) * var(--tv-rem));
-  --tv-border-radius-md: calc(var(--base-border-radius-md, 0.6) * var(--tv-rem));
-  --tv-border-radius-lg: calc(var(--base-border-radius-lg, 0.8) * var(--tv-rem));
+  /* ==========================================================================
+     BORDER RADIUS (unitless multipliers × --tv-rem)
+     ========================================================================== */
+  --tv-border-radius-sm: calc(var(--base-border-radius-sm, 0.4) * var(--tv-rem));  /* 4px */
+  --tv-border-radius-md: calc(var(--base-border-radius-md, 0.6) * var(--tv-rem));  /* 6px */
+  --tv-border-radius-lg: calc(var(--base-border-radius-lg, 0.8) * var(--tv-rem));  /* 8px */
 
-  /* ── Spacing scale ──────────────────────────────────────────────── */
-  --tv-spacing-xs: calc(0.2 * var(--tv-rem));
-  --tv-spacing-sm: calc(0.4 * var(--tv-rem));
-  --tv-spacing-md: calc(0.8 * var(--tv-rem));
-  --tv-spacing-lg: calc(1.2 * var(--tv-rem));
-  --tv-spacing-xl: calc(1.6 * var(--tv-rem));
+  /* ==========================================================================
+     SPACING SCALE
+     ========================================================================== */
+  --tv-spacing-xs: calc(0.2 * var(--tv-rem));   /* 2px */
+  --tv-spacing-sm: calc(0.4 * var(--tv-rem));   /* 4px */
+  --tv-spacing-md: calc(0.8 * var(--tv-rem));   /* 8px */
+  --tv-spacing-lg: calc(1.2 * var(--tv-rem));   /* 12px */
+  --tv-spacing-xl: calc(1.6 * var(--tv-rem));   /* 16px */
 
-  /* ── Transitions ────────────────────────────────────────────────── */
+  /* ==========================================================================
+     TRANSITIONS & ANIMATIONS
+     ========================================================================== */
   --tv-transition-speed: 150ms;
   --tv-transition-normal: 200ms;
   --tv-easing: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* ── Tree-specific ──────────────────────────────────────────────── */
-  --tv-indent-size: calc(var(--tv-rem) * 2);
+  /* ==========================================================================
+     TREE-SPECIFIC LAYOUT
+     ========================================================================== */
+  --tv-column-width: calc(var(--tv-rem) * 2.4); /* 24px — unified column for toggle, icon, indent step */
+  --tv-indent-size: var(--tv-column-width);
   --tv-node-padding: var(--tv-spacing-sm) var(--tv-spacing-md);
-  --tv-node-height: calc(var(--tv-rem) * 3.2);
-  --tv-icon-size: calc(var(--tv-rem) * 1.6);
+  --tv-node-height: calc(var(--tv-rem) * 3.2);  /* 32px */
+  --tv-icon-size: calc(var(--tv-rem) * 1.6);    /* 16px */
 
-  /* Toggle icon */
-  --tv-toggle-size: calc(var(--tv-rem) * 2);
+  /* Node transition */
+  --tv-node-transition: background var(--tv-transition-speed), box-shadow var(--tv-transition-speed) ease;
+
+  /* Toggle Icon */
+  --tv-toggle-size: var(--tv-column-width);
   --tv-toggle-color: var(--tv-text-color-2);
 
-  /* ── DnD glow colors ────────────────────────────────────────────── */
+  /* ==========================================================================
+     DRAG & DROP GLOW INDICATORS
+     ========================================================================== */
   --tv-glow-above-color: rgba(134, 179, 152, 0.8);
   --tv-glow-below-color: rgba(242, 182, 158, 0.8);
   --tv-glow-child-color: rgba(167, 155, 198, 0.8);
@@ -66,28 +162,92 @@
   --tv-glow-below-bg: rgba(242, 182, 158, 0.25);
   --tv-glow-child-bg: rgba(167, 155, 198, 0.25);
 
-  /* ── Context menu ───────────────────────────────────────────────── */
-  --tv-context-menu-bg: var(--tv-bg-color);
-  --tv-context-menu-border: 1px solid var(--tv-border-color);
-  --tv-context-menu-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  --tv-context-menu-min-width: calc(var(--tv-rem) * 15);
+  /* Drop zone active states */
+  --tv-glow-above-bg-active: rgba(134, 179, 152, 0.85);
+  --tv-glow-below-bg-active: rgba(242, 182, 158, 0.85);
+  --tv-glow-child-bg-active: rgba(167, 155, 198, 0.85);
+  --tv-glow-above-color-active: rgb(32, 54, 40);
+  --tv-glow-below-color-active: rgb(80, 45, 30);
+  --tv-glow-child-color-active: rgb(45, 38, 62);
+  --tv-glow-above-shadow: 0 2px 12px rgba(134, 179, 152, 0.4);
+  --tv-glow-below-shadow: 0 2px 12px rgba(242, 182, 158, 0.4);
+  --tv-glow-child-shadow: 0 2px 12px rgba(167, 155, 198, 0.4);
+  --tv-glow-above-text: rgba(62, 89, 72, 0.7);
+  --tv-glow-below-text: rgba(120, 70, 50, 0.7);
+  --tv-glow-child-text: rgba(72, 62, 98, 0.7);
 
-  /* ── Loading ────────────────────────────────────────────────────── */
-  --tv-spinner-size: calc(var(--tv-rem) * 3.2);
+  /* Drag-over states */
+  --tv-drag-over-bg: color-mix(in srgb, var(--tv-accent-color) 10%, transparent);
+  --tv-drag-over-border: 2px dashed var(--tv-accent-color);
+  --tv-drag-over-glow-shadow: 0 0 8px color-mix(in srgb, var(--tv-accent-color) 40%, transparent);
+
+  /* Drop validation */
+  --tv-drop-valid-bg: color-mix(in srgb, var(--tv-success-color) 10%, transparent);
+  --tv-drop-valid-border-color: var(--tv-success-color);
+  --tv-drop-invalid-bg: color-mix(in srgb, var(--tv-danger-color) 10%, transparent);
+  --tv-drop-invalid-border-color: var(--tv-danger-color);
+
+  /* Dragover highlight */
+  --tv-dragover-highlight-bg: color-mix(in srgb, var(--tv-success-color) 15%, transparent);
+  --tv-dragover-highlight-border: 2px dashed var(--tv-success-color);
+
+  /* Touch ghost */
+  --tv-touch-ghost-bg: color-mix(in srgb, var(--tv-accent-color) 90%, transparent);
+  --tv-touch-ghost-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+  /* Scroll highlight */
+  --tv-scroll-highlight-bg: color-mix(in srgb, var(--tv-accent-color) 30%, transparent);
+  --tv-scroll-highlight-shadow: 0 0 8px color-mix(in srgb, var(--tv-accent-color) 40%, transparent);
+
+  /* ==========================================================================
+     CONTEXT MENU
+     Each variable defaults to a higher-order component variable so the menu
+     can be themed independently without affecting the tree itself.
+     ========================================================================== */
+  --tv-context-menu-bg: var(--tv-bg-color);
+  --tv-context-menu-bg-hover: var(--tv-hover-bg);
+  --tv-context-menu-text-color: var(--tv-text-color);
+  --tv-context-menu-border: 1px solid var(--tv-border-color);
+  --tv-context-menu-border-radius: var(--tv-border-radius-sm);
+  --tv-context-menu-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  --tv-context-menu-min-width: calc(var(--tv-rem) * 15);  /* ~150px */
+  --tv-context-menu-padding: var(--tv-spacing-sm) 0;
+  --tv-context-menu-font-size: var(--tv-font-size-sm);
+  --tv-context-menu-item-padding: var(--tv-spacing-md) var(--tv-spacing-xl);
+  --tv-context-menu-item-gap: var(--tv-spacing-md);
+  --tv-context-menu-icon-size: var(--tv-icon-size);
+  --tv-context-menu-icon-font-size: var(--tv-font-size-xs);
+  --tv-context-menu-arrow-font-size: var(--tv-font-size-xs);
+  --tv-context-menu-danger-color: var(--tv-danger-color);
+  --tv-context-menu-danger-bg-hover: color-mix(in srgb, var(--tv-danger-color) 10%, transparent);
+  --tv-context-menu-divider-color: var(--tv-border-color);
+  --tv-context-menu-divider-margin: var(--tv-spacing-sm) 0;
+  --tv-context-menu-disabled-opacity: 0.5;
+
+  /* ==========================================================================
+     LOADING OVERLAY
+     ========================================================================== */
+  --tv-spinner-size: calc(var(--tv-rem) * 3.2);  /* 32px */
   --tv-spinner-track: var(--tv-border-color);
   --tv-spinner-color: var(--tv-accent-color);
   --tv-loading-bg: rgba(255, 255, 255, 0.8);
 
-  /* ── Drop placeholder ───────────────────────────────────────────── */
+  /* ==========================================================================
+     DROP PLACEHOLDER (empty tree)
+     ========================================================================== */
   --tv-drop-placeholder-border: 2px dashed var(--tv-accent-color);
   --tv-drop-placeholder-bg: color-mix(in srgb, var(--tv-accent-color) 10%, transparent);
   --tv-drop-placeholder-radius: var(--tv-border-radius-lg);
 
-  /* ── Z-index ────────────────────────────────────────────────────── */
+  /* ==========================================================================
+     Z-INDEX LAYERS
+     ========================================================================== */
   --tv-z-index-dropdown: 1000;
   --tv-z-index-ghost: 10000;
   --tv-z-index-overlay: 10;
 
-  /* ── Misc ───────────────────────────────────────────────────────── */
+  /* ==========================================================================
+     MISC
+     ========================================================================== */
   --tv-dragged-opacity: 0.5;
 }

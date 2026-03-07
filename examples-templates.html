@@ -105,14 +105,14 @@
         <!-- Example 1: Node Template -->
         <div class="card">
             <h2>Example 1: Custom Node Template</h2>
-            <p>Use <code>nodeTemplate</code> to render custom HTML for each tree node. This example shows file icons and sizes.</p>
+            <p>Use <code>renderNodeCallback</code> to render custom HTML for each tree node. This example shows file icons and sizes.</p>
 
             <div class="tree-container" id="tree1-container">
-                <web-treeview id="tree1"></web-treeview>
+                <web-treeview id="tree1" toggle-icon-mode="swap" expand-icon-class="ltree-icon-expand-plus" collapse-icon-class="ltree-icon-collapse-minus"></web-treeview>
             </div>
 
             <div class="code-block">
-<pre><code>element.nodeTemplate = (node, container) => {
+<pre><code>element.renderNodeCallback = (node, container) => {
     const ext = getExtension(node.data.name);
     container.innerHTML = `
         &lt;div class="custom-node"&gt;
@@ -131,17 +131,106 @@
             <p>Add dynamic badges to nodes indicating their status (new, modified, deleted).</p>
 
             <div class="tree-container" id="tree2-container">
-                <web-treeview id="tree2"></web-treeview>
+                <web-treeview id="tree2" expand-icon-class="ltree-icon-expand-arrow"></web-treeview>
             </div>
         </div>
 
         <!-- Example 3: Context Menu -->
         <div class="card">
             <h2>Example 3: Custom Context Menu</h2>
-            <p>Right-click a node to see a custom context menu built with <code>contextMenuTemplate</code>.</p>
+            <p>Right-click a node to see a multi-level context menu with nested submenus, positioned with Floating UI.</p>
+
+            <div class="controls" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; align-items: end;">
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-min-width</code>
+                    <input type="range" id="ctx-min-width" min="8" max="30" step="0.5" value="15">
+                    <span id="ctx-min-width-val" style="font-size: 0.75rem; color: #64748b;">15rem</span>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-font-size</code>
+                    <input type="range" id="ctx-font-size" min="10" max="24" step="1" value="14">
+                    <span id="ctx-font-size-val" style="font-size: 0.75rem; color: #64748b;">14px</span>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-icon-size</code>
+                    <input type="range" id="ctx-icon-size" min="12" max="32" step="1" value="16">
+                    <span id="ctx-icon-size-val" style="font-size: 0.75rem; color: #64748b;">16px</span>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-border-radius</code>
+                    <input type="range" id="ctx-radius" min="0" max="16" step="1" value="4">
+                    <span id="ctx-radius-val" style="font-size: 0.75rem; color: #64748b;">4px</span>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-item-gap</code>
+                    <input type="range" id="ctx-gap" min="0" max="16" step="1" value="8">
+                    <span id="ctx-gap-val" style="font-size: 0.75rem; color: #64748b;">8px</span>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-disabled-opacity</code>
+                    <input type="range" id="ctx-disabled-opacity" min="0" max="1" step="0.05" value="0.5">
+                    <span id="ctx-disabled-opacity-val" style="font-size: 0.75rem; color: #64748b;">0.5</span>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-shadow</code>
+                    <select id="ctx-shadow" style="padding: 4px;">
+                        <option value="0 2px 10px rgba(0,0,0,0.1)">Light</option>
+                        <option value="0 4px 20px rgba(0,0,0,0.2)">Medium</option>
+                        <option value="0 8px 30px rgba(0,0,0,0.3)">Heavy</option>
+                        <option value="none">None</option>
+                    </select>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-item-padding</code>
+                    <select id="ctx-padding" style="padding: 4px;">
+                        <option value="2px 8px">Tight</option>
+                        <option value="4px 12px">Compact</option>
+                        <option value="8px 16px" selected>Default</option>
+                        <option value="12px 20px">Spacious</option>
+                        <option value="16px 24px">Large</option>
+                    </select>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-padding</code>
+                    <select id="ctx-menu-padding" style="padding: 4px;">
+                        <option value="0">None</option>
+                        <option value="4px 0" selected>Default</option>
+                        <option value="8px 0">Large</option>
+                    </select>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-border</code>
+                    <select id="ctx-border" style="padding: 4px;">
+                        <option value="1px solid #e2e8f0" selected>Default</option>
+                        <option value="2px solid #94a3b8">Thick</option>
+                        <option value="1px solid #3b82f6">Accent</option>
+                        <option value="none">None</option>
+                    </select>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-bg</code>
+                    <input type="color" id="ctx-bg" value="#ffffff">
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-bg-hover</code>
+                    <input type="color" id="ctx-bg-hover" value="#f1f5f9">
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-text-color</code>
+                    <input type="color" id="ctx-text" value="#1e293b">
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-danger-color</code>
+                    <input type="color" id="ctx-danger" value="#dc3545">
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-divider-color</code>
+                    <input type="color" id="ctx-divider" value="#e2e8f0">
+                </label>
+            </div>
 
             <div class="tree-container" id="tree3-container">
-                <web-treeview id="tree3"></web-treeview>
+                <web-treeview id="tree3" expand-icon-class="ltree-icon-expand-alt"></web-treeview>
             </div>
 
             <div class="output">
@@ -169,10 +258,79 @@
         <!-- Example 5: Header and Footer -->
         <div class="card">
             <h2>Example 5: Header & Footer Templates</h2>
-            <p>Add custom header and footer content around the tree using <code>headerTemplate</code> and <code>footerTemplate</code>.</p>
+            <p>Add custom header and footer content around the tree using <code>renderHeaderCallback</code> and <code>renderFooterCallback</code>.</p>
 
             <div class="tree-container" id="tree5-container">
-                <web-treeview id="tree5"></web-treeview>
+                <web-treeview id="tree5" toggle-icon-mode="swap" expand-icon-class="ltree-icon-expand-alt" collapse-icon-class="ltree-icon-collapse-alt"></web-treeview>
+            </div>
+        </div>
+
+        <!-- Example 6: FontAwesome Icons -->
+        <div class="card">
+            <h2>Example 6: FontAwesome Icons</h2>
+            <p>Use FontAwesome classes for toggle and leaf icons. Inject FA stylesheet into Shadow DOM via <code>customStylesCallback</code>.</p>
+
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 300px;">
+                    <h3 style="font-size: 0.9rem; margin-bottom: 0.5rem; color: #64748b;">Rotate mode (chevron)</h3>
+                    <div class="tree-container" id="tree6a-container">
+                        <web-treeview id="tree6a"
+                            expand-icon-class="fa-solid fa-chevron-right"
+                            leaf-icon-class="fa-regular fa-file">
+                        </web-treeview>
+                    </div>
+                </div>
+                <div style="flex: 1; min-width: 300px;">
+                    <h3 style="font-size: 0.9rem; margin-bottom: 0.5rem; color: #64748b;">Swap mode (plus/minus)</h3>
+                    <div class="tree-container" id="tree6b-container">
+                        <web-treeview id="tree6b"
+                            toggle-icon-mode="swap"
+                            expand-icon-class="fa-solid fa-plus"
+                            collapse-icon-class="fa-solid fa-minus"
+                            leaf-icon-class="fa-solid fa-leaf">
+                        </web-treeview>
+                    </div>
+                </div>
+                <div style="flex: 1; min-width: 300px;">
+                    <h3 style="font-size: 0.9rem; margin-bottom: 0.5rem; color: #64748b;">Swap mode (folder/file)</h3>
+                    <div class="tree-container" id="tree6c-container">
+                        <web-treeview id="tree6c"
+                            toggle-icon-mode="swap"
+                            expand-icon-class="fa-regular fa-folder"
+                            collapse-icon-class="fa-regular fa-folder-open"
+                            leaf-icon-class="fa-regular fa-file-lines">
+                        </web-treeview>
+                    </div>
+                </div>
+                <div style="flex: 1; min-width: 300px;">
+                    <h3 style="font-size: 0.9rem; margin-bottom: 0.5rem; color: #64748b;">No leaf icon (empty space)</h3>
+                    <div class="tree-container" id="tree6d-container">
+                        <web-treeview id="tree6d"
+                            toggle-icon-mode="swap"
+                            expand-icon-class="fa-solid fa-caret-right"
+                            collapse-icon-class="fa-solid fa-caret-down"
+                            leaf-icon-class="ltree-icon-leaf-none">
+                        </web-treeview>
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-block" style="margin-top: 1rem;">
+<pre><code>// Inject FontAwesome into Shadow DOM via customStylesCallback
+tree.customStylesCallback = () =>
+    `@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css');`;
+
+// Rotate mode — single chevron rotates 90°
+&lt;web-treeview
+    expand-icon-class="fa-solid fa-chevron-right"
+    leaf-icon-class="fa-regular fa-file"&gt;
+
+// Swap mode — two different icons
+&lt;web-treeview
+    toggle-icon-mode="swap"
+    expand-icon-class="fa-regular fa-folder"
+    collapse-icon-class="fa-regular fa-folder-open"
+    leaf-icon-class="fa-regular fa-file-lines"&gt;</code></pre>
             </div>
         </div>
     </div>
@@ -258,7 +416,7 @@
             tree1.displayValueMember = 'name';
             tree1.expandLevel = 2;
 
-            tree1.nodeTemplate = (node, container) => {
+            tree1.renderNodeCallback = (node, container) => {
                 const name = node.data?.name || '';
                 const size = node.data?.size || '';
                 container.innerHTML = `
@@ -278,7 +436,7 @@
             tree2.displayValueMember = 'name';
             tree2.expandLevel = 2;
 
-            tree2.nodeTemplate = (node, container) => {
+            tree2.renderNodeCallback = (node, container) => {
                 const name = node.data?.name || '';
                 const status = node.data?.status;
                 container.innerHTML = `
@@ -298,35 +456,72 @@
             tree3.displayValueMember = 'name';
             tree3.expandLevel = 2;
 
-            tree3.contextMenuTemplate = (node, close, container) => {
-                const name = node.data?.name || '';
-                const items = [
-                    { icon: '\uD83D\uDCC2', label: 'Open', action: 'open' },
-                    { icon: '\u270F\uFE0F', label: 'Rename', action: 'rename' },
-                    { icon: '\uD83D\uDCCB', label: 'Copy Path', action: 'copy-path' },
-                    { separator: true },
-                    { icon: '\uD83D\uDDD1\uFE0F', label: 'Delete', action: 'delete', danger: true }
-                ];
-
-                container.innerHTML = items.map(item => {
-                    if (item.separator) return '<div class="ctx-menu-separator"></div>';
-                    return `<div class="ctx-menu-item ${item.danger ? 'danger' : ''}" data-action="${item.action}">
-                        <span>${item.icon}</span>
-                        <span>${item.label}</span>
-                    </div>`;
-                }).join('');
-
-                container.querySelectorAll('.ctx-menu-item').forEach(el => {
-                    el.addEventListener('click', () => {
-                        document.getElementById('tree3-output').textContent = JSON.stringify({
-                            action: el.dataset.action,
-                            node: name,
-                            path: node.path
-                        }, null, 2);
-                        close();
-                    });
-                });
+            const output3 = document.getElementById('tree3-output');
+            const logAction = (action, node) => {
+                output3.textContent = JSON.stringify({ action, node: node.data?.name, path: node.path }, null, 2);
             };
+            tree3.contextMenuCallback = (node, close) => [
+                { icon: '\uD83D\uDCC2', title: 'Open', callback: () => logAction('open', node) },
+                { icon: '\u270F\uFE0F', title: 'Rename', callback: () => logAction('rename', node) },
+                { icon: '\uD83D\uDCCB', title: 'Copy', children: [
+                    { icon: '\uD83D\uDCC4', title: 'Copy Name', callback: () => logAction('copy-name', node) },
+                    { icon: '\uD83D\uDCC1', title: 'Copy Path', callback: () => logAction('copy-path', node) },
+                    { icon: '\uD83D\uDCE6', title: 'Copy As...', children: [
+                        { title: 'JSON', callback: () => logAction('copy-json', node) },
+                        { title: 'XML', callback: () => logAction('copy-xml', node) },
+                        { title: 'CSV', callback: () => logAction('copy-csv', node) },
+                    ]},
+                ]},
+                { title: '-' },
+                { icon: '\uD83D\uDDD1\uFE0F', title: 'Delete', className: 'danger', callback: () => logAction('delete', node) },
+            ];
+
+            // Context menu config controls — all use scoped --tv-context-menu-* variables
+            const setVar = (name, value) => tree3.style.setProperty(name, value);
+
+            // Range sliders
+            const rangeControls = [
+                ['ctx-min-width',        '--tv-context-menu-min-width',        'rem'],
+                ['ctx-font-size',        '--tv-context-menu-font-size',        'px'],
+                ['ctx-icon-size',        '--tv-context-menu-icon-size',        'px'],
+                ['ctx-radius',           '--tv-context-menu-border-radius',    'px'],
+                ['ctx-gap',              '--tv-context-menu-item-gap',         'px'],
+                ['ctx-disabled-opacity', '--tv-context-menu-disabled-opacity', ''],
+            ];
+            for (const [id, varName, unit] of rangeControls) {
+                document.getElementById(id).addEventListener('input', (e) => {
+                    const v = e.target.value;
+                    document.getElementById(id + '-val').textContent = v + unit;
+                    setVar(varName, v + unit);
+                });
+            }
+
+            // Select dropdowns
+            const selectControls = [
+                ['ctx-shadow',       '--tv-context-menu-shadow'],
+                ['ctx-padding',      '--tv-context-menu-item-padding'],
+                ['ctx-menu-padding', '--tv-context-menu-padding'],
+                ['ctx-border',       '--tv-context-menu-border'],
+            ];
+            for (const [id, varName] of selectControls) {
+                document.getElementById(id).addEventListener('change', (e) => {
+                    setVar(varName, e.target.value);
+                });
+            }
+
+            // Color pickers
+            const colorControls = [
+                ['ctx-bg',      '--tv-context-menu-bg'],
+                ['ctx-bg-hover','--tv-context-menu-bg-hover'],
+                ['ctx-text',    '--tv-context-menu-text-color'],
+                ['ctx-danger',  '--tv-context-menu-danger-color'],
+                ['ctx-divider', '--tv-context-menu-divider-color'],
+            ];
+            for (const [id, varName] of colorControls) {
+                document.getElementById(id).addEventListener('input', (e) => {
+                    setVar(varName, e.target.value);
+                });
+            }
 
             // Tree 4: Empty & Loading states
             const tree4 = document.getElementById('tree4');
@@ -335,7 +530,7 @@
             tree4.displayValueMember = 'name';
             tree4.data = [];
 
-            tree4.emptyTemplate = (container) => {
+            tree4.renderEmptyZoneCallback = (container) => {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="icon">\uD83C\uDF43</div>
@@ -345,7 +540,7 @@
                 `;
             };
 
-            tree4.loadingTemplate = (container) => {
+            tree4.renderLoadingCallback = (container) => {
                 container.innerHTML = `
                     <div class="loading-state">
                         <div class="spinner"></div>
@@ -375,7 +570,7 @@
             tree5.displayValueMember = 'name';
             tree5.expandLevel = 1;
 
-            tree5.headerTemplate = (container) => {
+            tree5.renderHeaderCallback = (container) => {
                 container.innerHTML = `
                     <div style="padding: 8px 12px; background: #ecfdf5; border-bottom: 1px solid #d1fae5; font-size: 0.85rem; color: #065f46; display: flex; align-items: center; gap: 6px;">
                         <span>\uD83D\uDCC1</span>
@@ -385,13 +580,33 @@
                 `;
             };
 
-            tree5.footerTemplate = (container) => {
+            tree5.renderFooterCallback = (container) => {
                 container.innerHTML = `
                     <div style="padding: 6px 12px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 0.75rem; color: #94a3b8; text-align: center;">
                         Right-click for context menu
                     </div>
                 `;
             };
+
+            // Tree 6a/6b/6c: FontAwesome Icons
+            const faStylesCallback = () =>
+                `@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css');`;
+
+            function initFaTree(id) {
+                const el = document.getElementById(id);
+                el.data = menuTree;
+                el.idMember = 'id';
+                el.pathMember = 'path';
+                el.displayValueMember = 'name';
+                el.expandLevel = 2;
+                el.customStylesCallback = faStylesCallback;
+                return el;
+            }
+
+            initFaTree('tree6a');
+            initFaTree('tree6b');
+            initFaTree('tree6c');
+            initFaTree('tree6d');
         });
     </script>
 </body>

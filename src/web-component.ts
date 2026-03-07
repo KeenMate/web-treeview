@@ -71,6 +71,14 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _virtualOverscan?: number;
   private _virtualContainerHeight?: string;
 
+  // Visual config
+  private _toggleIconMode?: 'rotate' | 'swap';
+
+  // Per-node icons
+  private _iconMember?: string;
+  private _iconCallback?: (node: LTreeNode<T>) => string | null;
+  private _alignNodeIcons?: boolean;
+
   // DnD config
   private _dragDropMode?: DragDropMode;
   private _dropZoneMode?: 'floating' | 'glow';
@@ -90,14 +98,20 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _contextMenuCallback?: (node: LTreeNode<T>, closeMenuCallback: () => void) => ContextMenuItem[];
   private _indexingCompleteCallback?: () => void;
 
-  // Template callbacks
-  private _nodeTemplate?: (node: LTreeNode<T>, container: HTMLElement) => void;
-  private _emptyTemplate?: (container: HTMLElement) => void;
-  private _loadingTemplate?: (container: HTMLElement) => void;
-  private _headerTemplate?: (container: HTMLElement) => void;
-  private _footerTemplate?: (container: HTMLElement) => void;
-  private _contextMenuTemplate?: (node: LTreeNode<T>, close: () => void, container: HTMLElement) => void;
-  private _dropPlaceholderTemplate?: (container: HTMLElement) => void;
+  // Custom styles
+  private _customStylesCallback?: () => string;
+  private _customStyleSheet?: HTMLStyleElement;
+  private _customStyleLinks?: HTMLLinkElement[];
+  private _customDocLinks?: HTMLLinkElement[];
+
+  // Render callbacks
+  private _renderNodeCallback?: (node: LTreeNode<T>, container: HTMLElement) => void;
+  private _renderEmptyZoneCallback?: (container: HTMLElement) => void;
+  private _renderLoadingCallback?: (container: HTMLElement) => void;
+  private _renderHeaderCallback?: (container: HTMLElement) => void;
+  private _renderFooterCallback?: (container: HTMLElement) => void;
+  private _renderContextMenuCallback?: (node: LTreeNode<T>, close: () => void, container: HTMLElement) => void;
+  private _renderDropPlaceholderCallback?: (container: HTMLElement) => void;
 
   // Event callbacks
   private _onNodeClicked?: (node: LTreeNode<T>) => void;
@@ -131,7 +145,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
       // Visual / CSS classes
       'body-class', 'selected-node-class', 'drag-over-node-class',
-      'expand-icon-class', 'collapse-icon-class', 'leaf-icon-class',
+      'expand-icon-class', 'collapse-icon-class', 'leaf-icon-class', 'toggle-icon-mode',
       'scroll-highlight-timeout', 'scroll-highlight-class',
 
       // Bindable
@@ -153,6 +167,9 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
       // Virtual scroll
       'virtual-scroll', 'virtual-row-height', 'virtual-overscan', 'virtual-container-height',
+
+      // Per-node icons
+      'icon-member', 'align-node-icons',
     ];
   }
 
@@ -286,6 +303,20 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get indexerTimeout(): number | undefined { return this._indexerTimeout; }
   set indexerTimeout(value: number | undefined) { this._indexerTimeout = value; }
 
+  // Visual properties
+  get toggleIconMode(): 'rotate' | 'swap' | undefined { return this._toggleIconMode; }
+  set toggleIconMode(value: 'rotate' | 'swap' | undefined) { this._toggleIconMode = value; this._scheduleUpdate(); }
+
+  // Per-node icon properties
+  get iconMember(): string | undefined { return this._iconMember; }
+  set iconMember(value: string | undefined) { this._iconMember = value; this._scheduleUpdate(); }
+
+  get iconCallback(): ((node: LTreeNode<T>) => string | null) | undefined { return this._iconCallback; }
+  set iconCallback(value: ((node: LTreeNode<T>) => string | null) | undefined) { this._iconCallback = value; this._scheduleUpdate(); }
+
+  get alignNodeIcons(): boolean | undefined { return this._alignNodeIcons; }
+  set alignNodeIcons(value: boolean | undefined) { this._alignNodeIcons = value; this._scheduleUpdate(); }
+
   // DnD properties
   get dragDropMode(): DragDropMode | undefined { return this._dragDropMode; }
   set dragDropMode(value: DragDropMode | undefined) { this._dragDropMode = value; this._scheduleUpdate(); }
@@ -321,6 +352,13 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get virtualContainerHeight(): string | undefined { return this._virtualContainerHeight; }
   set virtualContainerHeight(value: string | undefined) { this._virtualContainerHeight = value; this._scheduleUpdate(); }
 
+  // Custom styles injection
+  get customStylesCallback(): (() => string) | undefined { return this._customStylesCallback; }
+  set customStylesCallback(value: (() => string) | undefined) {
+    this._customStylesCallback = value;
+    this._applyCustomStyles();
+  }
+
   // Callback properties
   get getDisplayValueCallback() { return this._getDisplayValueCallback; }
   set getDisplayValueCallback(value: ((node: LTreeNode<T>) => string) | undefined) {
@@ -355,6 +393,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get contextMenuCallback() { return this._contextMenuCallback; }
   set contextMenuCallback(value: ((node: LTreeNode<T>, close: () => void) => ContextMenuItem[]) | undefined) {
     this._contextMenuCallback = value;
+    if (this.treeview) this.treeview.update({ contextMenuCallback: value } as any);
   }
 
   get indexingCompleteCallback() { return this._indexingCompleteCallback; }
@@ -362,47 +401,47 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     this._indexingCompleteCallback = value;
   }
 
-  // Template properties
-  get nodeTemplate() { return this._nodeTemplate; }
-  set nodeTemplate(value: ((node: LTreeNode<T>, container: HTMLElement) => void) | undefined) {
-    this._nodeTemplate = value;
-    if (this.treeview) this.treeview.update({ nodeTemplate: value } as any);
+  // Render callbacks
+  get renderNodeCallback() { return this._renderNodeCallback; }
+  set renderNodeCallback(value: ((node: LTreeNode<T>, container: HTMLElement) => void) | undefined) {
+    this._renderNodeCallback = value;
+    if (this.treeview) this.treeview.update({ renderNodeCallback: value } as any);
   }
 
-  get emptyTemplate() { return this._emptyTemplate; }
-  set emptyTemplate(value: ((container: HTMLElement) => void) | undefined) {
-    this._emptyTemplate = value;
-    if (this.treeview) this.treeview.update({ emptyTemplate: value } as any);
+  get renderEmptyZoneCallback() { return this._renderEmptyZoneCallback; }
+  set renderEmptyZoneCallback(value: ((container: HTMLElement) => void) | undefined) {
+    this._renderEmptyZoneCallback = value;
+    if (this.treeview) this.treeview.update({ renderEmptyZoneCallback: value } as any);
   }
 
-  get loadingTemplate() { return this._loadingTemplate; }
-  set loadingTemplate(value: ((container: HTMLElement) => void) | undefined) {
-    this._loadingTemplate = value;
-    if (this.treeview) this.treeview.update({ loadingTemplate: value } as any);
+  get renderLoadingCallback() { return this._renderLoadingCallback; }
+  set renderLoadingCallback(value: ((container: HTMLElement) => void) | undefined) {
+    this._renderLoadingCallback = value;
+    if (this.treeview) this.treeview.update({ renderLoadingCallback: value } as any);
   }
 
-  get headerTemplate() { return this._headerTemplate; }
-  set headerTemplate(value: ((container: HTMLElement) => void) | undefined) {
-    this._headerTemplate = value;
-    if (this.treeview) this.treeview.update({ headerTemplate: value } as any);
+  get renderHeaderCallback() { return this._renderHeaderCallback; }
+  set renderHeaderCallback(value: ((container: HTMLElement) => void) | undefined) {
+    this._renderHeaderCallback = value;
+    if (this.treeview) this.treeview.update({ renderHeaderCallback: value } as any);
   }
 
-  get footerTemplate() { return this._footerTemplate; }
-  set footerTemplate(value: ((container: HTMLElement) => void) | undefined) {
-    this._footerTemplate = value;
-    if (this.treeview) this.treeview.update({ footerTemplate: value } as any);
+  get renderFooterCallback() { return this._renderFooterCallback; }
+  set renderFooterCallback(value: ((container: HTMLElement) => void) | undefined) {
+    this._renderFooterCallback = value;
+    if (this.treeview) this.treeview.update({ renderFooterCallback: value } as any);
   }
 
-  get contextMenuTemplate() { return this._contextMenuTemplate; }
-  set contextMenuTemplate(value: ((node: LTreeNode<T>, close: () => void, container: HTMLElement) => void) | undefined) {
-    this._contextMenuTemplate = value;
-    if (this.treeview) this.treeview.update({ contextMenuTemplate: value } as any);
+  get renderContextMenuCallback() { return this._renderContextMenuCallback; }
+  set renderContextMenuCallback(value: ((node: LTreeNode<T>, close: () => void, container: HTMLElement) => void) | undefined) {
+    this._renderContextMenuCallback = value;
+    if (this.treeview) this.treeview.update({ renderContextMenuCallback: value } as any);
   }
 
-  get dropPlaceholderTemplate() { return this._dropPlaceholderTemplate; }
-  set dropPlaceholderTemplate(value: ((container: HTMLElement) => void) | undefined) {
-    this._dropPlaceholderTemplate = value;
-    if (this.treeview) this.treeview.update({ dropPlaceholderTemplate: value } as any);
+  get renderDropPlaceholderCallback() { return this._renderDropPlaceholderCallback; }
+  set renderDropPlaceholderCallback(value: ((container: HTMLElement) => void) | undefined) {
+    this._renderDropPlaceholderCallback = value;
+    if (this.treeview) this.treeview.update({ renderDropPlaceholderCallback: value } as any);
   }
 
   // Render callbacks
@@ -541,6 +580,77 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     this.containerElement = document.createElement('div');
     this.containerElement.classList.add('web-treeview');
     this.shadow.appendChild(this.containerElement);
+    this._applyCustomStyles();
+  }
+
+  private _applyCustomStyles(): void {
+    // Remove previous custom elements
+    if (this._customStyleSheet) {
+      this._customStyleSheet.remove();
+      this._customStyleSheet = undefined;
+    }
+    if (this._customStyleLinks) {
+      for (const link of this._customStyleLinks) link.remove();
+      this._customStyleLinks = undefined;
+    }
+    if (this._customDocLinks) {
+      for (const link of this._customDocLinks) link.remove();
+      this._customDocLinks = undefined;
+    }
+
+    if (this._customStylesCallback) {
+      const css = this._customStylesCallback();
+      if (css) {
+        // Extract @import url(...) rules and inject as <link> elements
+        // (@import in dynamically-set <style>.textContent is ignored by CSS parser)
+        const importRegex = /@import\s+url\(\s*['"]?([^'")]+)['"]?\s*\)\s*;?/g;
+        let remaining = css;
+        let match: RegExpExecArray | null;
+        const links: HTMLLinkElement[] = [];
+
+        while ((match = importRegex.exec(css)) !== null) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = match[1];
+          link.className = 'tv-custom-styles';
+          this.shadow.appendChild(link);
+          links.push(link);
+          remaining = remaining.replace(match[0], '');
+        }
+
+        if (links.length > 0) {
+          this._customStyleLinks = links;
+
+          // Also inject into document <head> for @font-face registration
+          // (Shadow DOM @font-face doesn't always register fonts globally)
+          const docLinks: HTMLLinkElement[] = [];
+          for (const shadowLink of links) {
+            const href = shadowLink.href;
+            // Skip if already present in document
+            if (!document.querySelector(`link[href="${href}"]`)) {
+              const docLink = document.createElement('link');
+              docLink.rel = 'stylesheet';
+              docLink.href = href;
+              docLink.setAttribute('data-tv-injected', '');
+              document.head.appendChild(docLink);
+              docLinks.push(docLink);
+            }
+          }
+          if (docLinks.length > 0) {
+            this._customDocLinks = docLinks;
+          }
+        }
+
+        // Inject remaining CSS (non-@import rules) as <style>
+        remaining = remaining.trim();
+        if (remaining) {
+          this._customStyleSheet = document.createElement('style');
+          this._customStyleSheet.className = 'tv-custom-styles';
+          this._customStyleSheet.textContent = remaining;
+          this.shadow.appendChild(this._customStyleSheet);
+        }
+      }
+    }
   }
 
   /**
@@ -721,6 +831,18 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     const leafIconClass = this.getAttribute('leaf-icon-class');
     if (leafIconClass) config.leafIconClass = leafIconClass;
 
+    const toggleIconMode = this._toggleIconMode ?? this.getAttribute('toggle-icon-mode');
+    if (toggleIconMode === 'rotate' || toggleIconMode === 'swap') config.toggleIconMode = toggleIconMode;
+
+    // Per-node icons
+    const iconMember = this._iconMember ?? this.getAttribute('icon-member');
+    if (iconMember) config.iconMember = iconMember;
+
+    if (this._iconCallback) config.iconCallback = this._iconCallback;
+
+    const alignNodeIcons = this._alignNodeIcons ?? (this.getAttribute('align-node-icons') !== null ? this.getAttribute('align-node-icons') !== 'false' : undefined);
+    if (alignNodeIcons !== undefined) config.alignNodeIcons = alignNodeIcons;
+
     const scrollHighlightTimeout = this.getAttribute('scroll-highlight-timeout');
     if (scrollHighlightTimeout !== null) config.scrollHighlightTimeout = parseInt(scrollHighlightTimeout, 10);
 
@@ -803,14 +925,14 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     if (this._contextMenuCallback) config.contextMenuCallback = this._contextMenuCallback;
     if (this._indexingCompleteCallback) config.indexingCompleteCallback = this._indexingCompleteCallback;
 
-    // Templates
-    if (this._nodeTemplate) config.nodeTemplate = this._nodeTemplate;
-    if (this._emptyTemplate) config.emptyTemplate = this._emptyTemplate;
-    if (this._loadingTemplate) config.loadingTemplate = this._loadingTemplate;
-    if (this._headerTemplate) config.headerTemplate = this._headerTemplate;
-    if (this._footerTemplate) config.footerTemplate = this._footerTemplate;
-    if (this._contextMenuTemplate) config.contextMenuTemplate = this._contextMenuTemplate;
-    if (this._dropPlaceholderTemplate) config.dropPlaceholderTemplate = this._dropPlaceholderTemplate;
+    // Render callbacks
+    if (this._renderNodeCallback) config.renderNodeCallback = this._renderNodeCallback;
+    if (this._renderEmptyZoneCallback) config.renderEmptyZoneCallback = this._renderEmptyZoneCallback;
+    if (this._renderLoadingCallback) config.renderLoadingCallback = this._renderLoadingCallback;
+    if (this._renderHeaderCallback) config.renderHeaderCallback = this._renderHeaderCallback;
+    if (this._renderFooterCallback) config.renderFooterCallback = this._renderFooterCallback;
+    if (this._renderContextMenuCallback) config.renderContextMenuCallback = this._renderContextMenuCallback;
+    if (this._renderDropPlaceholderCallback) config.renderDropPlaceholderCallback = this._renderDropPlaceholderCallback;
 
     // Event handlers
     if (this._onNodeClicked) config.onNodeClicked = this._onNodeClicked;
