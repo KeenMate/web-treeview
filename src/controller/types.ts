@@ -8,7 +8,7 @@ import type {
   DropPosition,
   DragDropMode,
   DropOperation,
-  ContextMenuItem,
+  ContextMenuEntry,
   InsertArrayResult,
   TreeChange,
   ApplyChangesResult
@@ -154,7 +154,7 @@ export interface TreeControllerConfig<T> {
   contextMenuCallback?: (
     node: LTreeNode<T>,
     closeMenuCallback: () => void
-  ) => ContextMenuItem[];
+  ) => ContextMenuEntry[];
 
   // Tells the controller whether a context menu renderer exists
   hasContextMenuRenderer?: boolean;

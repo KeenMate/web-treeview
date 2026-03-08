@@ -15,7 +15,8 @@
       "Bash(wc:*)",
       "Bash(head:*)",
       "Bash(curl:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

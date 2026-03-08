@@ -40,6 +40,8 @@ export type {
   TreeViewMethods,
   TreeEventMap,
   ContextMenuItem,
+  ContextMenuDivider,
+  ContextMenuEntry,
   ScrollToPathOptions,
   InsertArrayResult,
   TreeChange,

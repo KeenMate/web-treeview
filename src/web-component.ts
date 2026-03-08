@@ -2,7 +2,7 @@ import { WebTreeView } from './treeview';
 import type { TreeViewConfig, ScrollToPathOptions } from './types';
 import type { LTreeNode } from './ltree/ltree-node';
 import type { DropPosition } from './ltree/ltree-node';
-import type { Ltree, ContextMenuItem, DragDropMode, DropOperation } from './ltree/types';
+import type { Ltree, ContextMenuItem, ContextMenuEntry, DragDropMode, DropOperation } from './ltree/types';
 import type { TreeViewRenderer, RendererConfig } from './renderer/types';
 import type { TreeController } from './controller/tree-controller';
 import { initLogger } from './logger';
@@ -98,7 +98,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _getIsCollapsibleCallback?: (node: LTreeNode<T>) => boolean;
   private _getAllowedDropPositionsCallback?: (node: LTreeNode<T>) => DropPosition[] | null | undefined;
   private _sortCallback?: (items: LTreeNode<T>[]) => LTreeNode<T>[];
-  private _contextMenuCallback?: (node: LTreeNode<T>, closeMenuCallback: () => void) => ContextMenuItem[];
+  private _contextMenuCallback?: (node: LTreeNode<T>, closeMenuCallback: () => void) => ContextMenuEntry[];
   private _indexingCompleteCallback?: () => void;
 
   // Custom styles
@@ -404,7 +404,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   }
 
   get contextMenuCallback() { return this._contextMenuCallback; }
-  set contextMenuCallback(value: ((node: LTreeNode<T>, close: () => void) => ContextMenuItem[]) | undefined) {
+  set contextMenuCallback(value: ((node: LTreeNode<T>, close: () => void) => ContextMenuEntry[]) | undefined) {
     this._contextMenuCallback = value;
     if (this.treeview) this.treeview.update({ contextMenuCallback: value } as any);
   }

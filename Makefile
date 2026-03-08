@@ -24,21 +24,17 @@ package: build ## Create npm package (tarball)
 	npm pack
 	@echo "Package created - see above for details"
 
-publish-dry: ## Publish to npm (dry run) - cleans dist first
+publish-dry: ## Publish to npm (dry run) (TAG=rc for pre-release)
 	@echo "Running publish dry-run..."
-	npm run clean:dist
-	npm run build
-	npm publish --dry-run
+	npm publish --dry-run $(if $(TAG),--tag $(TAG))
 	@echo "Dry-run complete - Review the output above"
 
-publish: ## Publish to npm - cleans dist first
+publish: ## Publish to npm (TAG=rc for pre-release)
 	@echo "WARNING: This will publish to npm registry"
 	@echo "Press Ctrl+C to cancel, or Enter to continue..."
 	@powershell -Command "Read-Host | Out-Null"
 	@echo "Publishing to npm..."
-	npm run clean:dist
-	npm run build
-	npm publish
+	npm publish $(if $(TAG),--tag $(TAG))
 	@echo "Published successfully"
 
 clean: ## Clean build artifacts and node_modules

@@ -3,23 +3,47 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/npm/v/@keenmate/web-treeview.svg)](https://www.npmjs.com/package/@keenmate/web-treeview)
 
-A lightweight, framework-agnostic treeview web component built with vanilla TypeScript. Minimal dependencies (`@floating-ui/dom` only). Supports hierarchical data display, search, expand/collapse, drag-and-drop, multi-level context menus, custom render callbacks, and pluggable renderers.
+A lightweight, framework-agnostic treeview web component built with vanilla TypeScript. Works in any framework or plain HTML — just drop in `<web-treeview>` and go.
+
+## v2.0: Framework-Agnostic Treeview
+
+> [!IMPORTANT]
+> **`web-treeview` is built on the same core as [`@keenmate/svelte-treeview`](https://github.com/KeenMate/svelte-treeview) but is completely independent of it.** It shares the same LTree data engine, naming conventions, and architectural principles — ported to vanilla TypeScript with zero framework dependencies. If you know svelte-treeview, you already know the API.
+
+**What's in v2:**
+- **Web Component** — Standard `<web-treeview>` custom element with Shadow DOM, works in React, Vue, Angular, or plain HTML
+- **Two rendering modes** — Flat rendering (default) for most trees, virtual scroll for 100k+ nodes
+- **Full drag & drop** — Internal reordering, cross-tree drag, glow/floating drop zones, touch support, copy operations
+- **Multi-level context menus** — Viewport-aware positioning via Floating UI, keyboard shortcuts, named dividers, custom item rendering
+- **Full-text search** — FlexSearch-powered indexing with filter and highlight modes
+- **90+ CSS variables** — Complete theming via `--base-*` design system tokens and `--tv-*` component tokens, compatible with `@keenmate/theme-designer`
+- **Pluggable renderers** — `TreeViewRenderer<T>` interface for building custom renderers (Canvas, WebGL, framework-specific)
+
+### Rendering Modes
+
+| Mode | Config | DOM Nodes | Best For |
+|------|--------|-----------|----------|
+| Flat (default) | `use-flat-rendering="true"` | All | Most trees (up to ~10K nodes) |
+| Virtual | `virtual-scroll="true"` | ~50 | Large trees (10K+) |
+
+```html
+<!-- Virtual scroll for large trees -->
+<web-treeview virtual-scroll="true" virtual-container-height="500px"></web-treeview>
+
+<!-- Flat mode (default) with progressive batching -->
+<web-treeview progressive-render="true"></web-treeview>
+```
 
 ## Features
 
-- **Web Component** - Standard `<web-treeview>` custom element, works in any framework or vanilla HTML
-- **LTree Path Model** - Materialized path hierarchy (`1`, `1.1`, `1.1.2`) with configurable separator
-- **Full-Width Hitbox** - Entire node row is clickable including indent zone, with uniform hover highlight
-- **Drag and Drop** - Internal and cross-tree DnD with glow/floating drop zones, copy support, touch drag
-- **Full-Text Search** - Built-in FlexSearch indexing with async batch processing, filter and highlight
-- **Two Rendering Modes** - Flat rendering (default, single DOM list with `paddingLeft` indent) and virtual scroll (only renders visible rows, handles 100k+ nodes)
-- **Progressive Rendering** - `requestAnimationFrame`-batched rendering for smooth initial load of large trees
-- **Custom Templates** - Callback-based templates for nodes, empty state, loading, header, footer, context menu
-- **Pluggable Renderers** - `TreeViewRenderer<T>` interface for framework-specific renderers (Svelte, React, Vue)
-- **CSS Theming** - Full customization via `--base-*` design system tokens and `--tv-*` component tokens
-- **Categorized Logging** - Runtime-configurable log categories for debugging
-- **TypeScript** - Fully typed API with generic `<T>` data support
-- **SSR Safe** - Compatible with server-side rendering environments
+- **LTree Path Model** — Materialized path hierarchy (`1`, `1.1`, `1.1.2`) with configurable separator
+- **Full-Width Hitbox** — Entire node row is clickable including indent zone, with uniform hover highlight
+- **Per-Node Icons** — Via data field (`iconMember`) or dynamic callback (`iconCallback`) with aligned column grid
+- **Progressive Rendering** — `requestAnimationFrame`-batched rendering for smooth initial load of large trees
+- **Custom Render Callbacks** — Callback-based templates for nodes, empty state, loading, header, footer, context menu items
+- **Categorized Logging** — Runtime-configurable log categories for debugging
+- **TypeScript** — Fully typed API with generic `<T>` data support
+- **SSR Safe** — Compatible with server-side rendering environments
 
 ## Installation
 
@@ -159,7 +183,7 @@ These properties are set via JavaScript, not HTML attributes:
 | `onNodeDragOver` | `(node, event) => void` | Drag over handler |
 | `onNodeDrop` | `(dropNode, draggedNode, position, event, operation) => void` | Drop handler |
 | `beforeDropCallback` | `(dropNode, draggedNode, position, event, operation) => boolean \| void` | Drop validation |
-| `contextMenuCallback` | `(node, close) => ContextMenuItem[]` | Context menu items |
+| `contextMenuCallback` | `(node, close) => ContextMenuEntry[]` | Context menu items |
 | `renderContextMenuItemCallback` | `(item, node, container) => void` | Per-item custom rendering (fill or fall through) |
 | `contextMenuXOffset` | `number` | Horizontal offset (px) for context menu position |
 | `contextMenuYOffset` | `number` | Vertical offset (px) for context menu position |
@@ -303,9 +327,14 @@ Right-click context menus are defined via `contextMenuCallback`:
 tree.contextMenuCallback = (node, closeMenu) => [
   { label: 'Edit', icon: 'fa fa-edit', shortcut: 'E', onclick: () => editNode(node) },
   { label: 'Duplicate', icon: 'fa fa-copy', onclick: () => duplicateNode(node) },
-  { dividerBefore: true, label: 'Delete', danger: true, shortcut: 'Delete', onclick: () => deleteNode(node) },
+  { divider: true, label: 'Danger zone' },
+  { label: 'Delete', className: 'danger', shortcut: 'Delete', onclick: () => deleteNode(node) },
 ];
 ```
+
+### ContextMenuEntry
+
+`ContextMenuEntry = ContextMenuItem | ContextMenuDivider`
 
 ### ContextMenuItem
 
@@ -315,13 +344,18 @@ tree.contextMenuCallback = (node, closeMenu) => [
 | `id` | `string` | Optional identifier |
 | `icon` | `string` | CSS class(es) for item icon |
 | `shortcut` | `string` | Keyboard shortcut text (displayed + active when menu is open) |
-| `disabled` | `boolean` | Grey out and prevent interaction |
-| `visible` | `boolean` | Set `false` to hide the item |
-| `danger` | `boolean` | Red styling for destructive actions |
-| `dividerBefore` | `boolean` | Show a divider line above this item |
-| `className` | `string` | Additional CSS class(es) on the item button |
+| `isDisabled` | `boolean` | Grey out and prevent interaction |
+| `isVisible` | `boolean` | Set `false` to hide the item |
+| `className` | `string` | CSS class(es) on the item button (e.g. `'danger'` for red styling) |
 | `onclick` | `() => void \| Promise<void>` | Action handler |
-| `children` | `ContextMenuItem[]` | Nested submenu items |
+| `children` | `ContextMenuEntry[]` | Nested submenu items |
+
+### ContextMenuDivider
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `divider` | `true` | Discriminator (required) |
+| `label` | `string` | Optional label rendered as `──── label ────` |
 
 ### Custom Item Rendering
 
@@ -534,6 +568,7 @@ Each variable defaults to the corresponding higher-order `--tv-*` variable, so t
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `--tv-tree-min-height` | `calc(6 * --tv-rem)` | Min height for empty/loading states (60px) |
 | `--tv-spinner-size` | `32px` | Spinner size |
 | `--tv-spinner-track` | `= --tv-border-color` | Spinner track color |
 | `--tv-spinner-color` | `= --tv-accent-color` | Spinner accent color |

@@ -29,7 +29,8 @@
   "files": [
     "dist",
     "src/css",
-    "component-variables.manifest.json"
+    "component-variables.manifest.json",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "dev": "vite --port 21111",

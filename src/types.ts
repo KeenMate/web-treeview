@@ -11,8 +11,8 @@ export type {
   DropOperation
 } from './ltree/types';
 
-// Re-export ContextMenuItem from ltree types
-export type { ContextMenuItem } from './ltree/types';
+// Re-export context menu types from ltree types
+export type { ContextMenuItem, ContextMenuDivider, ContextMenuEntry } from './ltree/types';
 
 // Re-export controller types
 export type {
@@ -31,7 +31,7 @@ export type { RenderCoordinator, RenderStats, RenderCoordinatorCallbacks } from 
 
 import type { LTreeNode } from './ltree/ltree-node';
 import type { DropPosition } from './ltree/ltree-node';
-import type { DragDropMode, DropOperation, ContextMenuItem } from './ltree/types';
+import type { DragDropMode, DropOperation, ContextMenuItem, ContextMenuEntry } from './ltree/types';
 import type { RenderStats } from './renderer/render-coordinator';
 
 export interface TreeViewConfig<T = any> {
@@ -114,7 +114,7 @@ export interface TreeViewConfig<T = any> {
   getIsCollapsibleCallback?: (node: LTreeNode<T>) => boolean;
   getAllowedDropPositionsCallback?: (node: LTreeNode<T>) => DropPosition[] | null | undefined;
   sortCallback?: (items: LTreeNode<T>[]) => LTreeNode<T>[];
-  contextMenuCallback?: (node: LTreeNode<T>, closeMenuCallback: () => void) => ContextMenuItem[];
+  contextMenuCallback?: (node: LTreeNode<T>, closeMenuCallback: () => void) => ContextMenuEntry[];
   indexingCompleteCallback?: () => void;
 
   // Context Menu

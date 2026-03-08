@@ -617,7 +617,8 @@ tree.customStylesCallback = () =>
                         { id: 'copy-csv', label: 'CSV', onclick: () => logAction('copy-csv', node) },
                     ]},
                 ]},
-                { id: 'delete', icon: '\uD83D\uDDD1\uFE0F', label: 'Delete', danger: true, dividerBefore: true, onclick: () => logAction('delete', node) },
+                { divider: true },
+                { id: 'delete', icon: '\uD83D\uDDD1\uFE0F', label: 'Delete', className: 'danger', onclick: () => logAction('delete', node) },
             ];
 
             // Context menu config controls — all use scoped --tv-context-menu-* variables
@@ -700,9 +701,12 @@ tree.customStylesCallback = () =>
                     items.push({ id: 'invoices', label: 'Invoices', shortcut: 'I', onclick: () => logAction3b('invoices', node) });
                 }
                 if (!isDept) {
+                    if (d.role !== 'lead') {
+                        items.push({ id: 'promote', icon: '⬆️', label: `Promote`, onclick: () => logAction3b('promote', node) });
+                    }
                     items.push(
-                        { id: 'promote', icon: '⬆️', label: `Promote`, visible: d.role !== 'lead', onclick: () => logAction3b('promote', node) },
-                        { id: 'remove', icon: '🗑️', label: `Remove ${d.name}`, danger: true, dividerBefore: true, onclick: () => logAction3b('remove', node) },
+                        { divider: true, label: 'Danger zone' },
+                        { id: 'remove', icon: '🗑️', label: `Remove ${d.name}`, className: 'danger', onclick: () => logAction3b('remove', node) },
                     );
                 }
                 return items;

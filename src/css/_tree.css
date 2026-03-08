@@ -17,7 +17,7 @@
   color: var(--tv-text-color-2);
   padding: var(--tv-spacing-xl);
   text-align: center;
-  min-height: calc(6 * var(--tv-rem));
+  min-height: var(--tv-tree-min-height);
 }
 
 /* Ensure all tree ancestors allow overflow for drop zones */
@@ -271,7 +271,7 @@
   border: var(--tv-empty-zone-border) !important;
   background: var(--tv-empty-zone-bg) !important;
   border-radius: var(--tv-empty-zone-radius);
-  min-height: calc(6 * var(--tv-rem));
+  min-height: var(--tv-tree-min-height);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -365,7 +365,9 @@
 .ltree-context-menu .ltree-context-menu-icon {
   font-size: var(--tv-context-menu-icon-font-size);
   width: var(--tv-context-menu-icon-width);
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
@@ -393,6 +395,36 @@
   height: 1px;
   background-color: var(--tv-context-menu-divider-color);
   margin: var(--tv-context-menu-divider-margin);
+}
+
+.ltree-context-menu .ltree-context-menu-divider-named {
+  height: auto;
+  background: none;
+  display: flex;
+  align-items: center;
+  gap: var(--tv-context-menu-item-gap);
+  padding: 0 var(--tv-spacing-xl);
+  font-size: var(--tv-context-menu-icon-font-size);
+  color: var(--tv-text-color-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.ltree-context-menu .ltree-context-menu-divider-named::before,
+.ltree-context-menu .ltree-context-menu-divider-named::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--tv-context-menu-divider-color);
+}
+
+.ltree-context-menu .ltree-context-menu-divider-named::before {
+  margin-right: 0;
+}
+
+.ltree-context-menu .ltree-context-menu-divider-named::after {
+  margin-left: 0;
 }
 
 /* ── Debug info ───────────────────────────────────────────────────── */

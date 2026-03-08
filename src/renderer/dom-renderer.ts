@@ -12,7 +12,7 @@ import type { TreeViewRenderer, RendererConfig } from './types';
 import type { TreeController } from '../controller/tree-controller';
 import type { TreeControllerSnapshot, NodeConfig } from '../controller/types';
 import type { LTreeNode } from '../ltree/ltree-node';
-import type { DropPosition, ContextMenuItem } from '../ltree/types';
+import type { DropPosition, ContextMenuItem, ContextMenuEntry } from '../ltree/types';
 import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom';
 
 /** Add space-separated class string to an element (classList.add doesn't support spaces) */
@@ -728,6 +728,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     // Show empty zone (drop target during drag) or empty state (informational)
     if (snapshot.isDragInProgress && snapshot.isDropPlaceholderActive) {
+      target.style.minHeight = '';
       let zone = target.querySelector('.ltree-empty-zone');
       if (!zone) {
         const emptyState = target.querySelector('.ltree-empty-state');
@@ -745,21 +746,30 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         }
         target.appendChild(zone);
       }
+    } else if (snapshot.isLoading) {
+      // Loading active — don't show empty state underneath the overlay
+      // Set min-height so the absolute loading overlay has room to display
+      target.style.minHeight = 'var(--tv-tree-min-height)';
+      const zone = target.querySelector('.ltree-empty-zone');
+      if (zone) zone.remove();
+      const emptyState = target.querySelector('.ltree-empty-state');
+      if (emptyState) emptyState.remove();
     } else {
+      target.style.minHeight = '';
       const zone = target.querySelector('.ltree-empty-zone');
       if (zone) zone.remove();
 
       let emptyState = target.querySelector('.ltree-empty-state');
-      if (!emptyState) {
-        emptyState = document.createElement('div');
-        emptyState.className = 'ltree-empty-state';
-        if (this.config.renderEmptyStateCallback) {
-          this.config.renderEmptyStateCallback(emptyState as HTMLElement);
-        } else {
-          emptyState.textContent = 'No data';
-        }
-        target.appendChild(emptyState);
+      if (emptyState) emptyState.remove();
+
+      emptyState = document.createElement('div');
+      emptyState.className = 'ltree-empty-state';
+      if (this.config.renderEmptyStateCallback) {
+        this.config.renderEmptyStateCallback(emptyState as HTMLElement);
+      } else {
+        emptyState.textContent = 'No data';
       }
+      target.appendChild(emptyState);
     }
   }
 
@@ -1047,7 +1057,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     // Default: render items from contextMenuCallback
     const callbackRef = this.controller.contextMenuCallbackCb;
     if (callbackRef) {
-      const items: ContextMenuItem[] = callbackRef(
+      const items: ContextMenuEntry[] = callbackRef(
         snapshot.contextMenuNode,
         () => this.controller!.closeContextMenu()
       );
@@ -1100,26 +1110,35 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     });
   }
 
-  private _renderContextMenuItems(items: ContextMenuItem[], container: HTMLElement, contextNode: LTreeNode<T>, cancelParentHide?: () => void): void {
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
+  private _renderContextMenuItems(entries: ContextMenuEntry[], container: HTMLElement, contextNode: LTreeNode<T>, cancelParentHide?: () => void): void {
+    // Check if any item in this level has an icon — if so, reserve column for all items
+    const hasAnyIcon = entries.some(e => !('divider' in e && e.divider) && (e as ContextMenuItem).icon);
 
-      // Skip hidden items
-      if (item.visible === false) continue;
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
 
-      // Divider before this item
-      if (item.dividerBefore && i > 0) {
+      // Divider entry
+      if ('divider' in entry && entry.divider) {
         const divider = document.createElement('div');
         divider.className = 'ltree-context-menu-divider';
+        if (entry.label) {
+          divider.classList.add('ltree-context-menu-divider-named');
+          divider.textContent = entry.label;
+        }
         container.appendChild(divider);
+        continue;
       }
+
+      const item = entry as ContextMenuItem;
+
+      // Skip hidden items
+      if (item.isVisible === false) continue;
 
       const btn = document.createElement('button');
       btn.className = 'ltree-context-menu-item';
       if (item.id) btn.setAttribute('data-item-id', item.id);
       if (item.shortcut) btn.setAttribute('data-shortcut', item.shortcut);
-      if (item.disabled) btn.classList.add('ltree-context-menu-item-disabled');
-      if (item.danger) btn.classList.add('ltree-context-menu-item-danger');
+      if (item.isDisabled) btn.classList.add('ltree-context-menu-item-disabled');
       if (item.className) btn.classList.add(item.className);
 
       // Custom item rendering: callback gets first shot, default fills in if empty
@@ -1128,10 +1147,10 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       }
       // Default rendering if callback didn't populate the button
       if (!btn.hasChildNodes()) {
-        if (item.icon) {
+        if (hasAnyIcon) {
           const icon = document.createElement('span');
           icon.className = 'ltree-context-menu-icon';
-          icon.textContent = item.icon;
+          if (item.icon) icon.textContent = item.icon;
           btn.appendChild(icon);
         }
 
@@ -1200,7 +1219,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         btn.addEventListener('mouseleave', () => {
           hideTimeout = setTimeout(hideSubmenu, 150);
         });
-      } else if (!item.disabled && item.onclick) {
+      } else if (!item.isDisabled && item.onclick) {
         btn.addEventListener('click', () => {
           item.onclick?.();
           this.controller?.closeContextMenu();

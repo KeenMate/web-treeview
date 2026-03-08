@@ -208,8 +208,8 @@
   --tv-context-menu-bg-hover: var(--tv-hover-bg);
   --tv-context-menu-text-color: var(--tv-text-color);
   --tv-context-menu-border: 1px solid var(--tv-border-color);
-  --tv-context-menu-border-radius: var(--tv-border-radius-sm);
-  --tv-context-menu-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  --tv-context-menu-border-radius: var(--tv-border-radius-lg);
+  --tv-context-menu-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
   --tv-context-menu-min-width: calc(var(--tv-rem) * 15);  /* ~150px */
   --tv-context-menu-padding: var(--tv-spacing-sm) 0;
   --tv-context-menu-font-size: var(--tv-font-size-sm);
@@ -235,6 +235,7 @@
   /* ==========================================================================
      DROP PLACEHOLDER (empty tree)
      ========================================================================== */
+  --tv-tree-min-height: calc(6 * var(--tv-rem));                   /* 60px — min height for empty/loading states */
   --tv-empty-zone-border: 2px dashed var(--tv-accent-color);
   --tv-empty-zone-bg: color-mix(in srgb, var(--tv-accent-color) 10%, transparent);
   --tv-empty-zone-radius: var(--tv-border-radius-lg);

@@ -20,19 +20,24 @@ export interface ApplyChangesResult {
 	failed: Array<{ index: number; operation: string; path: string; error: string }>;
 }
 
+export interface ContextMenuDivider {
+	divider: true;
+	label?: string;  // named divider: ──── [label] ────
+}
+
 export interface ContextMenuItem {
 	id?: string;
 	label: string;
 	icon?: string;
 	shortcut?: string;
-	disabled?: boolean;
-	visible?: boolean;
-	danger?: boolean;
-	dividerBefore?: boolean;
+	isDisabled?: boolean;
+	isVisible?: boolean;
 	className?: string;
 	onclick?: () => void | Promise<void>;
-	children?: ContextMenuItem[];
+	children?: ContextMenuEntry[];
 }
+
+export type ContextMenuEntry = ContextMenuItem | ContextMenuDivider;
 
 export interface InsertArrayResult<T> {
 	successful: number;
