@@ -152,7 +152,7 @@
                     <span id="ctx-font-size-val" style="font-size: 0.75rem; color: #64748b;">14px</span>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-icon-size</code>
+                    <code>--tv-context-menu-icon-width</code>
                     <input type="range" id="ctx-icon-size" min="12" max="32" step="1" value="16">
                     <span id="ctx-icon-size-val" style="font-size: 0.75rem; color: #64748b;">16px</span>
                 </label>
@@ -227,6 +227,10 @@
                     <code>--tv-context-menu-divider-color</code>
                     <input type="color" id="ctx-divider" value="#e2e8f0">
                 </label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem;">
+                    <input type="checkbox" id="ctx-debug-menu">
+                    <code>Debug: keep menu open</code>
+                </label>
             </div>
 
             <div class="tree-container" id="tree3-container">
@@ -236,6 +240,135 @@
             <div class="output">
                 <p class="output-label">Context menu action:</p>
                 <pre id="tree3-output">Right-click a node to see the context menu</pre>
+            </div>
+        </div>
+
+        <!-- Example 3b: Custom Context Menu Item Rendering -->
+        <div class="card">
+            <h2>Example 3b: Node-Aware Context Menu (renderContextMenuItemCallback)</h2>
+            <p>Use <code>renderContextMenuItemCallback</code> to render completely custom HTML per menu item. The callback replaces the button's inner content — you control the layout. The outer <code>&lt;button&gt;</code> with classes, <code>data-*</code> attributes, disabled state, and submenu hover behavior is still managed by the component.</p>
+
+            <div class="controls" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; align-items: end;">
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-min-width</code>
+                    <input type="range" id="ctx3b-min-width" min="8" max="30" step="0.5" value="22">
+                    <span id="ctx3b-min-width-val" style="font-size: 0.75rem; color: #64748b;">22rem</span>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-item-padding</code>
+                    <select id="ctx3b-padding" style="padding: 4px;">
+                        <option value="2px 8px">Tight</option>
+                        <option value="4px 12px">Compact</option>
+                        <option value="8px 16px" selected>Default</option>
+                        <option value="12px 20px">Spacious</option>
+                        <option value="16px 24px">Large</option>
+                    </select>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-item-gap</code>
+                    <input type="range" id="ctx3b-gap" min="0" max="16" step="1" value="8">
+                    <span id="ctx3b-gap-val" style="font-size: 0.75rem; color: #64748b;">8px</span>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-font-size</code>
+                    <input type="range" id="ctx3b-font-size" min="10" max="24" step="1" value="14">
+                    <span id="ctx3b-font-size-val" style="font-size: 0.75rem; color: #64748b;">14px</span>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-bg</code>
+                    <input type="color" id="ctx3b-bg" value="#ffffff">
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-bg-hover</code>
+                    <input type="color" id="ctx3b-bg-hover" value="#f1f5f9">
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-text-color</code>
+                    <input type="color" id="ctx3b-text" value="#1e293b">
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-border-radius</code>
+                    <input type="range" id="ctx3b-radius" min="0" max="16" step="1" value="4">
+                    <span id="ctx3b-radius-val" style="font-size: 0.75rem; color: #64748b;">4px</span>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-shadow</code>
+                    <select id="ctx3b-shadow" style="padding: 4px;">
+                        <option value="0 2px 10px rgba(0,0,0,0.1)">Light</option>
+                        <option value="0 4px 20px rgba(0,0,0,0.2)">Medium</option>
+                        <option value="0 8px 30px rgba(0,0,0,0.3)">Heavy</option>
+                        <option value="none">None</option>
+                    </select>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-padding</code>
+                    <select id="ctx3b-menu-padding" style="padding: 4px;">
+                        <option value="0">None</option>
+                        <option value="4px 0" selected>Default</option>
+                        <option value="8px 0">Large</option>
+                    </select>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-border</code>
+                    <select id="ctx3b-border" style="padding: 4px;">
+                        <option value="1px solid #e2e8f0" selected>Default</option>
+                        <option value="2px solid #94a3b8">Thick</option>
+                        <option value="1px solid #3b82f6">Accent</option>
+                        <option value="none">None</option>
+                    </select>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-danger-color</code>
+                    <input type="color" id="ctx3b-danger" value="#dc3545">
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>--tv-context-menu-divider-color</code>
+                    <input type="color" id="ctx3b-divider" value="#e2e8f0">
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem;">
+                    <input type="checkbox" id="ctx3b-debug-menu">
+                    <code>Debug: keep menu open</code>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+                    <code>contextMenuYOffset</code>
+                    <input type="range" id="ctx3b-y-offset" min="-50" max="50" step="1" value="-30">
+                    <span id="ctx3b-y-offset-val" style="font-size: 0.75rem; color: #64748b;">-30px</span>
+                </label>
+            </div>
+
+            <div class="tree-container" id="tree3b-container">
+                <web-treeview id="tree3b" expand-icon-class="ltree-icon-expand-alt" style="--tv-context-menu-min-width: 22rem;"></web-treeview>
+            </div>
+
+            <div class="output">
+                <p class="output-label">Action:</p>
+                <pre id="tree3b-output">Right-click a person to see a rich context menu</pre>
+            </div>
+
+            <div class="code-block">
+<pre><code>// Customize specific items, leave the rest to default rendering.
+// If the callback populates the container → custom rendering.
+// If it leaves the container empty → default icon+label+shortcut.
+tree.renderContextMenuItemCallback = (item, node, container) => {
+    if (item.id === 'profile') {
+        const initials = node.data.name.split(' ').map(w => w[0]).join('');
+        container.innerHTML = `
+            &lt;span class="avatar"&gt;${initials}&lt;/span&gt;
+            &lt;span class="info"&gt;
+                &lt;span&gt;${node.data.name}&lt;/span&gt;
+                &lt;span class="role"&gt;${node.data.role}&lt;/span&gt;
+            &lt;/span&gt;`;
+        return;
+    }
+    if (item.id === 'invoices') {
+        container.innerHTML = `
+            &lt;span class="ltree-context-menu-icon"&gt;🧾&lt;/span&gt;
+            &lt;span class="ltree-context-menu-label"&gt;Invoices&lt;/span&gt;
+            &lt;span class="count-chip"&gt;${node.data.invoiceCount}&lt;/span&gt;`;
+        return;
+    }
+    // No innerHTML set → default rendering used for this item
+};</code></pre>
             </div>
         </div>
 
@@ -378,6 +511,18 @@ tree.customStylesCallback = () =>
             { id: 10, path: '3.2', name: 'archive.zip' }
         ];
 
+        const teamTree = [
+            { id: 1, path: '1', name: 'Engineering', role: 'department', email: null, invoiceCount: 12 },
+            { id: 2, path: '1.1', name: 'Josef Novák', role: 'lead', email: 'josef@company.cz', invoiceCount: 5 },
+            { id: 3, path: '1.2', name: 'Marie Dvořáková', role: 'developer', email: 'marie@company.cz', invoiceCount: 3 },
+            { id: 4, path: '1.3', name: 'Tomáš Procházka', role: 'developer', email: 'tomas@company.cz', invoiceCount: 0 },
+            { id: 5, path: '2', name: 'Sales', role: 'department', email: null, invoiceCount: 24 },
+            { id: 6, path: '2.1', name: 'Eva Svobodová', role: 'lead', email: 'eva@company.cz', invoiceCount: 8 },
+            { id: 7, path: '2.2', name: 'Petr Černý', role: 'sales', email: 'petr@company.cz', invoiceCount: 16 },
+            { id: 8, path: '3', name: 'Design', role: 'department', email: null, invoiceCount: 7 },
+            { id: 9, path: '3.1', name: 'Anna Králová', role: 'designer', email: 'anna@company.cz', invoiceCount: 7 },
+        ];
+
         // ── Helpers ─────────────────────────────────────────────────────
 
         const fileIcons = {
@@ -461,19 +606,18 @@ tree.customStylesCallback = () =>
                 output3.textContent = JSON.stringify({ action, node: node.data?.name, path: node.path }, null, 2);
             };
             tree3.contextMenuCallback = (node, close) => [
-                { icon: '\uD83D\uDCC2', title: 'Open', callback: () => logAction('open', node) },
-                { icon: '\u270F\uFE0F', title: 'Rename', callback: () => logAction('rename', node) },
-                { icon: '\uD83D\uDCCB', title: 'Copy', children: [
-                    { icon: '\uD83D\uDCC4', title: 'Copy Name', callback: () => logAction('copy-name', node) },
-                    { icon: '\uD83D\uDCC1', title: 'Copy Path', callback: () => logAction('copy-path', node) },
-                    { icon: '\uD83D\uDCE6', title: 'Copy As...', children: [
-                        { title: 'JSON', callback: () => logAction('copy-json', node) },
-                        { title: 'XML', callback: () => logAction('copy-xml', node) },
-                        { title: 'CSV', callback: () => logAction('copy-csv', node) },
+                { id: 'open', icon: '\uD83D\uDCC2', label: 'Open', shortcut: 'O', onclick: () => logAction('open', node) },
+                { id: 'rename', icon: '\u270F\uFE0F', label: 'Rename', shortcut: 'F2', onclick: () => logAction('rename', node) },
+                { id: 'copy', icon: '\uD83D\uDCCB', label: 'Copy', children: [
+                    { id: 'copy-name', icon: '\uD83D\uDCC4', label: 'Copy Name', shortcut: 'N', onclick: () => logAction('copy-name', node) },
+                    { id: 'copy-path', icon: '\uD83D\uDCC1', label: 'Copy Path', shortcut: 'P', onclick: () => logAction('copy-path', node) },
+                    { id: 'copy-as', icon: '\uD83D\uDCE6', label: 'Copy As...', children: [
+                        { id: 'copy-json', label: 'JSON', onclick: () => logAction('copy-json', node) },
+                        { id: 'copy-xml', label: 'XML', onclick: () => logAction('copy-xml', node) },
+                        { id: 'copy-csv', label: 'CSV', onclick: () => logAction('copy-csv', node) },
                     ]},
                 ]},
-                { title: '-' },
-                { icon: '\uD83D\uDDD1\uFE0F', title: 'Delete', className: 'danger', callback: () => logAction('delete', node) },
+                { id: 'delete', icon: '\uD83D\uDDD1\uFE0F', label: 'Delete', danger: true, dividerBefore: true, onclick: () => logAction('delete', node) },
             ];
 
             // Context menu config controls — all use scoped --tv-context-menu-* variables
@@ -483,7 +627,7 @@ tree.customStylesCallback = () =>
             const rangeControls = [
                 ['ctx-min-width',        '--tv-context-menu-min-width',        'rem'],
                 ['ctx-font-size',        '--tv-context-menu-font-size',        'px'],
-                ['ctx-icon-size',        '--tv-context-menu-icon-size',        'px'],
+                ['ctx-icon-size',        '--tv-context-menu-icon-width',        'px'],
                 ['ctx-radius',           '--tv-context-menu-border-radius',    'px'],
                 ['ctx-gap',              '--tv-context-menu-item-gap',         'px'],
                 ['ctx-disabled-opacity', '--tv-context-menu-disabled-opacity', ''],
@@ -523,6 +667,132 @@ tree.customStylesCallback = () =>
                 });
             }
 
+            document.getElementById('ctx-debug-menu').addEventListener('change', (e) => {
+                tree3.shouldDisplayContextMenuInDebugMode = e.target.checked;
+            });
+
+            // Tree 3b: Node-aware custom context menu items
+            const tree3b = document.getElementById('tree3b');
+            tree3b.data = teamTree;
+            tree3b.idMember = 'id';
+            tree3b.pathMember = 'path';
+            tree3b.displayValueMember = 'name';
+            tree3b.expandLevel = 2;
+            tree3b.contextMenuYOffset = -30;
+
+            const output3b = document.getElementById('tree3b-output');
+            const logAction3b = (action, node) => {
+                output3b.textContent = JSON.stringify({ action, name: node.data?.name, role: node.data?.role }, null, 2);
+            };
+
+            const roleColors = { lead: '#8b5cf6', developer: '#3b82f6', sales: '#f59e0b', designer: '#ec4899', department: '#6b7280' };
+
+            tree3b.contextMenuCallback = (node, close) => {
+                const d = node.data;
+                const isDept = d.role === 'department';
+                const items = [
+                    { id: 'profile', icon: '👤', label: isDept ? `View ${d.name} team` : `${d.name}'s profile`, onclick: () => logAction3b('profile', node) },
+                ];
+                if (!isDept && d.email) {
+                    items.push({ id: 'email', icon: '📧', label: `Email ${d.name}`, shortcut: 'E', onclick: () => logAction3b('email', node) });
+                }
+                if (d.invoiceCount > 0) {
+                    items.push({ id: 'invoices', label: 'Invoices', shortcut: 'I', onclick: () => logAction3b('invoices', node) });
+                }
+                if (!isDept) {
+                    items.push(
+                        { id: 'promote', icon: '⬆️', label: `Promote`, visible: d.role !== 'lead', onclick: () => logAction3b('promote', node) },
+                        { id: 'remove', icon: '🗑️', label: `Remove ${d.name}`, danger: true, dividerBefore: true, onclick: () => logAction3b('remove', node) },
+                    );
+                }
+                return items;
+            };
+
+            // Only customize specific items — leave the rest to default rendering
+            tree3b.renderContextMenuItemCallback = (item, node, container) => {
+                const d = node.data;
+                const color = roleColors[d.role] || '#6b7280';
+
+                // "profile" item: avatar circle + name + role badge
+                if (item.id === 'profile') {
+                    const initials = d.name.split(' ').map(w => w[0]).join('');
+                    container.innerHTML = `
+                        <span style="width: 28px; height: 28px; border-radius: 50%; background: ${color}; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7em; font-weight: 600; flex-shrink: 0;">${initials}</span>
+                        <span style="display: flex; flex-direction: column; gap: 1px;">
+                            <span>${d.name}</span>
+                            <span style="font-size: 0.75em; color: ${color}; font-weight: 500;">${d.role}</span>
+                        </span>
+                    `;
+                    return;
+                }
+
+                // "invoices" item: icon + label + count chip
+                if (item.id === 'invoices') {
+                    const count = d.invoiceCount;
+                    const chipColor = count > 5 ? '#dc3545' : count > 0 ? '#f59e0b' : '#6b7280';
+                    container.innerHTML = `
+                        <span class="ltree-context-menu-icon">🧾</span>
+                        <span class="ltree-context-menu-label">Invoices</span>
+                        <span style="background: ${chipColor}; color: white; font-size: 0.7em; font-weight: 600; padding: 1px 6px; border-radius: 10px; min-width: 18px; text-align: center;">${count}</span>
+                    `;
+                    return;
+                }
+
+                // Everything else: don't set innerHTML → default rendering kicks in
+            };
+
+            document.getElementById('ctx3b-debug-menu').addEventListener('change', (e) => {
+                tree3b.shouldDisplayContextMenuInDebugMode = e.target.checked;
+            });
+
+            // 3b config controls
+            const setVar3b = (name, value) => tree3b.style.setProperty(name, value);
+
+            const rangeControls3b = [
+                ['ctx3b-min-width',  '--tv-context-menu-min-width',     'rem'],
+                ['ctx3b-gap',        '--tv-context-menu-item-gap',      'px'],
+                ['ctx3b-font-size',  '--tv-context-menu-font-size',     'px'],
+                ['ctx3b-radius',     '--tv-context-menu-border-radius', 'px'],
+            ];
+            for (const [id, varName, unit] of rangeControls3b) {
+                document.getElementById(id).addEventListener('input', (e) => {
+                    const v = e.target.value;
+                    document.getElementById(id + '-val').textContent = v + unit;
+                    setVar3b(varName, v + unit);
+                });
+            }
+
+            document.getElementById('ctx3b-y-offset').addEventListener('input', (e) => {
+                const v = Number(e.target.value);
+                document.getElementById('ctx3b-y-offset-val').textContent = v + 'px';
+                tree3b.contextMenuYOffset = v;
+            });
+
+            const selectControls3b = [
+                ['ctx3b-padding',      '--tv-context-menu-item-padding'],
+                ['ctx3b-shadow',       '--tv-context-menu-shadow'],
+                ['ctx3b-menu-padding', '--tv-context-menu-padding'],
+                ['ctx3b-border',       '--tv-context-menu-border'],
+            ];
+            for (const [id, varName] of selectControls3b) {
+                document.getElementById(id).addEventListener('change', (e) => {
+                    setVar3b(varName, e.target.value);
+                });
+            }
+
+            const colorControls3b = [
+                ['ctx3b-bg',      '--tv-context-menu-bg'],
+                ['ctx3b-bg-hover','--tv-context-menu-bg-hover'],
+                ['ctx3b-text',    '--tv-context-menu-text-color'],
+                ['ctx3b-danger',  '--tv-context-menu-danger-color'],
+                ['ctx3b-divider', '--tv-context-menu-divider-color'],
+            ];
+            for (const [id, varName] of colorControls3b) {
+                document.getElementById(id).addEventListener('input', (e) => {
+                    setVar3b(varName, e.target.value);
+                });
+            }
+
             // Tree 4: Empty & Loading states
             const tree4 = document.getElementById('tree4');
             tree4.idMember = 'id';
@@ -530,7 +800,7 @@ tree.customStylesCallback = () =>
             tree4.displayValueMember = 'name';
             tree4.data = [];
 
-            tree4.renderEmptyZoneCallback = (container) => {
+            tree4.renderEmptyStateCallback = (container) => {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="icon">\uD83C\uDF43</div>

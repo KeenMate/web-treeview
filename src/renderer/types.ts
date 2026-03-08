@@ -19,7 +19,9 @@ export interface TreeViewRenderer<T = any> {
 export interface RendererConfig<T> {
   /** Custom node content renderer. Receives the node and a container element to populate. */
   renderNodeCallback?: (node: LTreeNode<T>, container: HTMLElement) => void;
-  /** Rendered when the tree has no data. */
+  /** Informational display when the tree has no data (e.g. "No items to display"). */
+  renderEmptyStateCallback?: (container: HTMLElement) => void;
+  /** Drop zone rendered in an empty tree during drag operations. */
   renderEmptyZoneCallback?: (container: HTMLElement) => void;
   /** Rendered when isLoading is true. */
   renderLoadingCallback?: (container: HTMLElement) => void;
@@ -27,8 +29,8 @@ export interface RendererConfig<T> {
   renderHeaderCallback?: (container: HTMLElement) => void;
   /** Rendered below the tree body. */
   renderFooterCallback?: (container: HTMLElement) => void;
-  /** Context menu renderer. */
+  /** Full context menu renderer (takes over entire menu). */
   renderContextMenuCallback?: (node: LTreeNode<T>, close: () => void, container: HTMLElement) => void;
-  /** Drop placeholder for empty tree during drag. */
-  renderDropPlaceholderCallback?: (container: HTMLElement) => void;
+  /** Per-item context menu renderer. Receives item, node, and container for custom item content. */
+  renderContextMenuItemCallback?: (item: import('../ltree/types').ContextMenuItem, node: LTreeNode<T>, container: HTMLElement) => void;
 }

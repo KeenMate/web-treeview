@@ -48,6 +48,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private contextMenuEl: HTMLElement | null = null;
   private _ctxSubmenus: HTMLElement[] = [];
   private _ctxCleanupAutoUpdate: (() => void) | null = null;
+  private _ctxKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private loadingEl: HTMLElement | null = null;
 
   // Virtual scroll DOM elements
@@ -158,6 +159,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this._closeAllSubmenus();
     this._ctxCleanupAutoUpdate?.();
     this._ctxCleanupAutoUpdate = null;
+    this._removeCtxKeydownHandler();
     this.nodeElements.clear();
     this.vsSpacerEl = null;
     this.vsContentEl = null;
@@ -308,7 +310,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
 
     // Empty tree or active drop placeholder dragover
-    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-drop-placeholder') as HTMLElement;
+    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-empty-zone') as HTMLElement;
     if (emptyOrPlaceholder) {
       this.controller.handleEmptyTreeDragOver(event);
     }
@@ -332,7 +334,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       }
     }
 
-    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-drop-placeholder') as HTMLElement;
+    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-empty-zone') as HTMLElement;
     if (emptyOrPlaceholder) {
       this.controller.handleEmptyTreeDragLeave(event);
     }
@@ -357,8 +359,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       }
     }
 
-    // Check for empty tree drop (matches both .ltree-empty-state and active .ltree-drop-placeholder)
-    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-drop-placeholder') as HTMLElement;
+    // Check for empty tree drop (matches both .ltree-empty-state and active .ltree-empty-zone)
+    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-empty-zone') as HTMLElement;
     if (emptyOrPlaceholder) {
       this.controller.handleEmptyTreeDrop(event);
       return;
@@ -663,8 +665,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     // Remove empty state if it exists
     const emptyState = target.querySelector('.ltree-empty-state');
     if (emptyState) emptyState.remove();
-    const dropPlaceholder = target.querySelector('.ltree-drop-placeholder');
-    if (dropPlaceholder) dropPlaceholder.remove();
+    const emptyZone = target.querySelector('.ltree-empty-zone');
+    if (emptyZone) emptyZone.remove();
 
     // Build/update nodes
     for (let i = 0; i < nodes.length; i++) {
@@ -724,35 +726,35 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
     this.nodeElements.clear();
 
-    // Show drop placeholder or empty state
+    // Show empty zone (drop target during drag) or empty state (informational)
     if (snapshot.isDragInProgress && snapshot.isDropPlaceholderActive) {
-      let placeholder = target.querySelector('.ltree-drop-placeholder');
-      if (!placeholder) {
+      let zone = target.querySelector('.ltree-empty-zone');
+      if (!zone) {
         const emptyState = target.querySelector('.ltree-empty-state');
         if (emptyState) emptyState.remove();
 
-        placeholder = document.createElement('div');
-        placeholder.className = 'ltree-drop-placeholder';
-        if (this.config.renderDropPlaceholderCallback) {
-          this.config.renderDropPlaceholderCallback(placeholder as HTMLElement);
+        zone = document.createElement('div');
+        zone.className = 'ltree-empty-zone';
+        if (this.config.renderEmptyZoneCallback) {
+          this.config.renderEmptyZoneCallback(zone as HTMLElement);
         } else {
           const content = document.createElement('div');
-          content.className = 'ltree-drop-placeholder-content';
+          content.className = 'ltree-empty-zone-content';
           content.textContent = 'Drop here';
-          placeholder.appendChild(content);
+          zone.appendChild(content);
         }
-        target.appendChild(placeholder);
+        target.appendChild(zone);
       }
     } else {
-      const placeholder = target.querySelector('.ltree-drop-placeholder');
-      if (placeholder) placeholder.remove();
+      const zone = target.querySelector('.ltree-empty-zone');
+      if (zone) zone.remove();
 
       let emptyState = target.querySelector('.ltree-empty-state');
       if (!emptyState) {
         emptyState = document.createElement('div');
         emptyState.className = 'ltree-empty-state';
-        if (this.config.renderEmptyZoneCallback) {
-          this.config.renderEmptyZoneCallback(emptyState as HTMLElement);
+        if (this.config.renderEmptyStateCallback) {
+          this.config.renderEmptyStateCallback(emptyState as HTMLElement);
         } else {
           emptyState.textContent = 'No data';
         }
@@ -1023,6 +1025,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       this._closeAllSubmenus();
       this._ctxCleanupAutoUpdate?.();
       this._ctxCleanupAutoUpdate = null;
+      this._removeCtxKeydownHandler();
       this.contextMenuEl.style.display = 'none';
       return;
     }
@@ -1037,7 +1040,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         this.contextMenuEl
       );
       // Position with Floating UI using virtual element at cursor
-      this._positionAtCursor(this.contextMenuEl, snapshot.contextMenuX, snapshot.contextMenuY);
+      this._positionAtCursor(this.contextMenuEl, snapshot.contextMenuX, snapshot.contextMenuY, snapshot.contextMenuXOffset, snapshot.contextMenuYOffset);
       return;
     }
 
@@ -1050,19 +1053,22 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       );
       this.contextMenuEl.innerHTML = '';
       this.contextMenuEl.style.display = 'block';
-      this._renderContextMenuItems(items, this.contextMenuEl);
-      this._positionAtCursor(this.contextMenuEl, snapshot.contextMenuX, snapshot.contextMenuY);
+      this._renderContextMenuItems(items, this.contextMenuEl, snapshot.contextMenuNode);
+      this._positionAtCursor(this.contextMenuEl, snapshot.contextMenuX, snapshot.contextMenuY, snapshot.contextMenuXOffset, snapshot.contextMenuYOffset);
+      this._installCtxKeydownHandler();
     }
   }
 
   /** Position a menu element at cursor coordinates using Floating UI */
-  private _positionAtCursor(menuEl: HTMLElement, x: number, y: number): void {
+  private _positionAtCursor(menuEl: HTMLElement, x: number, y: number, xOffset: number = 0, yOffset: number = 0): void {
     this._ctxCleanupAutoUpdate?.();
-    // Virtual reference element at cursor position
+    // Virtual reference element at cursor position (offsets shift the anchor point)
+    const ax = x + xOffset;
+    const ay = y + yOffset;
     const virtualRef = {
       getBoundingClientRect: () => ({
-        x, y, width: 0, height: 0,
-        top: y, left: x, right: x, bottom: y,
+        x: ax, y: ay, width: 0, height: 0,
+        top: ay, left: ax, right: ax, bottom: ay,
       }),
     };
     this._ctxCleanupAutoUpdate = autoUpdate(virtualRef, menuEl, () => {
@@ -1094,39 +1100,63 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     });
   }
 
-  private _renderContextMenuItems(items: ContextMenuItem[], container: HTMLElement, cancelParentHide?: () => void): void {
-    for (const item of items) {
-      if (item.isDivider || item.title === '---' || item.title === '-') {
+  private _renderContextMenuItems(items: ContextMenuItem[], container: HTMLElement, contextNode: LTreeNode<T>, cancelParentHide?: () => void): void {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+
+      // Skip hidden items
+      if (item.visible === false) continue;
+
+      // Divider before this item
+      if (item.dividerBefore && i > 0) {
         const divider = document.createElement('div');
         divider.className = 'ltree-context-menu-divider';
         container.appendChild(divider);
-        continue;
       }
 
       const btn = document.createElement('button');
       btn.className = 'ltree-context-menu-item';
-      if (item.isDisabled) btn.classList.add('ltree-context-menu-item-disabled');
+      if (item.id) btn.setAttribute('data-item-id', item.id);
+      if (item.shortcut) btn.setAttribute('data-shortcut', item.shortcut);
+      if (item.disabled) btn.classList.add('ltree-context-menu-item-disabled');
+      if (item.danger) btn.classList.add('ltree-context-menu-item-danger');
       if (item.className) btn.classList.add(item.className);
 
-      if (item.icon) {
-        const icon = document.createElement('span');
-        icon.className = 'ltree-context-menu-icon';
-        icon.textContent = item.icon;
-        btn.appendChild(icon);
+      // Custom item rendering: callback gets first shot, default fills in if empty
+      if (this.config.renderContextMenuItemCallback) {
+        this.config.renderContextMenuItemCallback(item, contextNode, btn);
+      }
+      // Default rendering if callback didn't populate the button
+      if (!btn.hasChildNodes()) {
+        if (item.icon) {
+          const icon = document.createElement('span');
+          icon.className = 'ltree-context-menu-icon';
+          icon.textContent = item.icon;
+          btn.appendChild(icon);
+        }
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'ltree-context-menu-label';
+        labelSpan.textContent = item.label;
+        btn.appendChild(labelSpan);
+
+        if (item.shortcut) {
+          const shortcutSpan = document.createElement('span');
+          shortcutSpan.className = 'ltree-context-menu-shortcut';
+          shortcutSpan.textContent = item.shortcut;
+          btn.appendChild(shortcutSpan);
+        }
+
+        if (item.children?.length) {
+          const arrow = document.createElement('span');
+          arrow.className = 'ltree-context-menu-arrow';
+          arrow.textContent = '\u25B8'; // ▸
+          btn.appendChild(arrow);
+        }
       }
 
-      const textSpan = document.createElement('span');
-      textSpan.className = 'ltree-context-menu-label';
-      textSpan.textContent = item.title;
-      btn.appendChild(textSpan);
-
-      // Submenu arrow + hover logic
+      // Submenu hover logic
       if (item.children?.length) {
-        const arrow = document.createElement('span');
-        arrow.className = 'ltree-context-menu-arrow';
-        arrow.textContent = '\u25B8'; // ▸
-        btn.appendChild(arrow);
-
         let submenuEl: HTMLElement | null = null;
         let cleanupPos: (() => void) | null = null;
         let hideTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -1143,8 +1173,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           submenuEl.className = 'ltree-context-menu ltree-context-submenu';
           submenuEl.style.display = 'block';
           submenuEl.style.position = 'fixed';
-          this._renderContextMenuItems(item.children!, submenuEl, cancelHide);
-          // Append to same parent as root context menu (container root)
+          this._renderContextMenuItems(item.children!, submenuEl, contextNode, cancelHide);
           this.container!.appendChild(submenuEl);
           this._ctxSubmenus.push(submenuEl);
           cleanupPos = this._positionSubmenu(btn, submenuEl);
@@ -1171,9 +1200,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         btn.addEventListener('mouseleave', () => {
           hideTimeout = setTimeout(hideSubmenu, 150);
         });
-      } else if (!item.isDisabled && item.callback) {
+      } else if (!item.disabled && item.onclick) {
         btn.addEventListener('click', () => {
-          item.callback?.();
+          item.onclick?.();
           this.controller?.closeContextMenu();
         });
       }
@@ -1187,6 +1216,34 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       el.remove();
     }
     this._ctxSubmenus = [];
+  }
+
+  /** Install keydown listener for shortcut matching while context menu is open */
+  private _installCtxKeydownHandler(): void {
+    this._removeCtxKeydownHandler();
+    this._ctxKeydownHandler = (e: KeyboardEvent) => {
+      if (!this.container) return;
+      const key = e.key.toLowerCase();
+      const menuItems = this.container.querySelectorAll('.ltree-context-menu-item[data-shortcut]') as NodeListOf<HTMLElement>;
+      for (const el of menuItems) {
+        const shortcut = el.dataset.shortcut!;
+        const disabled = el.classList.contains('ltree-context-menu-item-disabled');
+        if (disabled) continue;
+        if (shortcut.toLowerCase() === key || shortcut === e.key) {
+          e.preventDefault();
+          el.click();
+          return;
+        }
+      }
+    };
+    document.addEventListener('keydown', this._ctxKeydownHandler);
+  }
+
+  private _removeCtxKeydownHandler(): void {
+    if (this._ctxKeydownHandler) {
+      document.removeEventListener('keydown', this._ctxKeydownHandler);
+      this._ctxKeydownHandler = null;
+    }
   }
 
   // ── Debug info ──────────────────────────────────────────────────────

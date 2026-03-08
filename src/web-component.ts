@@ -59,6 +59,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _isSorted?: boolean;
   private _isLoading?: boolean;
   private _shouldDisplayDebugInformation?: boolean;
+  private _shouldDisplayContextMenuInDebugMode?: boolean;
 
   // Search/indexer config
   private _shouldUseInternalSearchIndex?: boolean;
@@ -87,6 +88,8 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _dropZoneMaxWidth?: number;
   private _allowCopy?: boolean;
   private _autoHandleCopy?: boolean;
+  private _contextMenuXOffset?: number;
+  private _contextMenuYOffset?: number;
 
   // Callback properties
   private _getDisplayValueCallback?: (node: LTreeNode<T>) => string;
@@ -106,12 +109,13 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
   // Render callbacks
   private _renderNodeCallback?: (node: LTreeNode<T>, container: HTMLElement) => void;
+  private _renderEmptyStateCallback?: (container: HTMLElement) => void;
   private _renderEmptyZoneCallback?: (container: HTMLElement) => void;
   private _renderLoadingCallback?: (container: HTMLElement) => void;
   private _renderHeaderCallback?: (container: HTMLElement) => void;
   private _renderFooterCallback?: (container: HTMLElement) => void;
   private _renderContextMenuCallback?: (node: LTreeNode<T>, close: () => void, container: HTMLElement) => void;
-  private _renderDropPlaceholderCallback?: (container: HTMLElement) => void;
+  private _renderContextMenuItemCallback?: (item: ContextMenuItem, node: LTreeNode<T>, container: HTMLElement) => void;
 
   // Event callbacks
   private _onNodeClicked?: (node: LTreeNode<T>) => void;
@@ -294,6 +298,9 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get shouldDisplayDebugInformation(): boolean | undefined { return this._shouldDisplayDebugInformation; }
   set shouldDisplayDebugInformation(value: boolean | undefined) { this._shouldDisplayDebugInformation = value; this._scheduleUpdate(); }
 
+  get shouldDisplayContextMenuInDebugMode(): boolean | undefined { return this._shouldDisplayContextMenuInDebugMode; }
+  set shouldDisplayContextMenuInDebugMode(value: boolean | undefined) { this._shouldDisplayContextMenuInDebugMode = value; this._scheduleUpdate(); }
+
   get shouldUseInternalSearchIndex(): boolean | undefined { return this._shouldUseInternalSearchIndex; }
   set shouldUseInternalSearchIndex(value: boolean | undefined) { this._shouldUseInternalSearchIndex = value; }
 
@@ -338,6 +345,12 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
   get autoHandleCopy(): boolean | undefined { return this._autoHandleCopy; }
   set autoHandleCopy(value: boolean | undefined) { this._autoHandleCopy = value; this._scheduleUpdate(); }
+
+  get contextMenuXOffset(): number | undefined { return this._contextMenuXOffset; }
+  set contextMenuXOffset(value: number | undefined) { this._contextMenuXOffset = value; this._scheduleUpdate(); }
+
+  get contextMenuYOffset(): number | undefined { return this._contextMenuYOffset; }
+  set contextMenuYOffset(value: number | undefined) { this._contextMenuYOffset = value; this._scheduleUpdate(); }
 
   // Virtual scroll properties
   get virtualScroll(): boolean | undefined { return this._virtualScroll; }
@@ -408,6 +421,12 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     if (this.treeview) this.treeview.update({ renderNodeCallback: value } as any);
   }
 
+  get renderEmptyStateCallback() { return this._renderEmptyStateCallback; }
+  set renderEmptyStateCallback(value: ((container: HTMLElement) => void) | undefined) {
+    this._renderEmptyStateCallback = value;
+    if (this.treeview) this.treeview.update({ renderEmptyStateCallback: value } as any);
+  }
+
   get renderEmptyZoneCallback() { return this._renderEmptyZoneCallback; }
   set renderEmptyZoneCallback(value: ((container: HTMLElement) => void) | undefined) {
     this._renderEmptyZoneCallback = value;
@@ -438,10 +457,10 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     if (this.treeview) this.treeview.update({ renderContextMenuCallback: value } as any);
   }
 
-  get renderDropPlaceholderCallback() { return this._renderDropPlaceholderCallback; }
-  set renderDropPlaceholderCallback(value: ((container: HTMLElement) => void) | undefined) {
-    this._renderDropPlaceholderCallback = value;
-    if (this.treeview) this.treeview.update({ renderDropPlaceholderCallback: value } as any);
+  get renderContextMenuItemCallback() { return this._renderContextMenuItemCallback; }
+  set renderContextMenuItemCallback(value: ((item: ContextMenuItem, node: LTreeNode<T>, container: HTMLElement) => void) | undefined) {
+    this._renderContextMenuItemCallback = value;
+    if (this.treeview) this.treeview.update({ renderContextMenuItemCallback: value } as any);
   }
 
   // Render callbacks
@@ -849,16 +868,19 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     const scrollHighlightClass = this.getAttribute('scroll-highlight-class');
     if (scrollHighlightClass) config.scrollHighlightClass = scrollHighlightClass;
 
-    // Context menu
-    const ctxXOff = this.getAttribute('context-menu-x-offset');
-    if (ctxXOff !== null) config.contextMenuXOffset = parseInt(ctxXOff, 10);
+    // Context menu offsets (JS property takes precedence over HTML attribute)
+    const ctxXOff = this._contextMenuXOffset ?? (this.getAttribute('context-menu-x-offset') !== null ? parseInt(this.getAttribute('context-menu-x-offset')!, 10) : undefined);
+    if (ctxXOff !== undefined) config.contextMenuXOffset = ctxXOff;
 
-    const ctxYOff = this.getAttribute('context-menu-y-offset');
-    if (ctxYOff !== null) config.contextMenuYOffset = parseInt(ctxYOff, 10);
+    const ctxYOff = this._contextMenuYOffset ?? (this.getAttribute('context-menu-y-offset') !== null ? parseInt(this.getAttribute('context-menu-y-offset')!, 10) : undefined);
+    if (ctxYOff !== undefined) config.contextMenuYOffset = ctxYOff;
 
     // Debug
     const debugInfo = this._shouldDisplayDebugInformation ?? (this.getAttribute('should-display-debug-information') !== null ? this.getAttribute('should-display-debug-information') !== 'false' : undefined);
     if (debugInfo !== undefined) config.shouldDisplayDebugInformation = debugInfo;
+
+    const debugCtxMenu = this._shouldDisplayContextMenuInDebugMode;
+    if (debugCtxMenu !== undefined) config.shouldDisplayContextMenuInDebugMode = debugCtxMenu;
 
     // Loading
     const isLoading = this._isLoading ?? (this.getAttribute('is-loading') !== null ? this.getAttribute('is-loading') !== 'false' : undefined);
@@ -927,12 +949,13 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
     // Render callbacks
     if (this._renderNodeCallback) config.renderNodeCallback = this._renderNodeCallback;
+    if (this._renderEmptyStateCallback) config.renderEmptyStateCallback = this._renderEmptyStateCallback;
     if (this._renderEmptyZoneCallback) config.renderEmptyZoneCallback = this._renderEmptyZoneCallback;
     if (this._renderLoadingCallback) config.renderLoadingCallback = this._renderLoadingCallback;
     if (this._renderHeaderCallback) config.renderHeaderCallback = this._renderHeaderCallback;
     if (this._renderFooterCallback) config.renderFooterCallback = this._renderFooterCallback;
     if (this._renderContextMenuCallback) config.renderContextMenuCallback = this._renderContextMenuCallback;
-    if (this._renderDropPlaceholderCallback) config.renderDropPlaceholderCallback = this._renderDropPlaceholderCallback;
+    if (this._renderContextMenuItemCallback) config.renderContextMenuItemCallback = this._renderContextMenuItemCallback;
 
     // Event handlers
     if (this._onNodeClicked) config.onNodeClicked = this._onNodeClicked;

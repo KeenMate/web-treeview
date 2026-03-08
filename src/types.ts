@@ -123,6 +123,7 @@ export interface TreeViewConfig<T = any> {
 
   // Debug
   shouldDisplayDebugInformation?: boolean | null;
+  shouldDisplayContextMenuInDebugMode?: boolean | null;
 
   // Drag and Drop
   dragDropMode?: DragDropMode;
@@ -167,12 +168,13 @@ export interface TreeViewConfig<T = any> {
 
   // Render callbacks (for DomRenderer)
   renderNodeCallback?: (node: LTreeNode<T>, container: HTMLElement) => void;
+  renderEmptyStateCallback?: (container: HTMLElement) => void;
   renderEmptyZoneCallback?: (container: HTMLElement) => void;
   renderLoadingCallback?: (container: HTMLElement) => void;
   renderHeaderCallback?: (container: HTMLElement) => void;
   renderFooterCallback?: (container: HTMLElement) => void;
   renderContextMenuCallback?: (node: LTreeNode<T>, close: () => void, container: HTMLElement) => void;
-  renderDropPlaceholderCallback?: (container: HTMLElement) => void;
+  renderContextMenuItemCallback?: (item: ContextMenuItem, node: LTreeNode<T>, container: HTMLElement) => void;
 }
 
 // ── Methods ────────────────────────────────────────────────────────────

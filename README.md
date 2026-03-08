@@ -160,10 +160,13 @@ These properties are set via JavaScript, not HTML attributes:
 | `onNodeDrop` | `(dropNode, draggedNode, position, event, operation) => void` | Drop handler |
 | `beforeDropCallback` | `(dropNode, draggedNode, position, event, operation) => boolean \| void` | Drop validation |
 | `contextMenuCallback` | `(node, close) => ContextMenuItem[]` | Context menu items |
+| `renderContextMenuItemCallback` | `(item, node, container) => void` | Per-item custom rendering (fill or fall through) |
+| `contextMenuXOffset` | `number` | Horizontal offset (px) for context menu position |
+| `contextMenuYOffset` | `number` | Vertical offset (px) for context menu position |
 | `iconCallback` | `(node) => string \| null` | Dynamic icon class resolution (overrides `iconMember`) |
 | `renderNodeCallback` | `(node, container) => void` | Custom node content rendering |
-| `renderEmptyZoneCallback` | `(container) => void` | Empty state rendering (shown when tree has no data) |
-| `renderDropPlaceholderCallback` | `(container) => void` | Drop placeholder rendering (shown in empty tree during drag) |
+| `renderEmptyStateCallback` | `(container) => void` | Informational display when tree has no data |
+| `renderEmptyZoneCallback` | `(container) => void` | Drop zone rendered in empty tree during drag |
 | `renderLoadingCallback` | `(container) => void` | Loading state rendering |
 | `renderHeaderCallback` | `(container) => void` | Tree header rendering |
 | `renderFooterCallback` | `(container) => void` | Tree footer rendering |
@@ -287,9 +290,64 @@ tree.renderNodeCallback = (node, container) => {
   `;
 };
 
-tree.renderEmptyZoneCallback = (container) => {
+tree.renderEmptyStateCallback = (container) => {
   container.innerHTML = '<p>No items to display</p>';
 };
+```
+
+## Context Menu
+
+Right-click context menus are defined via `contextMenuCallback`:
+
+```javascript
+tree.contextMenuCallback = (node, closeMenu) => [
+  { label: 'Edit', icon: 'fa fa-edit', shortcut: 'E', onclick: () => editNode(node) },
+  { label: 'Duplicate', icon: 'fa fa-copy', onclick: () => duplicateNode(node) },
+  { dividerBefore: true, label: 'Delete', danger: true, shortcut: 'Delete', onclick: () => deleteNode(node) },
+];
+```
+
+### ContextMenuItem
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `label` | `string` | Display text (required) |
+| `id` | `string` | Optional identifier |
+| `icon` | `string` | CSS class(es) for item icon |
+| `shortcut` | `string` | Keyboard shortcut text (displayed + active when menu is open) |
+| `disabled` | `boolean` | Grey out and prevent interaction |
+| `visible` | `boolean` | Set `false` to hide the item |
+| `danger` | `boolean` | Red styling for destructive actions |
+| `dividerBefore` | `boolean` | Show a divider line above this item |
+| `className` | `string` | Additional CSS class(es) on the item button |
+| `onclick` | `() => void \| Promise<void>` | Action handler |
+| `children` | `ContextMenuItem[]` | Nested submenu items |
+
+### Custom Item Rendering
+
+Use `renderContextMenuItemCallback` for node-aware or styled menu items. The callback uses a "fill or fall through" pattern — if you populate the container, your custom markup is used; if you leave it empty, the default rendering applies:
+
+```javascript
+tree.renderContextMenuItemCallback = (item, node, container) => {
+  if (item.id === 'profile') {
+    container.innerHTML = `
+      <div class="avatar">${node.data.name[0]}</div>
+      <div>
+        <strong>${node.data.name}</strong>
+        <small>${node.data.role}</small>
+      </div>
+    `;
+    return; // custom rendering used
+  }
+  // All other items: leave container empty → default rendering
+};
+```
+
+### Menu Position Offsets
+
+```javascript
+tree.contextMenuXOffset = 10;  // Shift menu 10px right
+tree.contextMenuYOffset = -30; // Shift menu 30px up
 ```
 
 ## Theming
@@ -442,20 +500,35 @@ See `examples-theming.html` for 8 complete theme examples (dark mode, neon, corp
 | `--tv-scroll-highlight-bg` | `accent 30%` | Scroll-to-node highlight |
 | `--tv-scroll-highlight-shadow` | `0 0 8px accent 40%` | Scroll highlight shadow |
 | `--tv-dragged-opacity` | `0.5` | Dragged node opacity |
-| `--tv-drop-placeholder-border` | `2px dashed accent` | Empty tree placeholder border |
-| `--tv-drop-placeholder-bg` | `accent 10%` | Empty tree placeholder bg |
-| `--tv-drop-placeholder-radius` | `= --tv-border-radius-lg` | Placeholder radius |
+| `--tv-empty-zone-border` | `2px dashed accent` | Empty zone border (during drag) |
+| `--tv-empty-zone-bg` | `accent 10%` | Empty zone background |
+| `--tv-empty-zone-radius` | `= --tv-border-radius-lg` | Empty zone border radius |
 
 #### Context Menu
+
+Each variable defaults to the corresponding higher-order `--tv-*` variable, so the menu inherits the tree's theme by default but can be styled independently.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `--tv-context-menu-bg` | `= --tv-bg-color` | Menu background |
-| `--tv-context-menu-border` | `1px solid --tv-border-color` | Menu border |
-| `--tv-context-menu-shadow` | `0 2px 10px rgba(0,0,0,0.1)` | Menu shadow |
-| `--tv-context-menu-min-width` | `150px` | Menu min width |
 | `--tv-context-menu-bg-hover` | `= --tv-hover-bg` | Item hover background |
+| `--tv-context-menu-text-color` | `= --tv-text-color` | Menu text color |
+| `--tv-context-menu-border` | `1px solid --tv-border-color` | Menu border |
+| `--tv-context-menu-border-radius` | `= --tv-border-radius-sm` | Menu border radius |
+| `--tv-context-menu-shadow` | `0 2px 10px rgba(0,0,0,0.1)` | Menu shadow |
+| `--tv-context-menu-min-width` | `calc(--tv-rem * 15)` | Menu min width |
+| `--tv-context-menu-padding` | `--tv-spacing-sm 0` | Menu padding |
+| `--tv-context-menu-font-size` | `= --tv-font-size-sm` | Menu font size |
+| `--tv-context-menu-item-padding` | `--tv-spacing-md --tv-spacing-xl` | Item padding |
+| `--tv-context-menu-item-gap` | `= --tv-spacing-md` | Gap between icon, label, shortcut |
+| `--tv-context-menu-icon-width` | `= --tv-icon-size` | Item icon column width |
+| `--tv-context-menu-icon-font-size` | `= --tv-font-size-xs` | Item icon font size |
+| `--tv-context-menu-arrow-font-size` | `= --tv-font-size-xs` | Submenu arrow font size |
+| `--tv-context-menu-danger-color` | `= --tv-danger-color` | Danger item text color |
 | `--tv-context-menu-danger-bg-hover` | `danger 10%` | Danger item hover background |
+| `--tv-context-menu-divider-color` | `= --tv-border-color` | Divider line color |
+| `--tv-context-menu-divider-margin` | `--tv-spacing-sm 0` | Divider margin |
+| `--tv-context-menu-disabled-opacity` | `0.5` | Disabled item opacity |
 
 #### Loading
 

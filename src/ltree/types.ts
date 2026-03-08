@@ -21,12 +21,16 @@ export interface ApplyChangesResult {
 }
 
 export interface ContextMenuItem {
+	id?: string;
+	label: string;
 	icon?: string;
-	title: string;
-	isDisabled?: boolean;
-	callback?: () => void | Promise<void>;
-	isDivider?: boolean;
+	shortcut?: string;
+	disabled?: boolean;
+	visible?: boolean;
+	danger?: boolean;
+	dividerBefore?: boolean;
 	className?: string;
+	onclick?: () => void | Promise<void>;
 	children?: ContextMenuItem[];
 }
 

@@ -190,6 +190,8 @@ export interface TreeControllerSnapshot<T> {
   contextMenuVisible: boolean;
   contextMenuX: number;
   contextMenuY: number;
+  contextMenuXOffset: number;
+  contextMenuYOffset: number;
   contextMenuNode: LTreeNode<T> | null;
   isDropPlaceholderActive: boolean;
   isLoading: boolean;

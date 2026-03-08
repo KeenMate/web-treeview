@@ -215,7 +215,7 @@
   --tv-context-menu-font-size: var(--tv-font-size-sm);
   --tv-context-menu-item-padding: var(--tv-spacing-md) var(--tv-spacing-xl);
   --tv-context-menu-item-gap: var(--tv-spacing-md);
-  --tv-context-menu-icon-size: var(--tv-icon-size);
+  --tv-context-menu-icon-width: var(--tv-icon-size);
   --tv-context-menu-icon-font-size: var(--tv-font-size-xs);
   --tv-context-menu-arrow-font-size: var(--tv-font-size-xs);
   --tv-context-menu-danger-color: var(--tv-danger-color);
@@ -235,9 +235,9 @@
   /* ==========================================================================
      DROP PLACEHOLDER (empty tree)
      ========================================================================== */
-  --tv-drop-placeholder-border: 2px dashed var(--tv-accent-color);
-  --tv-drop-placeholder-bg: color-mix(in srgb, var(--tv-accent-color) 10%, transparent);
-  --tv-drop-placeholder-radius: var(--tv-border-radius-lg);
+  --tv-empty-zone-border: 2px dashed var(--tv-accent-color);
+  --tv-empty-zone-bg: color-mix(in srgb, var(--tv-accent-color) 10%, transparent);
+  --tv-empty-zone-radius: var(--tv-border-radius-lg);
 
   /* ==========================================================================
      Z-INDEX LAYERS

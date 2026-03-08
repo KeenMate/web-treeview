@@ -266,11 +266,11 @@
   text-overflow: ellipsis;
 }
 
-/* Drop placeholder for empty trees */
-.ltree-drop-placeholder {
-  border: var(--tv-drop-placeholder-border) !important;
-  background: var(--tv-drop-placeholder-bg) !important;
-  border-radius: var(--tv-drop-placeholder-radius);
+/* Empty zone — drop target shown in empty trees during drag */
+.ltree-empty-zone {
+  border: var(--tv-empty-zone-border) !important;
+  background: var(--tv-empty-zone-bg) !important;
+  border-radius: var(--tv-empty-zone-radius);
   min-height: calc(6 * var(--tv-rem));
   display: flex;
   align-items: center;
@@ -278,7 +278,7 @@
   transition: all var(--tv-transition-speed) ease;
 }
 
-.ltree-drop-placeholder-content {
+.ltree-empty-zone-content {
   color: var(--tv-accent-color);
   font-size: var(--tv-font-size-sm);
   font-weight: var(--tv-font-weight-medium);
@@ -352,23 +352,33 @@
   cursor: not-allowed;
 }
 
+.ltree-context-menu .ltree-context-menu-item.ltree-context-menu-item-danger,
 .ltree-context-menu .ltree-context-menu-item.danger {
   color: var(--tv-context-menu-danger-color);
 }
 
+.ltree-context-menu .ltree-context-menu-item.ltree-context-menu-item-danger:hover,
 .ltree-context-menu .ltree-context-menu-item.danger:hover {
   background: var(--tv-context-menu-danger-bg-hover);
 }
 
 .ltree-context-menu .ltree-context-menu-icon {
   font-size: var(--tv-context-menu-icon-font-size);
-  width: var(--tv-context-menu-icon-size);
+  width: var(--tv-context-menu-icon-width);
   text-align: center;
   flex-shrink: 0;
 }
 
 .ltree-context-menu .ltree-context-menu-label {
   flex: 1;
+}
+
+.ltree-context-menu .ltree-context-menu-shortcut {
+  margin-left: auto;
+  padding-left: var(--tv-context-menu-item-gap);
+  color: var(--tv-context-menu-shortcut-color, var(--tv-text-color-2));
+  font-size: var(--tv-context-menu-font-size);
+  flex-shrink: 0;
 }
 
 .ltree-context-menu .ltree-context-menu-arrow {

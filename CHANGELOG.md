@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0-rc06] - 2026-03-07
+
+### Breaking — ContextMenuItem interface redesign
+
+Aligned `ContextMenuItem` with `@keenmate/web-grid` conventions. If you use `contextMenuCallback`, update your item objects:
+
+| Old field | New field |
+|---|---|
+| `text` | `label` |
+| `action` | `onclick` |
+| `isDanger` | `danger` |
+| `isDisabled` | `disabled` |
+| `hasDivider` | `dividerBefore` |
+
+New optional fields: `id`, `shortcut`, `visible`, `className`.
+
+### Added
+
+- **Scoped context menu CSS variables** — 19 new `--tv-context-menu-*` variables, each defaulting to the corresponding higher-order `--tv-*` variable. Context menu styling is now fully independent from tree node styling:
+  - `--tv-context-menu-bg`, `--tv-context-menu-bg-hover`, `--tv-context-menu-text-color`
+  - `--tv-context-menu-border`, `--tv-context-menu-border-radius`, `--tv-context-menu-shadow`
+  - `--tv-context-menu-min-width`, `--tv-context-menu-padding`, `--tv-context-menu-font-size`
+  - `--tv-context-menu-item-padding`, `--tv-context-menu-item-gap`
+  - `--tv-context-menu-icon-width`, `--tv-context-menu-icon-font-size`, `--tv-context-menu-arrow-font-size`
+  - `--tv-context-menu-danger-color`, `--tv-context-menu-danger-bg-hover`
+  - `--tv-context-menu-divider-color`, `--tv-context-menu-divider-margin`
+  - `--tv-context-menu-disabled-opacity`
+- **`renderContextMenuItemCallback`** — Per-item render callback with "fill or fall through" pattern. Receives `(item, node, container)`. If the callback populates the container, custom rendering is used; if left empty, default rendering kicks in. Allows mixing custom and default items in the same menu.
+- **Keyboard shortcuts** — `ContextMenuItem.shortcut` field (e.g. `'E'`, `'Delete'`) displays shortcut text in the menu and registers a document-level `keydown` listener that triggers the matching item's `onclick` when the context menu is open. Escape key closes the menu.
+- **`contextMenuXOffset` / `contextMenuYOffset` JS properties** — Numeric offsets (in px) applied to the context menu position via Floating UI `offset()` middleware. Available as both HTML attributes and JS property setters on `<web-treeview>`.
+- **Example 3 context menu controls** — Interactive configuration panel for all 19 context menu CSS variables (color pickers, ranges, selects).
+- **Example 3b: Node-Aware Context Menu** — Demonstrates `renderContextMenuItemCallback` with team data (departments + people). Shows custom-rendered items (avatar circles, invoice count chips) alongside default-rendered items in the same menu. Includes its own CSS variable config panel.
+- **`shouldDisplayContextMenuInDebugMode`** — JS property to keep the context menu permanently open for debugging. When active, clicking outside or scrolling won't close the menu. Both Example 3 and 3b have a "Debug: keep menu open" checkbox.
+
+### Changed
+
+- **`--tv-context-menu-icon-size` → `--tv-context-menu-icon-width`** — Renamed to accurately reflect that the variable controls the icon column width, not the icon's visual size.
+- **Empty state vs empty zone separation** — `renderEmptyZoneCallback` now renders the drop zone in empty trees during drag (was previously misused for informational display). New `renderEmptyStateCallback` handles the informational "no data" display. `renderDropPlaceholderCallback` removed (replaced by `renderEmptyZoneCallback`). CSS class `.ltree-drop-placeholder` renamed to `.ltree-empty-zone`. CSS variables `--tv-drop-placeholder-*` renamed to `--tv-empty-zone-*`.
+- **Context menu offset handling** — Moved from controller (baked into raw coordinates) to renderer (applied as Floating UI `offset()` middleware on the virtual reference point). This ensures offsets work correctly with viewport-aware flip/shift.
+
+### Fixed
+
+- **`contextMenuXOffset` / `contextMenuYOffset` not working as JS properties** — The web component was missing private fields, getters, and setters for these properties. Setting them via JS created expando properties that were ignored by `buildConfig()`. Now properly wired through the web component property pipeline.
+
 ## [2.0.0-rc05] - 2026-03-06
 
 ### Added

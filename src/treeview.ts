@@ -212,6 +212,7 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     indexerBatchSize: options.indexerBatchSize,
     indexerTimeout: options.indexerTimeout,
     shouldDisplayDebugInformation: options.shouldDisplayDebugInformation ?? false,
+    shouldDisplayContextMenuInDebugMode: options.shouldDisplayContextMenuInDebugMode ?? false,
     isLoading: options.isLoading ?? false,
 
     progressiveRender: options.progressiveRender ?? true,
@@ -265,11 +266,12 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
 function mapToRendererConfig<T>(options: Partial<TreeViewConfig<T>>): RendererConfig<T> {
   return {
     renderNodeCallback: options.renderNodeCallback,
+    renderEmptyStateCallback: options.renderEmptyStateCallback,
     renderEmptyZoneCallback: options.renderEmptyZoneCallback,
     renderLoadingCallback: options.renderLoadingCallback,
     renderHeaderCallback: options.renderHeaderCallback,
     renderFooterCallback: options.renderFooterCallback,
     renderContextMenuCallback: options.renderContextMenuCallback,
-    renderDropPlaceholderCallback: options.renderDropPlaceholderCallback,
+    renderContextMenuItemCallback: options.renderContextMenuItemCallback,
   };
 }

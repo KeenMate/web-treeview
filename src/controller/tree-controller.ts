@@ -764,11 +764,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     return this.tree?.getAllData() || [];
   }
 
-  /** Open the context menu at the given screen coordinates (offsets applied automatically). */
+  /** Open the context menu at the given screen coordinates. Offsets are applied by the renderer via Floating UI. */
   openContextMenu(node: LTreeNode<T>, screenX: number, screenY: number) {
     this._contextMenuNode = node;
-    this._contextMenuX = screenX + this._contextMenuXOffset;
-    this._contextMenuY = screenY + this._contextMenuYOffset;
+    this._contextMenuX = screenX;
+    this._contextMenuY = screenY;
     this._contextMenuVisible = true;
     this._isDebugMenuActive = false;
     this._updateContextMenuListeners();
@@ -1143,8 +1143,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.searchText !== undefined) this.searchText = updates.searchText;
     if (updates.shouldDisplayDebugInformation !== undefined)
       this._shouldDisplayDebugInformation = updates.shouldDisplayDebugInformation ?? false;
-    if (updates.shouldDisplayContextMenuInDebugMode !== undefined)
+    if (updates.shouldDisplayContextMenuInDebugMode !== undefined) {
       this._shouldDisplayContextMenuInDebugMode = updates.shouldDisplayContextMenuInDebugMode ?? false;
+      this._updateDebugContextMenu();
+    }
     if (updates.isLoading !== undefined) this._isLoading = updates.isLoading ?? false;
     if (updates.bodyClass !== undefined) this._bodyClass = updates.bodyClass;
 
@@ -1297,6 +1299,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       contextMenuVisible: this._contextMenuVisible,
       contextMenuX: this._contextMenuX,
       contextMenuY: this._contextMenuY,
+      contextMenuXOffset: this._contextMenuXOffset,
+      contextMenuYOffset: this._contextMenuYOffset,
       contextMenuNode: this._contextMenuNode,
       isDropPlaceholderActive: this._isDropPlaceholderActive,
       isLoading: this._isLoading,
@@ -1484,6 +1488,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (!this._contextMenuVisible) return;
 
     const handleGlobalClick = (event: MouseEvent) => {
+      if (this._isDebugMenuActive) return;
       const target = event.target as Element;
       if (!target.closest('.ltree-context-menu')) {
         this.closeContextMenu();
@@ -1491,13 +1496,22 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     };
 
     const handleGlobalScroll = () => {
+      if (this._isDebugMenuActive) return;
       this.closeContextMenu();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        this.closeContextMenu();
+      }
     };
 
     // Defer to avoid catching the same event that opened the menu
     requestAnimationFrame(() => {
       document.addEventListener('click', handleGlobalClick);
       document.addEventListener('contextmenu', handleGlobalClick);
+      document.addEventListener('keydown', handleKeyDown);
       window.addEventListener('scroll', handleGlobalScroll, true);
       document.addEventListener('scroll', handleGlobalScroll, true);
       window.addEventListener('wheel', handleGlobalScroll, { passive: true });
@@ -1506,6 +1520,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._contextMenuCleanup = () => {
       document.removeEventListener('click', handleGlobalClick);
       document.removeEventListener('contextmenu', handleGlobalClick);
+      document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('scroll', handleGlobalScroll, true);
       document.removeEventListener('scroll', handleGlobalScroll, true);
       window.removeEventListener('wheel', handleGlobalScroll);
@@ -1918,9 +1933,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       const dropElement = document.elementFromPoint(touch.clientX, touch.clientY);
       const dropNode = this.findNodeFromElement(dropElement);
 
-      const placeholder = dropElement?.closest('.ltree-empty-state');
+      const emptyTarget = dropElement?.closest('.ltree-empty-state, .ltree-empty-zone');
       const rootDropZone = dropElement?.closest('.ltree-root-drop-zone');
-      if ((placeholder || rootDropZone) && !dropNode) {
+      if ((emptyTarget || rootDropZone) && !dropNode) {
         dragLogger.debug(`Touch drag ended: ${this._draggedNode.path} -> empty tree`);
         this._handleDrop(null, this._draggedNode, 'child', event);
       } else if (dropNode && dropNode !== this._draggedNode && dropNode.isDropAllowed) {
@@ -1988,8 +2003,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       prevElement?.classList.remove(this._dragOverNodeClass || 'ltree-dragover-highlight');
     }
 
-    const placeholder = element?.closest('.ltree-empty-state');
-    if (placeholder && !newTarget) {
+    const emptyTarget = element?.closest('.ltree-empty-state, .ltree-empty-zone');
+    if (emptyTarget && !newTarget) {
       this._isDropPlaceholderActive = true;
       this.touchDragState.currentDropTarget = null;
       this._scheduleNotify();
