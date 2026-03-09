@@ -2036,12 +2036,16 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   // ── Empty tree drop handlers ────────────────────────────────────────
 
   handleEmptyTreeDragOver = (event: DragEvent) => {
-    if (event.dataTransfer?.types.includes('application/svelte-treeview')) {
-      event.preventDefault();
+    if (!event.dataTransfer?.types.includes('application/svelte-treeview')) return;
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    // Only notify if state actually changed
+    if (!this._isDragInProgress || !this._isDropPlaceholderActive) {
+      console.log('[Controller] handleEmptyTreeDragOver — activating', { treeId: this._treeId });
+      this._isDragInProgress = true;
       this._isDropPlaceholderActive = true;
-      if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = 'move';
-      }
       this._scheduleNotify();
     }
   };
@@ -2050,7 +2054,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const x = event.clientX;
     const y = event.clientY;
-    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+    const outside = x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom;
+    console.log('[Controller] handleEmptyTreeDragLeave', { treeId: this._treeId, outside, x, y, rect: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right } });
+    if (outside) {
+      this._isDragInProgress = false;
       this._isDropPlaceholderActive = false;
       this._scheduleNotify();
     }
@@ -2058,6 +2065,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   handleEmptyTreeDrop = (event: DragEvent) => {
     event.preventDefault();
+    this._isDragInProgress = false;
     this._isDropPlaceholderActive = false;
 
     const draggedNodeData = event.dataTransfer?.getData('application/svelte-treeview');
@@ -2078,8 +2086,14 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   // ── Tree-level drag handlers ────────────────────────────────────────
 
   handleTreeDragEnter = (event: DragEvent) => {
+    console.log('[Controller] handleTreeDragEnter', { treeId: this._treeId, nodeCount: this.flatNodesToRender.length, hasMime: event.dataTransfer?.types.includes('application/svelte-treeview') });
     if (event.dataTransfer?.types.includes('application/svelte-treeview')) {
       this._isDragInProgress = true;
+      // For empty trees, also activate drop placeholder immediately
+      // so renderEmpty shows the drop zone instead of recreating the empty state
+      if (this.flatNodesToRender.length === 0) {
+        this._isDropPlaceholderActive = true;
+      }
       this._scheduleNotify();
     }
   };
@@ -2088,9 +2102,12 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const x = event.clientX;
     const y = event.clientY;
-    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+    const outside = x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom;
+    console.log('[Controller] handleTreeDragLeave', { treeId: this._treeId, outside, x, y, rect: { top: rect.top, bottom: rect.bottom } });
+    if (outside) {
       if (this._draggedNode?.treeId !== this._treeId) {
         this._isDragInProgress = false;
+        this._isDropPlaceholderActive = false;
         this._hoveredNodeForDrop = null;
         this._activeDropPosition = null;
         this._scheduleNotify();

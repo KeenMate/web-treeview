@@ -729,9 +729,11 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
     this.treeview = new WebTreeView<T>(this.containerElement, config, this._renderer);
 
+    const ctrl = this.treeview.getController();
+
     // Dispatch tree-changed and selected-node-changed from controller state changes
     let prevSelectedPath: string | null = null;
-    const controller = this.treeview.getController();
+    const controller = ctrl;
     controller.on('state-change', (snapshot) => {
       this.dispatchEvent(new CustomEvent('tree-changed', {
         bubbles: true,

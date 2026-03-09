@@ -69,6 +69,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   // Last snapshot for diffing
   private lastSnapshot: TreeControllerSnapshot<T> | null = null;
   private lastNodeConfig: NodeConfig | null = null;
+  private _lastDragOverTarget: string = '';
+  private _lastEmptyState: string = '';
 
   mount(container: HTMLElement, controller: TreeController<T>, config: RendererConfig<T>): void {
     this.container = container;
@@ -267,6 +269,12 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _onBodyDragOver = (event: DragEvent) => {
     if (!this.controller) return;
     const target = event.target as HTMLElement;
+    // Log only on first dragover or target change to reduce noise
+    const targetDesc = target.tagName + '.' + target.className;
+    if (this._lastDragOverTarget !== targetDesc) {
+      console.log('[DomRenderer] _onBodyDragOver', { target: targetDesc, treeId: this.controller.treeId });
+      this._lastDragOverTarget = targetDesc;
+    }
 
     // Drop zone handling — allow drop and highlight active zone
     const zoneEl = target.closest('.ltree-drop-zone') as HTMLElement;
@@ -312,16 +320,28 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     // Empty tree or active drop placeholder dragover
     const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-empty-zone') as HTMLElement;
     if (emptyOrPlaceholder) {
+      console.log('[DomRenderer] dragover on empty/placeholder element', emptyOrPlaceholder.className);
       this.controller.handleEmptyTreeDragOver(event);
+    } else {
+      const bodyHit = target.closest('.ltree-tree');
+      if (bodyHit && !contentEl && !zoneEl) {
+        console.log('[DomRenderer] dragover on tree body, but no node/zone/empty found. target:', target.tagName, target.className);
+      }
     }
   };
 
   private _onBodyDragLeave = (event: DragEvent) => {
     if (!this.controller) return;
-    // Don't clear hover when cursor moves to a floating drop zone
+    this._lastDragOverTarget = '';
     const related = event.relatedTarget as HTMLElement;
-    if (related?.closest?.('.ltree-drop-zones')) return;
     const target = event.target as HTMLElement;
+    console.log('[DomRenderer] _onBodyDragLeave', {
+      target: target.tagName + '.' + target.className,
+      related: related ? related.tagName + '.' + related.className : null,
+      treeId: this.controller.treeId
+    });
+    // Don't clear hover when cursor moves to a floating drop zone
+    if (related?.closest?.('.ltree-drop-zones')) return;
     const contentEl = target.closest('.ltree-node-content') as HTMLElement;
     if (contentEl) {
       const nodeEl = contentEl.closest('.ltree-node') as HTMLElement;
@@ -381,6 +401,13 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   };
 
   private _onBodyDragEnter = (event: DragEvent) => {
+    const target = event.target as HTMLElement;
+    const related = event.relatedTarget as HTMLElement;
+    console.log('[DomRenderer] _onBodyDragEnter', {
+      target: target.tagName + '.' + target.className,
+      related: related ? related.tagName + '.' + related.className : null,
+      treeId: this.controller?.treeId
+    });
     this.controller?.handleTreeDragEnter(event);
   };
 
@@ -727,6 +754,11 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.nodeElements.clear();
 
     // Show empty zone (drop target during drag) or empty state (informational)
+    const emptyState = `${snapshot.isDragInProgress}|${snapshot.isDropPlaceholderActive}|${snapshot.isLoading}`;
+    if (this._lastEmptyState !== emptyState) {
+      console.log('[DomRenderer] renderEmpty', { isDragInProgress: snapshot.isDragInProgress, isDropPlaceholderActive: snapshot.isDropPlaceholderActive, isLoading: snapshot.isLoading });
+      this._lastEmptyState = emptyState;
+    }
     if (snapshot.isDragInProgress && snapshot.isDropPlaceholderActive) {
       target.style.minHeight = '';
       let zone = target.querySelector('.ltree-empty-zone');
@@ -759,17 +791,19 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       const zone = target.querySelector('.ltree-empty-zone');
       if (zone) zone.remove();
 
+      // Reuse existing empty state to avoid DOM removal during active drags
+      // (removing and recreating the element kills browser drag tracking)
       let emptyState = target.querySelector('.ltree-empty-state');
-      if (emptyState) emptyState.remove();
-
-      emptyState = document.createElement('div');
-      emptyState.className = 'ltree-empty-state';
+      if (!emptyState) {
+        emptyState = document.createElement('div');
+        emptyState.className = 'ltree-empty-state';
+        target.appendChild(emptyState);
+      }
       if (this.config.renderEmptyStateCallback) {
         this.config.renderEmptyStateCallback(emptyState as HTMLElement);
       } else {
         emptyState.textContent = 'No data';
       }
-      target.appendChild(emptyState);
     }
   }
 
