@@ -16,10 +16,19 @@ import type {
 import type { RenderStats } from '../renderer/render-coordinator';
 import type { Index, SearchOptions } from 'flexsearch';
 
+// ─── Selection ──────────────────────────────────────────────────────────
+
+export interface SelectionModifiers {
+  ctrl: boolean;
+  shift: boolean;
+}
+
+export type RangeSelectionMode = 'visual' | 'logical';
+
 // ─── Shared interfaces (also used by renderers) ────────────────────────
 
 export interface NodeCallbacks<T> {
-  onNodeClicked: (node: LTreeNode<T>) => void;
+  onNodeClicked: (node: LTreeNode<T>, modifiers?: SelectionModifiers) => void;
   onNodeRightClicked: (node: LTreeNode<T>, event: MouseEvent) => void;
   onNodeDragStart: (node: LTreeNode<T>, event: DragEvent) => void;
   onNodeDragOver: (node: LTreeNode<T>, event: DragEvent) => void;
@@ -125,6 +134,10 @@ export interface TreeControllerConfig<T> {
   allowCopy?: boolean;
   autoHandleCopy?: boolean;
 
+  // MULTI-SELECT
+  rangeSelectionMode?: RangeSelectionMode;
+  onSelectionChange?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
+
   // EVENTS
   onNodeClicked?: (node: LTreeNode<T>) => void;
   onNodeDragStart?: (node: LTreeNode<T>, event: DragEvent) => void;
@@ -201,6 +214,8 @@ export interface TreeControllerSnapshot<T> {
   flatIndentSize: string;
   shouldDisplayDebugInformation: boolean;
   selectedNode: LTreeNode<T> | null | undefined;
+  selectedPaths: Set<string>;
+  cutPaths: Set<string>;
 
   // Virtual scroll
   virtualScroll: boolean;

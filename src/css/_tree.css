@@ -228,6 +228,13 @@
   box-shadow: var(--tv-drag-over-glow-shadow) !important;
 }
 
+/* ── Cut state (clipboard) ────────────────────────────────────────── */
+
+.ltree-cut {
+  opacity: var(--tv-cut-opacity);
+  font-style: italic;
+}
+
 /* ── Drag and drop ────────────────────────────────────────────────── */
 
 .ltree-draggable {

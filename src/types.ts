@@ -18,10 +18,18 @@ export type { ContextMenuItem, ContextMenuDivider, ContextMenuEntry } from './lt
 export type {
   NodeCallbacks,
   NodeConfig,
+  SelectionModifiers,
+  RangeSelectionMode,
   TreeControllerConfig,
   TreeControllerSnapshot,
   TreeControllerEvents
 } from './controller/types';
+
+// Re-export clipboard types
+export type { ClipboardEntry, TreeClipboard, ClipboardOperation, PasteResult } from './clipboard';
+
+// Re-export navigation types
+export type { TreeNavigation, TreeNavigationOverrides } from './navigation';
 
 // Re-export renderer types
 export type { TreeViewRenderer, RendererConfig } from './renderer/types';
@@ -32,6 +40,8 @@ export type { RenderCoordinator, RenderStats, RenderCoordinatorCallbacks } from 
 import type { LTreeNode } from './ltree/ltree-node';
 import type { DropPosition } from './ltree/ltree-node';
 import type { DragDropMode, DropOperation, ContextMenuItem, ContextMenuEntry } from './ltree/types';
+import type { RangeSelectionMode, SelectionModifiers } from './controller/types';
+import type { PasteResult } from './clipboard';
 import type { RenderStats } from './renderer/render-coordinator';
 
 export interface TreeViewConfig<T = any> {
@@ -121,6 +131,10 @@ export interface TreeViewConfig<T = any> {
   contextMenuXOffset?: number | null;
   contextMenuYOffset?: number | null;
 
+  // Multi-select
+  rangeSelectionMode?: RangeSelectionMode;
+  onSelectionChange?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
+
   // Debug
   shouldDisplayDebugInformation?: boolean | null;
   shouldDisplayContextMenuInDebugMode?: boolean | null;
@@ -190,6 +204,42 @@ export interface TreeViewMethods<T = any> {
   closeContextMenu(): void;
   update(props: Partial<TreeViewConfig<T>>): void;
   getTree(): import('./ltree/types').Ltree<T>;
+
+  // Bulk operations
+  insertBranch(parentPath: string, data: T[]): { success: boolean; count: number; error?: string };
+  replaceBranch(parentPath: string, data: T[]): { success: boolean; removed: number; added: number; error?: string };
+  deleteBranch(path: string, keepParent?: boolean): { success: boolean; count: number; error?: string };
+
+  // Multi-select
+  selectNode(path: string, modifiers?: SelectionModifiers): void;
+  selectNodes(paths: string[]): void;
+  deselectAll(): void;
+  getSelectedNodes(): LTreeNode<T>[];
+  getSelectedPaths(): Set<string>;
+  isNodeSelected(path: string): boolean;
+  selectAll(): void;
+
+  // Navigation
+  navTo(path: string): void;
+  navNext(): void;
+  navPrev(): void;
+  navNextSibling(): void;
+  navPrevSibling(): void;
+  navInto(): void;
+  navOut(): void;
+  navBackOut(): void;
+  navToggle(): void;
+  navFirst(): void;
+  navLast(): void;
+
+  // Clipboard
+  copyNodes(paths?: string[]): void;
+  cutNodes(paths?: string[]): void;
+  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: 'above' | 'below' | 'child'): PasteResult<T>;
+  cancelCut(): void;
+  hasClipboardContent(): boolean;
+  getClipboardOperation(): 'copy' | 'cut' | null;
+
   destroy(): void;
 }
 
@@ -203,6 +253,7 @@ export interface TreeEventMap<T = any> {
   'data-changed': CustomEvent<{ data: T[] }>;
   'selected-node-changed': CustomEvent<{ selectedNode: LTreeNode<T> | null }>;
   'search-text-changed': CustomEvent<{ searchText: string }>;
+  'selection-change': CustomEvent<{ selectedNodes: LTreeNode<T>[]; selectedPaths: Set<string> }>;
   'tree-changed': CustomEvent<void>;
 }
 

@@ -4,6 +4,8 @@ import type { LTreeNode } from './ltree/ltree-node';
 import type { DropPosition } from './ltree/ltree-node';
 import type { Ltree, ContextMenuItem, ContextMenuEntry, DragDropMode, DropOperation } from './ltree/types';
 import type { TreeViewRenderer, RendererConfig } from './renderer/types';
+import type { SelectionModifiers, RangeSelectionMode } from './controller/types';
+import type { PasteResult } from './clipboard';
 import type { TreeController } from './controller/tree-controller';
 import { initLogger } from './logger';
 import styles from './css/main.css?inline';
@@ -91,6 +93,10 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _contextMenuXOffset?: number;
   private _contextMenuYOffset?: number;
 
+  // Multi-select
+  private _rangeSelectionMode?: RangeSelectionMode;
+  private _onSelectionChange?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
+
   // Callback properties
   private _getDisplayValueCallback?: (node: LTreeNode<T>) => string;
   private _getSearchValueCallback?: (node: LTreeNode<T>) => string;
@@ -174,6 +180,9 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
       // Per-node icons
       'icon-member', 'align-node-icons',
+
+      // Multi-select
+      'range-selection-mode',
     ];
   }
 
@@ -351,6 +360,16 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
   get contextMenuYOffset(): number | undefined { return this._contextMenuYOffset; }
   set contextMenuYOffset(value: number | undefined) { this._contextMenuYOffset = value; this._scheduleUpdate(); }
+
+  // Multi-select properties
+  get rangeSelectionMode(): RangeSelectionMode | undefined { return this._rangeSelectionMode; }
+  set rangeSelectionMode(value: RangeSelectionMode | undefined) { this._rangeSelectionMode = value; this._scheduleUpdate(); }
+
+  get onSelectionChange(): ((selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void) | undefined { return this._onSelectionChange; }
+  set onSelectionChange(value: ((selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void) | undefined) {
+    this._onSelectionChange = value;
+    this._scheduleUpdate();
+  }
 
   // Virtual scroll properties
   get virtualScroll(): boolean | undefined { return this._virtualScroll; }
@@ -593,6 +612,90 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     return this.treeview?.getController();
   }
 
+  // ── Bulk operations ───────────────────────────────────────────────
+
+  insertBranch(parentPath: string, data: T[]): { success: boolean; count: number; error?: string } {
+    return this.treeview?.insertBranch(parentPath, data) ?? { success: false, count: 0, error: 'Not initialized' };
+  }
+
+  replaceBranch(parentPath: string, data: T[]): { success: boolean; removed: number; added: number; error?: string } {
+    return this.treeview?.replaceBranch(parentPath, data) ?? { success: false, removed: 0, added: 0, error: 'Not initialized' };
+  }
+
+  deleteBranch(path: string, keepParent?: boolean): { success: boolean; count: number; error?: string } {
+    return this.treeview?.deleteBranch(path, keepParent) ?? { success: false, count: 0, error: 'Not initialized' };
+  }
+
+  // ── Multi-select ──────────────────────────────────────────────────
+
+  selectNode(path: string, modifiers?: SelectionModifiers): void {
+    this.treeview?.selectNode(path, modifiers);
+  }
+
+  selectNodes(paths: string[]): void {
+    this.treeview?.selectNodes(paths);
+  }
+
+  deselectAll(): void {
+    this.treeview?.deselectAll();
+  }
+
+  getSelectedNodes(): LTreeNode<T>[] {
+    return this.treeview?.getSelectedNodes() ?? [];
+  }
+
+  getSelectedPaths(): Set<string> {
+    return this.treeview?.getSelectedPaths() ?? new Set();
+  }
+
+  isNodeSelected(path: string): boolean {
+    return this.treeview?.isNodeSelected(path) ?? false;
+  }
+
+  selectAll(): void {
+    this.treeview?.selectAll();
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────
+
+  navTo(path: string): void { this.treeview?.navTo(path); }
+  navNext(): void { this.treeview?.navNext(); }
+  navPrev(): void { this.treeview?.navPrev(); }
+  navNextSibling(): void { this.treeview?.navNextSibling(); }
+  navPrevSibling(): void { this.treeview?.navPrevSibling(); }
+  navInto(): void { this.treeview?.navInto(); }
+  navOut(): void { this.treeview?.navOut(); }
+  navBackOut(): void { this.treeview?.navBackOut(); }
+  navToggle(): void { this.treeview?.navToggle(); }
+  navFirst(): void { this.treeview?.navFirst(); }
+  navLast(): void { this.treeview?.navLast(); }
+
+  // ── Clipboard ─────────────────────────────────────────────────────
+
+  copyNodes(paths?: string[]): void {
+    this.treeview?.copyNodes(paths);
+  }
+
+  cutNodes(paths?: string[]): void {
+    this.treeview?.cutNodes(paths);
+  }
+
+  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: 'above' | 'below' | 'child'): PasteResult<T> {
+    return this.treeview?.pasteNodes(targetPath, transformData, position) ?? { success: false, pastedCount: 0, error: 'Not initialized' };
+  }
+
+  cancelCut(): void {
+    this.treeview?.cancelCut();
+  }
+
+  hasClipboardContent(): boolean {
+    return this.treeview?.hasClipboardContent() ?? false;
+  }
+
+  getClipboardOperation(): 'copy' | 'cut' | null {
+    return this.treeview?.getClipboardOperation() ?? null;
+  }
+
   // ── Private methods ────────────────────────────────────────────────
 
   private render(): void {
@@ -731,8 +834,9 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
     const ctrl = this.treeview.getController();
 
-    // Dispatch tree-changed and selected-node-changed from controller state changes
+    // Dispatch tree-changed, selected-node-changed, and selection-change from controller state changes
     let prevSelectedPath: string | null = null;
+    let prevSelectedPaths: string = '';
     const controller = ctrl;
     controller.on('state-change', (snapshot) => {
       this.dispatchEvent(new CustomEvent('tree-changed', {
@@ -747,6 +851,20 @@ export class WebTreeViewElement<T = any> extends BaseElement {
           bubbles: true,
           composed: true,
           detail: { selectedNode: snapshot.selectedNode ?? null }
+        }));
+      }
+
+      // Dispatch selection-change when the set of selected paths changes
+      const currentSelectedPaths = [...snapshot.selectedPaths].sort().join(',');
+      if (currentSelectedPaths !== prevSelectedPaths) {
+        prevSelectedPaths = currentSelectedPaths;
+        this.dispatchEvent(new CustomEvent('selection-change', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            selectedNodes: controller.getSelectedNodes(),
+            selectedPaths: new Set(snapshot.selectedPaths)
+          }
         }));
       }
     });
@@ -958,6 +1076,11 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     if (this._renderFooterCallback) config.renderFooterCallback = this._renderFooterCallback;
     if (this._renderContextMenuCallback) config.renderContextMenuCallback = this._renderContextMenuCallback;
     if (this._renderContextMenuItemCallback) config.renderContextMenuItemCallback = this._renderContextMenuItemCallback;
+
+    // Multi-select
+    const rangeSelectionMode = this._rangeSelectionMode ?? this.getAttribute('range-selection-mode') as RangeSelectionMode;
+    if (rangeSelectionMode === 'visual' || rangeSelectionMode === 'logical') config.rangeSelectionMode = rangeSelectionMode;
+    if (this._onSelectionChange) config.onSelectionChange = this._onSelectionChange;
 
     // Event handlers
     if (this._onNodeClicked) config.onNodeClicked = this._onNodeClicked;

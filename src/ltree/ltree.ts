@@ -1333,6 +1333,99 @@ export function createLTree<T>(
 		},
 
 		/**
+		 * Insert multiple nodes as children of a parent
+		 * @param parentPath - Path of the parent node
+		 * @param data - Array of data objects to insert
+		 * @returns Object with success status and count of inserted nodes
+		 */
+		insertBranch(parentPath: string, data: T[]): { success: boolean; count: number; error?: string } {
+			const parent = this.getNodeByPath(parentPath);
+			if (!parent) {
+				return { success: false, count: 0, error: 'Parent not found: ' + parentPath };
+			}
+
+			let successCount = 0;
+			for (const item of data) {
+				const result = this.addNode(parentPath, item);
+				if (result.success) {
+					successCount++;
+				}
+			}
+
+			this._emitTreeChanged();
+			return { success: true, count: successCount };
+		},
+
+		/**
+		 * Replace all children of a parent with new data
+		 * @param parentPath - Path of the parent node
+		 * @param data - Array of data objects to replace children with
+		 * @returns Object with success status, removed count, and added count
+		 */
+		replaceBranch(parentPath: string, data: T[]): { success: boolean; removed: number; added: number; error?: string } {
+			const parent = this.getNodeByPath(parentPath);
+			if (!parent) {
+				return { success: false, removed: 0, added: 0, error: 'Parent not found: ' + parentPath };
+			}
+
+			// Get children and remove them in reverse order
+			const children = this.getChildren(parentPath);
+			let removedCount = 0;
+			for (let i = children.length - 1; i >= 0; i--) {
+				const result = this.removeNode(children[i].path, true);
+				if (result.success) {
+					removedCount++;
+				}
+			}
+
+			// Insert new data
+			const insertResult = this.insertBranch(parentPath, data);
+
+			this._emitTreeChanged();
+			return { success: true, removed: removedCount, added: insertResult.count };
+		},
+
+		/**
+		 * Delete a branch (node and/or its descendants)
+		 * @param path - Path of the node
+		 * @param keepParent - If true, only remove children, keep the parent node
+		 * @returns Object with success status and count of removed nodes
+		 */
+		deleteBranch(path: string, keepParent?: boolean): { success: boolean; count: number; error?: string } {
+			const node = this.getNodeByPath(path);
+			if (!node) {
+				return { success: false, count: 0, error: 'Node not found: ' + path };
+			}
+
+			let removedCount = 0;
+
+			if (keepParent) {
+				// Remove only children
+				const children = this.getChildren(path);
+				for (let i = children.length - 1; i >= 0; i--) {
+					const result = this.removeNode(children[i].path, true);
+					if (result.success) {
+						removedCount++;
+					}
+				}
+			} else {
+				// Count descendants before removing
+				const countDescendants = (n: LTreeNode<T>): number => {
+					let count = 1;
+					for (const child of Object.values(n.children)) {
+						count += countDescendants(child);
+					}
+					return count;
+				};
+				removedCount = countDescendants(node);
+				this.removeNode(path, true);
+			}
+
+			this._emitTreeChanged();
+			return { success: true, count: removedCount };
+		},
+
+		/**
 		 * Get paths of all expanded nodes
 		 * Useful for saving expanded state before a full redraw
 		 * @returns Array of paths that are currently expanded

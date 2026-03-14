@@ -4,6 +4,8 @@ import type { TreeViewRenderer, RendererConfig } from './renderer/types';
 import { DomRenderer } from './renderer/dom-renderer';
 import type { LTreeNode } from './ltree/ltree-node';
 import type { Ltree, DropPosition, TreeChange, ApplyChangesResult } from './ltree/types';
+import type { SelectionModifiers } from './controller/types';
+import type { PasteResult } from './clipboard';
 import type { TreeViewConfig, ScrollToPathOptions } from './types';
 import type { SearchOptions } from 'flexsearch';
 
@@ -141,6 +143,18 @@ export class WebTreeView<T = any> {
     return this.controller.applyChanges(changes);
   }
 
+  insertBranch(parentPath: string, data: T[]): { success: boolean; count: number; error?: string } {
+    return this.controller.insertBranch(parentPath, data);
+  }
+
+  replaceBranch(parentPath: string, data: T[]): { success: boolean; removed: number; added: number; error?: string } {
+    return this.controller.replaceBranch(parentPath, data);
+  }
+
+  deleteBranch(path: string, keepParent?: boolean): { success: boolean; count: number; error?: string } {
+    return this.controller.deleteBranch(path, keepParent);
+  }
+
   getExpandedPaths(): string[] {
     return this.controller.getExpandedPaths();
   }
@@ -155,6 +169,76 @@ export class WebTreeView<T = any> {
 
   getNodeByPath(path: string): LTreeNode<T> | null {
     return this.controller.getNodeByPath(path);
+  }
+
+  // ── Multi-select (proxy to controller) ──────────────────────────────
+
+  selectNode(path: string, modifiers?: SelectionModifiers): void {
+    this.controller.selectNode(path, modifiers);
+  }
+
+  selectNodes(paths: string[]): void {
+    this.controller.selectNodes(paths);
+  }
+
+  deselectAll(): void {
+    this.controller.deselectAll();
+  }
+
+  getSelectedNodes(): LTreeNode<T>[] {
+    return this.controller.getSelectedNodes();
+  }
+
+  getSelectedPaths(): Set<string> {
+    return this.controller.getSelectedPaths();
+  }
+
+  isNodeSelected(path: string): boolean {
+    return this.controller.isNodeSelected(path);
+  }
+
+  selectAll(): void {
+    this.controller.selectAll();
+  }
+
+  // ── Navigation (proxy to controller) ──────────────────────────────
+
+  navTo(path: string): void { this.controller.navTo(path); }
+  navNext(): void { this.controller.navNext(); }
+  navPrev(): void { this.controller.navPrev(); }
+  navNextSibling(): void { this.controller.navNextSibling(); }
+  navPrevSibling(): void { this.controller.navPrevSibling(); }
+  navInto(): void { this.controller.navInto(); }
+  navOut(): void { this.controller.navOut(); }
+  navBackOut(): void { this.controller.navBackOut(); }
+  navToggle(): void { this.controller.navToggle(); }
+  navFirst(): void { this.controller.navFirst(); }
+  navLast(): void { this.controller.navLast(); }
+
+  // ── Clipboard (proxy to controller) ───────────────────────────────
+
+  copyNodes(paths?: string[]): void {
+    this.controller.copyNodes(paths);
+  }
+
+  cutNodes(paths?: string[]): void {
+    this.controller.cutNodes(paths);
+  }
+
+  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: 'above' | 'below' | 'child'): PasteResult<T> {
+    return this.controller.pasteNodes(targetPath, transformData, position);
+  }
+
+  cancelCut(): void {
+    this.controller.cancelCut();
+  }
+
+  hasClipboardContent(): boolean {
+    return this.controller.hasClipboardContent();
+  }
+
+  getClipboardOperation(): 'copy' | 'cut' | null {
+    return this.controller.getClipboardOperation();
   }
 
   // ── Renderer swap ───────────────────────────────────────────────────
@@ -260,6 +344,9 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     onRenderStart: options.onRenderStart,
     onRenderProgress: options.onRenderProgress,
     onRenderComplete: options.onRenderComplete,
+
+    rangeSelectionMode: options.rangeSelectionMode,
+    onSelectionChange: options.onSelectionChange,
   } as TreeControllerConfig<T>;
 }
 

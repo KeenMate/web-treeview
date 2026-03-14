@@ -32,10 +32,20 @@ import { EventEmitter } from './event-emitter';
 import type {
   NodeCallbacks,
   NodeConfig,
+  SelectionModifiers,
   TreeControllerConfig,
   TreeControllerSnapshot,
   TreeControllerEvents
 } from './types';
+import {
+  setClipboard,
+  getClipboard,
+  clearClipboard,
+  hasClipboard as hasClipboardFn,
+  getClipboardOperation as getClipboardOp,
+  type ClipboardEntry,
+  type PasteResult
+} from '../clipboard';
 import { initLogger, uiLogger, dragLogger } from '../logger';
 import { perfStart, perfEnd } from '../perf-logger';
 
@@ -94,7 +104,16 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _allowCopy: boolean = false;
   private _autoHandleCopy: boolean = true;
 
+  // Multi-select
+  private _selectedPaths: Set<string> = new Set();
+  private _lastSelectedPath: string | null = null;
+  private _rangeSelectionMode: import('./types').RangeSelectionMode = 'visual';
+
+  // Clipboard (cut paths for dimming)
+  private _cutPaths: Set<string> = new Set();
+
   // Events / callbacks
+  private onSelectionChangeCb: TreeControllerConfig<T>['onSelectionChange'];
   private onNodeClickedCb: ((node: LTreeNode<T>) => void) | undefined;
   private onNodeDragStartCb: ((node: LTreeNode<T>, event: DragEvent) => void) | undefined;
   private onNodeDragOverCb: ((node: LTreeNode<T>, event: DragEvent) => void) | undefined;
@@ -238,6 +257,14 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._selectedNode = v;
     this._scheduleNotify();
   }
+
+  get rangeSelectionMode() { return this._rangeSelectionMode; }
+  set rangeSelectionMode(v: import('./types').RangeSelectionMode) {
+    this._rangeSelectionMode = v;
+  }
+
+  get selectedPaths(): Set<string> { return this._selectedPaths; }
+  get cutPaths(): Set<string> { return this._cutPaths; }
 
   get insertResult() { return this._insertResult; }
   get searchText() { return this._searchText; }
@@ -476,6 +503,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._data = props.data;
     this._selectedNode = props.selectedNode ?? null;
     this._searchText = props.searchText;
+    this._rangeSelectionMode = props.rangeSelectionMode ?? 'visual';
 
     this._shouldDisplayDebugInformation = props.shouldDisplayDebugInformation ?? false;
     this._shouldDisplayContextMenuInDebugMode = props.shouldDisplayContextMenuInDebugMode ?? false;
@@ -518,6 +546,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._alignNodeIcons = props.alignNodeIcons ?? true;
 
     // Store callbacks
+    this.onSelectionChangeCb = props.onSelectionChange;
     this.onNodeClickedCb = props.onNodeClicked;
     this.onNodeDragStartCb = props.onNodeDragStart;
     this.onNodeDragOverCb = props.onNodeDragOver;
@@ -752,6 +781,27 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     return result;
   }
 
+  insertBranch(parentPath: string, data: T[]): { success: boolean; count: number; error?: string } {
+    this._skipInsertArray = true;
+    const result = this.tree?.insertBranch(parentPath, data) || { success: false, count: 0, error: 'Tree not initialized' };
+    queueMicrotask(() => { this._skipInsertArray = false; });
+    return result;
+  }
+
+  replaceBranch(parentPath: string, data: T[]): { success: boolean; removed: number; added: number; error?: string } {
+    this._skipInsertArray = true;
+    const result = this.tree?.replaceBranch(parentPath, data) || { success: false, removed: 0, added: 0, error: 'Tree not initialized' };
+    queueMicrotask(() => { this._skipInsertArray = false; });
+    return result;
+  }
+
+  deleteBranch(path: string, keepParent?: boolean): { success: boolean; count: number; error?: string } {
+    this._skipInsertArray = true;
+    const result = this.tree?.deleteBranch(path, keepParent) || { success: false, count: 0, error: 'Tree not initialized' };
+    queueMicrotask(() => { this._skipInsertArray = false; });
+    return result;
+  }
+
   getExpandedPaths(): string[] {
     return this.tree?.getExpandedPaths() || [];
   }
@@ -762,6 +812,466 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   getAllData(): T[] {
     return this.tree?.getAllData() || [];
+  }
+
+  // ── Multi-select API ────────────────────────────────────────────────
+
+  /**
+   * Select a node with optional modifiers (ctrl/shift).
+   * - No modifiers: replace selection with single node
+   * - Ctrl: toggle node in/out of selection
+   * - Shift: range select from last selected to this node
+   */
+  selectNode(path: string, modifiers?: SelectionModifiers): void {
+    const node = this.tree?.getNodeByPath(path);
+    if (!node) return;
+
+    const ctrl = modifiers?.ctrl ?? false;
+    const shift = modifiers?.shift ?? false;
+
+    if (shift && this._lastSelectedPath) {
+      // Range selection
+      this._rangeSelect(this._lastSelectedPath, path);
+    } else if (ctrl) {
+      // Toggle selection
+      if (this._selectedPaths.has(path)) {
+        this._selectedPaths.delete(path);
+        node.isSelected = false;
+        node._rev++;
+      } else {
+        this._selectedPaths.add(path);
+        node.isSelected = true;
+        node._rev++;
+      }
+      this._lastSelectedPath = path;
+      this._selectedNode = node;
+    } else {
+      // Replace selection
+      this._clearSelectionFlags();
+      this._selectedPaths.clear();
+      this._selectedPaths.add(path);
+      node.isSelected = true;
+      node._rev++;
+      this._lastSelectedPath = path;
+      this._selectedNode = node;
+    }
+
+    this._emitSelectionChange();
+    this.tree.refresh();
+    this._scheduleNotify();
+  }
+
+  /** Select multiple nodes by paths (replaces current selection). */
+  selectNodes(paths: string[]): void {
+    this._clearSelectionFlags();
+    this._selectedPaths.clear();
+    for (const path of paths) {
+      const node = this.tree?.getNodeByPath(path);
+      if (node) {
+        this._selectedPaths.add(path);
+        node.isSelected = true;
+        node._rev++;
+      }
+    }
+    if (paths.length > 0) {
+      this._lastSelectedPath = paths[paths.length - 1];
+      this._selectedNode = this.tree?.getNodeByPath(this._lastSelectedPath) ?? null;
+    }
+    this._emitSelectionChange();
+    this.tree.refresh();
+    this._scheduleNotify();
+  }
+
+  /** Deselect all nodes. */
+  deselectAll(): void {
+    this._clearSelectionFlags();
+    this._selectedPaths.clear();
+    this._lastSelectedPath = null;
+    this._selectedNode = null;
+    this._emitSelectionChange();
+    this.tree.refresh();
+    this._scheduleNotify();
+  }
+
+  /** Get all currently selected nodes. */
+  getSelectedNodes(): LTreeNode<T>[] {
+    const nodes: LTreeNode<T>[] = [];
+    for (const path of this._selectedPaths) {
+      const node = this.tree?.getNodeByPath(path);
+      if (node) nodes.push(node);
+    }
+    return nodes;
+  }
+
+  /** Get all currently selected paths. */
+  getSelectedPaths(): Set<string> {
+    return new Set(this._selectedPaths);
+  }
+
+  /** Check if a node is selected. */
+  isNodeSelected(path: string): boolean {
+    return this._selectedPaths.has(path);
+  }
+
+  /** Select all visible nodes. */
+  selectAll(): void {
+    this._clearSelectionFlags();
+    this._selectedPaths.clear();
+    const visible = this.tree?.visibleFlatNodes ?? [];
+    for (const node of visible) {
+      this._selectedPaths.add(node.path);
+      node.isSelected = true;
+      node._rev++;
+    }
+    if (visible.length > 0) {
+      this._lastSelectedPath = visible[visible.length - 1].path;
+      this._selectedNode = visible[visible.length - 1];
+    }
+    this._emitSelectionChange();
+    this.tree.refresh();
+    this._scheduleNotify();
+  }
+
+  /** Clear isSelected flags on all currently selected nodes. */
+  private _clearSelectionFlags(): void {
+    for (const path of this._selectedPaths) {
+      const node = this.tree?.getNodeByPath(path);
+      if (node) {
+        node.isSelected = false;
+        node._rev++;
+      }
+    }
+  }
+
+  /** Range select between two paths. */
+  private _rangeSelect(fromPath: string, toPath: string): void {
+    const nodes = this._rangeSelectionMode === 'visual'
+      ? (this.tree?.visibleFlatNodes ?? [])
+      : (this.tree?.tree ?? []);
+
+    let fromIndex = -1;
+    let toIndex = -1;
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].path === fromPath) fromIndex = i;
+      if (nodes[i].path === toPath) toIndex = i;
+      if (fromIndex >= 0 && toIndex >= 0) break;
+    }
+
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const start = Math.min(fromIndex, toIndex);
+    const end = Math.max(fromIndex, toIndex);
+
+    // Clear existing selection
+    this._clearSelectionFlags();
+    this._selectedPaths.clear();
+
+    // Select range
+    for (let i = start; i <= end; i++) {
+      const node = nodes[i];
+      this._selectedPaths.add(node.path);
+      node.isSelected = true;
+      node._rev++;
+    }
+
+    this._selectedNode = this.tree?.getNodeByPath(toPath) ?? null;
+  }
+
+  /** Emit selection change callback. */
+  private _emitSelectionChange(): void {
+    this.onSelectionChangeCb?.(this.getSelectedNodes(), new Set(this._selectedPaths));
+  }
+
+  // ── Navigation API ────────────────────────────────────────────────
+
+  /** Navigate to a specific path (selects and focuses it). */
+  navTo(path: string): void {
+    this.selectNode(path);
+  }
+
+  /** Navigate to the next visible node. */
+  navNext(): void {
+    const visible = this.tree?.visibleFlatNodes ?? [];
+    if (visible.length === 0) return;
+    const currentPath = this._selectedNode?.path;
+    if (!currentPath) {
+      this.selectNode(visible[0].path);
+      return;
+    }
+    const idx = visible.findIndex(n => n.path === currentPath);
+    if (idx >= 0 && idx < visible.length - 1) {
+      this.selectNode(visible[idx + 1].path);
+    }
+  }
+
+  /** Navigate to the previous visible node. */
+  navPrev(): void {
+    const visible = this.tree?.visibleFlatNodes ?? [];
+    if (visible.length === 0) return;
+    const currentPath = this._selectedNode?.path;
+    if (!currentPath) {
+      this.selectNode(visible[visible.length - 1].path);
+      return;
+    }
+    const idx = visible.findIndex(n => n.path === currentPath);
+    if (idx > 0) {
+      this.selectNode(visible[idx - 1].path);
+    }
+  }
+
+  /** Navigate into first child (expand if collapsed). */
+  navInto(): void {
+    const node = this._selectedNode;
+    if (!node) return;
+    if (node.hasChildren) {
+      if (!node.isExpanded) {
+        this.tree?.expandNodes(node.path);
+      }
+      // After expansion, select first child
+      const visible = this.tree?.visibleFlatNodes ?? [];
+      const idx = visible.findIndex(n => n.path === node.path);
+      if (idx >= 0 && idx < visible.length - 1) {
+        this.selectNode(visible[idx + 1].path);
+      }
+    }
+  }
+
+  /** Navigate to parent. */
+  navOut(): void {
+    const node = this._selectedNode;
+    if (!node) return;
+    // If expanded, collapse first
+    if (node.hasChildren && node.isExpanded) {
+      this.tree?.collapseNodes(node.path);
+      this._scheduleNotify();
+      return;
+    }
+    // Otherwise go to parent
+    const sep = this._treePathSeparator;
+    const lastSep = node.path.lastIndexOf(sep);
+    if (lastSep > 0) {
+      const parentPath = node.path.substring(0, lastSep);
+      this.selectNode(parentPath);
+    }
+  }
+
+  /** Navigate to parent and collapse it. */
+  navBackOut(): void {
+    const node = this._selectedNode;
+    if (!node) return;
+    const sep = this._treePathSeparator;
+    const lastSep = node.path.lastIndexOf(sep);
+    if (lastSep > 0) {
+      const parentPath = node.path.substring(0, lastSep);
+      this.tree?.collapseNodes(parentPath);
+      this.selectNode(parentPath);
+    }
+  }
+
+  /** Toggle expand/collapse on current node. */
+  navToggle(): void {
+    const node = this._selectedNode;
+    if (!node || !node.hasChildren) return;
+    if (node.isExpanded) {
+      this.tree?.collapseNodes(node.path);
+    } else {
+      this.tree?.expandNodes(node.path);
+    }
+    this._scheduleNotify();
+  }
+
+  /** Navigate to first visible node. */
+  navFirst(): void {
+    const visible = this.tree?.visibleFlatNodes ?? [];
+    if (visible.length > 0) {
+      this.selectNode(visible[0].path);
+    }
+  }
+
+  /** Navigate to last visible node. */
+  navLast(): void {
+    const visible = this.tree?.visibleFlatNodes ?? [];
+    if (visible.length > 0) {
+      this.selectNode(visible[visible.length - 1].path);
+    }
+  }
+
+  /** Navigate to next sibling (skip children). */
+  navNextSibling(): void {
+    const node = this._selectedNode;
+    if (!node) return;
+    const siblings = this.tree?.getSiblings(node.path) ?? [];
+    const idx = siblings.findIndex(s => s.path === node.path);
+    if (idx >= 0 && idx < siblings.length - 1) {
+      this.selectNode(siblings[idx + 1].path);
+    }
+  }
+
+  /** Navigate to previous sibling. */
+  navPrevSibling(): void {
+    const node = this._selectedNode;
+    if (!node) return;
+    const siblings = this.tree?.getSiblings(node.path) ?? [];
+    const idx = siblings.findIndex(s => s.path === node.path);
+    if (idx > 0) {
+      this.selectNode(siblings[idx - 1].path);
+    }
+  }
+
+  // ── Clipboard API ─────────────────────────────────────────────────
+
+  /** Copy selected nodes (or specified paths) to clipboard. */
+  copyNodes(paths?: string[]): void {
+    const targetPaths = paths ?? [...this._selectedPaths];
+    if (targetPaths.length === 0) return;
+
+    const entries = targetPaths
+      .map(p => this._collectClipboardEntry(p))
+      .filter((e): e is NonNullable<typeof e> => e !== null);
+
+    if (entries.length > 0) {
+      setClipboard('copy', entries);
+    }
+  }
+
+  /** Cut selected nodes (or specified paths) to clipboard. */
+  cutNodes(paths?: string[]): void {
+    const targetPaths = paths ?? [...this._selectedPaths];
+    if (targetPaths.length === 0) return;
+
+    const entries = targetPaths
+      .map(p => this._collectClipboardEntry(p))
+      .filter((e): e is NonNullable<typeof e> => e !== null);
+
+    if (entries.length > 0) {
+      setClipboard('cut', entries);
+      // Mark cut nodes for visual dimming
+      this._cutPaths.clear();
+      for (const path of targetPaths) {
+        this._cutPaths.add(path);
+        // Also mark descendants
+        const node = this.tree?.getNodeByPath(path);
+        if (node) {
+          this._walkDescendants(node, (desc) => {
+            this._cutPaths.add(desc.path);
+          });
+        }
+      }
+      this.tree.refresh();
+      this._scheduleNotify();
+    }
+  }
+
+  /** Paste clipboard content at target path. */
+  pasteNodes(
+    targetPath: string,
+    transformData?: (data: T) => T,
+    position?: 'above' | 'below' | 'child'
+  ): PasteResult<T> {
+    const clipboard = getClipboard<T>();
+    if (!clipboard || clipboard.entries.length === 0) {
+      return { success: false, pastedCount: 0, error: 'Clipboard is empty' };
+    }
+
+    const targetNode = this.tree?.getNodeByPath(targetPath);
+    if (!targetNode) {
+      return { success: false, pastedCount: 0, error: 'Target node not found' };
+    }
+
+    const operation = clipboard.operation;
+    let pastedCount = 0;
+    const parentPath = position === 'child' || !position ? targetPath : targetPath;
+
+    this._skipInsertArray = true;
+
+    for (const entry of clipboard.entries) {
+      // Add root node
+      const rootData = transformData ? transformData({ ...entry.data }) : { ...entry.data };
+      const addResult = this.tree?.addNode(parentPath, rootData);
+      if (addResult?.success && addResult.node) {
+        pastedCount++;
+        const newRootPath = addResult.node.path;
+        // Add descendants
+        for (const desc of entry.descendants) {
+          const descData = transformData ? transformData({ ...desc.data }) : { ...desc.data };
+          // Compute the absolute path for this descendant relative to the new root
+          const descParentRelative = desc.relativePath.substring(0, desc.relativePath.lastIndexOf(this._treePathSeparator));
+          const descParentPath = descParentRelative
+            ? `${newRootPath}${this._treePathSeparator}${descParentRelative}`
+            : newRootPath;
+          const descResult = this.tree?.addNode(descParentPath, descData);
+          if (descResult?.success) pastedCount++;
+        }
+      }
+    }
+
+    // If cut operation, remove source nodes
+    if (operation === 'cut') {
+      for (const entry of clipboard.entries) {
+        this.tree?.removeNode(entry.sourcePath, true);
+      }
+      this._cutPaths.clear();
+      clearClipboard();
+    }
+
+    queueMicrotask(() => { this._skipInsertArray = false; });
+    this.tree.refresh();
+    this._scheduleNotify();
+    return { success: true, pastedCount };
+  }
+
+  /** Cancel cut operation, clear cut visual state. */
+  cancelCut(): void {
+    if (getClipboardOp() === 'cut') {
+      clearClipboard();
+    }
+    this._cutPaths.clear();
+    this.tree.refresh();
+    this._scheduleNotify();
+  }
+
+  /** Check if clipboard has content. */
+  hasClipboardContent(): boolean {
+    return hasClipboardFn();
+  }
+
+  /** Get clipboard operation type. */
+  getClipboardOperation(): 'copy' | 'cut' | null {
+    return getClipboardOp();
+  }
+
+  /** Collect a clipboard entry for a node path. */
+  private _collectClipboardEntry(path: string): ClipboardEntry<T> | null {
+    const node = this.tree?.getNodeByPath(path);
+    if (!node || !node.data) return null;
+
+    const descendants: Array<{ relativePath: string; data: T }> = [];
+    this._walkDescendants(node, (desc) => {
+      if (desc.data) {
+        // Compute path relative to the source node
+        const relativePath = desc.path.substring(node.path.length + this._treePathSeparator.length);
+        descendants.push({
+          relativePath,
+          data: JSON.parse(JSON.stringify(desc.data))
+        });
+      }
+    });
+
+    return {
+      sourceTreeId: this._treeId,
+      sourcePath: path,
+      data: JSON.parse(JSON.stringify(node.data)),
+      descendants
+    };
+  }
+
+  /** Walk all descendants of a node. */
+  private _walkDescendants(node: LTreeNode<T>, callback: (node: LTreeNode<T>) => void): void {
+    if (!node.children) return;
+    for (const child of Object.values(node.children)) {
+      callback(child);
+      this._walkDescendants(child, callback);
+    }
   }
 
   /** Open the context menu at the given screen coordinates. Offsets are applied by the renderer via Floating UI. */
@@ -1197,6 +1707,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.virtualOverscan !== undefined) this._virtualOverscan = updates.virtualOverscan ?? 5;
     if (updates.virtualContainerHeight !== undefined) this._virtualContainerHeight = updates.virtualContainerHeight;
 
+    // Multi-select
+    if (updates.rangeSelectionMode !== undefined) this._rangeSelectionMode = updates.rangeSelectionMode ?? 'visual';
+    if (updates.onSelectionChange !== undefined) this.onSelectionChangeCb = updates.onSelectionChange;
+
     // Callbacks
     if (updates.onNodeClicked !== undefined) this.onNodeClickedCb = updates.onNodeClicked;
     if (updates.onNodeDragStart !== undefined) this.onNodeDragStartCb = updates.onNodeDragStart;
@@ -1310,6 +1824,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       flatIndentSize: this._flatIndentSize,
       shouldDisplayDebugInformation: this._shouldDisplayDebugInformation,
       selectedNode: this._selectedNode,
+      selectedPaths: this._selectedPaths,
+      cutPaths: this._cutPaths,
 
       // Virtual scroll
       virtualScroll: this._virtualScroll,
@@ -1559,31 +2075,23 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   // ── Internal event handlers ─────────────────────────────────────────
 
-  private _onNodeClicked(node: LTreeNode<T>) {
+  private _onNodeClicked(node: LTreeNode<T>, modifiers?: SelectionModifiers) {
     if (this._contextMenuVisible) {
       this.closeContextMenu();
     }
 
-    if (this._selectedNode) {
-      const previousNode = this.tree.getNodeByPath(this._selectedNode.path);
-      if (previousNode) {
-        previousNode.isSelected = false;
-      } else {
-        this._selectedNode = null;
-      }
-    }
-
-    node.isSelected = true;
-    this._selectedNode = node;
+    // Use multi-select system
+    this.selectNode(node.path, modifiers);
 
     uiLogger.debug(`Node selected: ${node.path}`, {
       newPath: node.path,
-      id: node.id
+      id: node.id,
+      ctrl: modifiers?.ctrl,
+      shift: modifiers?.shift,
+      selectedCount: this._selectedPaths.size
     });
 
     this.onNodeClickedCb?.(node);
-    this.tree.refresh();
-    this._scheduleNotify();
   }
 
   private _onNodeRightClicked(node: LTreeNode<T>, event: MouseEvent) {

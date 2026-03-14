@@ -13,8 +13,12 @@ A lightweight, framework-agnostic treeview web component built with vanilla Type
 **What's in v2:**
 - **Web Component** — Standard `<web-treeview>` custom element with Shadow DOM, works in React, Vue, Angular, or plain HTML
 - **Two rendering modes** — Flat rendering (default) for most trees, virtual scroll for 100k+ nodes
+- **Multi-select** — Ctrl+click toggle, Shift+click range select, `selectAll()`, visual or logical range modes
+- **Clipboard** — Copy/cut/paste nodes (including cross-tree) with Ctrl+C/X/V keyboard shortcuts
+- **Keyboard navigation** — Arrow keys, Home/End, Enter/Space toggle, Escape to deselect
 - **Full drag & drop** — Internal reordering, cross-tree drag, glow/floating drop zones, touch support, copy operations
 - **Multi-level context menus** — Viewport-aware positioning via Floating UI, keyboard shortcuts, named dividers, custom item rendering
+- **Bulk operations** — `insertBranch`, `replaceBranch`, `deleteBranch` for efficient batch mutations
 - **Full-text search** — FlexSearch-powered indexing with filter and highlight modes
 - **90+ CSS variables** — Complete theming via `--base-*` design system tokens and `--tv-*` component tokens, compatible with `@keenmate/theme-designer`
 - **Pluggable renderers** — `TreeViewRenderer<T>` interface for building custom renderers (Canvas, WebGL, framework-specific)
@@ -37,6 +41,10 @@ A lightweight, framework-agnostic treeview web component built with vanilla Type
 ## Features
 
 - **LTree Path Model** — Materialized path hierarchy (`1`, `1.1`, `1.1.2`) with configurable separator
+- **Multi-Select** — Ctrl+click toggle, Shift+click range, `selectAll()`, visual/logical range modes, `onSelectionChange` callback
+- **Clipboard** — Copy/cut/paste with cross-tree support, cut nodes dimmed with `--tv-cut-opacity`
+- **Keyboard Navigation** — Arrow keys, Home/End, Enter/Space, Ctrl+A/C/X/V, Escape
+- **Bulk Operations** — `insertBranch`, `replaceBranch`, `deleteBranch` for efficient batch tree mutations
 - **Full-Width Hitbox** — Entire node row is clickable including indent zone, with uniform hover highlight
 - **Per-Node Icons** — Via data field (`iconMember`) or dynamic callback (`iconCallback`) with aligned column grid
 - **Progressive Rendering** — `requestAnimationFrame`-batched rendering for smooth initial load of large trees
@@ -167,6 +175,7 @@ All attributes use kebab-case. Equivalent camelCase property setters are availab
 | `virtual-overscan` | `number` | `5` | Extra rows rendered above/below viewport in virtual scroll |
 | `virtual-container-height` | `string` | `'400px'` | Container height for virtual scroll viewport |
 | `progressive-render` | `boolean` | `true` | RAF-batched progressive rendering for large trees |
+| `range-selection-mode` | `string` | `'visual'` | `'visual'` \| `'logical'` — range select mode for Shift+click |
 | `search-text` | `string` | — | Current search/filter text |
 | `should-display-debug-information` | `boolean` | `false` | Show debug overlay |
 
@@ -194,6 +203,7 @@ These properties are set via JavaScript, not HTML attributes:
 | `renderLoadingCallback` | `(container) => void` | Loading state rendering |
 | `renderHeaderCallback` | `(container) => void` | Tree header rendering |
 | `renderFooterCallback` | `(container) => void` | Tree footer rendering |
+| `onSelectionChange` | `(selectedNodes, selectedPaths) => void` | Selection change handler |
 | `sortCallback` | `(items) => items` | Custom sort function |
 | `getDisplayValueCallback` | `(node) => string` | Dynamic display value |
 | `getIsDraggableCallback` | `(node) => boolean` | Dynamic draggable check |
@@ -211,6 +221,25 @@ These properties are set via JavaScript, not HTML attributes:
 | `searchNodes` | `(searchText: string): LTreeNode[]` | Search without filtering |
 | `scrollToPath` | `(path: string, options?): Promise<boolean>` | Scroll to and highlight a node |
 | `closeContextMenu` | `()` | Close the context menu |
+| `selectNode` | `(path, modifiers?)` | Select a node (plain/ctrl/shift) |
+| `selectNodes` | `(paths: string[])` | Select multiple nodes by path |
+| `deselectAll` | `()` | Deselect all nodes |
+| `selectAll` | `()` | Select all visible nodes |
+| `getSelectedNodes` | `(): LTreeNode[]` | Get all selected nodes |
+| `getSelectedPaths` | `(): Set<string>` | Get all selected paths |
+| `isNodeSelected` | `(path): boolean` | Check if a node is selected |
+| `copyNodes` | `(paths?)` | Copy selected/specified nodes to clipboard |
+| `cutNodes` | `(paths?)` | Cut selected/specified nodes to clipboard |
+| `pasteNodes` | `(targetPath, transformData?, position?): PasteResult` | Paste clipboard at target |
+| `cancelCut` | `()` | Cancel cut operation |
+| `navTo` | `(path)` | Navigate to a specific node |
+| `navNext` / `navPrev` | `()` | Navigate to next/previous visible node |
+| `navInto` / `navOut` | `()` | Navigate into child / to parent |
+| `navToggle` | `()` | Toggle expand/collapse on current node |
+| `navFirst` / `navLast` | `()` | Navigate to first/last visible node |
+| `insertBranch` | `(parentPath, data[]): result` | Insert multiple children at once |
+| `replaceBranch` | `(parentPath, data[]): result` | Replace all children of a node |
+| `deleteBranch` | `(path, keepParent?): result` | Delete node and descendants |
 | `getTree` | `(): Ltree<T>` | Access the underlying LTree instance |
 | `getController` | `(): TreeController<T>` | Access the TreeController directly |
 | `update` | `(props: Partial<TreeViewConfig<T>>)` | Update multiple properties at once |
@@ -220,6 +249,8 @@ These properties are set via JavaScript, not HTML attributes:
 | Event | Detail | Description |
 |-------|--------|-------------|
 | `node-clicked` | `{ node: LTreeNode<T> }` | Node was clicked |
+| `selection-change` | `{ selectedNodes, selectedPaths }` | Selection changed (multi-select) |
+| `selected-node-changed` | `{ selectedNode }` | Last-selected node changed |
 | `tree-changed` | — | Tree state changed (expand, collapse, data) |
 
 ## Drag and Drop
@@ -273,6 +304,71 @@ tree.beforeDropCallback = (dropNode, draggedNode, position, event, operation) =>
   return { position: 'child', operation: 'move' };
 };
 ```
+
+## Multi-Select
+
+Multi-select works out of the box with no configuration:
+
+```javascript
+// Ctrl+click and Shift+click work automatically in the UI
+
+// Programmatic multi-select
+tree.selectNodes(['1.1', '1.2', '1.3']);
+tree.selectAll();
+tree.deselectAll();
+
+// Query selection
+const nodes = tree.getSelectedNodes();
+const paths = tree.getSelectedPaths(); // Set<string>
+
+// Listen for changes
+tree.addEventListener('selection-change', (e) => {
+  console.log('Selected:', e.detail.selectedPaths);
+});
+```
+
+### Range Selection Mode
+
+```html
+<!-- Visual mode (default): range uses visible flat nodes -->
+<web-treeview range-selection-mode="visual"></web-treeview>
+
+<!-- Logical mode: range walks the full tree structure -->
+<web-treeview range-selection-mode="logical"></web-treeview>
+```
+
+## Clipboard (Copy/Cut/Paste)
+
+```javascript
+// Copy selected nodes
+tree.copyNodes();
+
+// Cut selected nodes (dimmed in UI)
+tree.cutNodes();
+
+// Paste at a target node
+tree.pasteNodes('1.2');
+
+// Cancel cut
+tree.cancelCut();
+
+// Keyboard: Ctrl+C, Ctrl+X, Ctrl+V, Escape
+```
+
+## Keyboard Navigation
+
+When the tree body has focus (click any node first), keyboard navigation is active:
+
+| Key | Action |
+|-----|--------|
+| Arrow Down / Up | Navigate to next / previous visible node |
+| Arrow Right | Expand node or navigate to first child |
+| Arrow Left | Collapse node or navigate to parent |
+| Enter / Space | Toggle expand/collapse |
+| Home / End | Jump to first / last visible node |
+| Ctrl+A | Select all visible nodes |
+| Ctrl+C / X / V | Copy / cut / paste |
+| Escape | Cancel cut or deselect all |
 
 ## Per-Node Icons
 
@@ -534,6 +630,7 @@ See `examples-theming.html` for 8 complete theme examples (dark mode, neon, corp
 | `--tv-scroll-highlight-bg` | `accent 30%` | Scroll-to-node highlight |
 | `--tv-scroll-highlight-shadow` | `0 0 8px accent 40%` | Scroll highlight shadow |
 | `--tv-dragged-opacity` | `0.5` | Dragged node opacity |
+| `--tv-cut-opacity` | `0.4` | Cut node opacity (clipboard) |
 | `--tv-empty-zone-border` | `2px dashed accent` | Empty zone border (during drag) |
 | `--tv-empty-zone-bg` | `accent 10%` | Empty zone background |
 | `--tv-empty-zone-radius` | `= --tv-border-radius-lg` | Empty zone border radius |

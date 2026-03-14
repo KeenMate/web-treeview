@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0-rc02] - 2026-03-14 (unpublished)
+
+### Added
+
+#### Multi-Select
+- **Ctrl+click** toggles individual nodes in/out of selection
+- **Shift+click** range-selects between the last selected node and the clicked node
+- Plain click replaces selection with a single node (backward-compatible)
+- `rangeSelectionMode` config: `'visual'` (uses visible flat nodes, default) or `'logical'` (walks full tree)
+- `selectNode(path, modifiers?)`, `selectNodes(paths)`, `deselectAll()`, `selectAll()` API methods
+- `getSelectedNodes()`, `getSelectedPaths()`, `isNodeSelected(path)` query methods
+- `onSelectionChange` callback and `selection-change` CustomEvent
+- `range-selection-mode` HTML attribute on `<web-treeview>`
+- `selectedPaths: Set<string>` in `TreeControllerSnapshot` for renderer access
+
+#### Clipboard (Copy/Cut/Paste)
+- Module-level clipboard singleton (`src/clipboard.ts`) enabling cross-tree copy/paste
+- `copyNodes(paths?)`, `cutNodes(paths?)`, `pasteNodes(targetPath, transformData?, position?)` API methods
+- `cancelCut()`, `hasClipboardContent()`, `getClipboardOperation()` helpers
+- Cut nodes rendered with `.ltree-cut` class (dimmed via `--tv-cut-opacity: 0.4`, italic)
+- Deep clone of node data and descendants with relative path preservation
+- Cut+paste removes source nodes after successful paste
+
+#### Keyboard Navigation
+- Tree body gains focus on click (`tabindex="0"`)
+- **Arrow Down/Up** — navigate to next/previous visible node
+- **Arrow Right** — expand or navigate into first child
+- **Arrow Left** — collapse or navigate to parent
+- **Enter/Space** — toggle expand/collapse on current node
+- **Home/End** — jump to first/last visible node
+- **Ctrl+A** — select all visible nodes
+- **Ctrl+C/X/V** — copy/cut/paste selected nodes
+- **Escape** — cancel cut or deselect all
+- Full navigation API: `navTo`, `navNext`, `navPrev`, `navInto`, `navOut`, `navBackOut`, `navToggle`, `navFirst`, `navLast`, `navNextSibling`, `navPrevSibling`
+- `TreeNavigation<T>` and `TreeNavigationOverrides<T>` interfaces (`src/navigation.ts`)
+
+#### Bulk Operations (LTree)
+- `insertBranch(parentPath, data[])` — insert multiple children under a parent in one operation
+- `replaceBranch(parentPath, data[])` — remove all children then insert new data
+- `deleteBranch(path, keepParent?)` — remove a node and all descendants (optionally keep the parent)
+- Single `_emitTreeChanged()` per bulk operation for efficient rendering
+- Proxied through TreeController, WebTreeView facade, and WebTreeViewElement
+
+### Changed
+- `NodeCallbacks.onNodeClicked` signature extended with optional `SelectionModifiers` parameter
+- `TreeControllerSnapshot` now includes `selectedPaths` and `cutPaths` sets
+- DomRenderer click handler skips toggle-on-click when Ctrl or Shift is held (multi-select takes priority)
+
+---
+
 ## [2.0.0-rc01] - 2026-03-08
 
 Complete rewrite as a framework-agnostic web component. The rendering engine, controller layer, and LTree core have been ported from `@keenmate/svelte-treeview` v4.0.0 to vanilla TypeScript with minimal runtime dependencies (`@floating-ui/dom` for context menu positioning, `flexsearch` for full-text indexing).

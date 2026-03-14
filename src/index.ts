@@ -22,10 +22,30 @@ export { EventEmitter } from './controller/event-emitter';
 export type {
   NodeCallbacks,
   NodeConfig,
+  SelectionModifiers,
+  RangeSelectionMode,
   TreeControllerConfig,
   TreeControllerSnapshot,
   TreeControllerEvents
 } from './controller/types';
+
+// Clipboard
+export {
+  setClipboard,
+  getClipboard,
+  clearClipboard,
+  hasClipboard,
+  getClipboardOperation
+} from './clipboard';
+export type {
+  ClipboardEntry,
+  TreeClipboard,
+  ClipboardOperation,
+  PasteResult
+} from './clipboard';
+
+// Navigation
+export type { TreeNavigation, TreeNavigationOverrides } from './navigation';
 
 // Renderer
 export { DomRenderer } from './renderer/dom-renderer';

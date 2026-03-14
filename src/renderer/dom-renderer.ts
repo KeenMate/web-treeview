@@ -181,6 +181,12 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     const target = event.target as HTMLElement;
     if (!this.controller) return;
 
+    // Build selection modifiers from event
+    const modifiers = {
+      ctrl: event.ctrlKey || event.metaKey,
+      shift: event.shiftKey
+    };
+
     // Toggle icon click
     const toggleIcon = target.closest('.ltree-toggle-icon') as HTMLElement;
     if (toggleIcon) {
@@ -207,15 +213,15 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       if (path) {
         const node = this.controller.getNodeByPath(path);
         if (node) {
-          // Toggle on node click if configured
-          if (this.lastNodeConfig?.shouldToggleOnNodeClick && node.hasChildren) {
+          // Toggle on node click if configured (only for plain clicks)
+          if (!modifiers.ctrl && !modifiers.shift && this.lastNodeConfig?.shouldToggleOnNodeClick && node.hasChildren) {
             if (node.isExpanded) {
               this.controller.collapseNodes(path);
             } else {
               this.controller.expandNodes(path);
             }
           }
-          this.controller.nodeCallbacks.onNodeClicked(node);
+          this.controller.nodeCallbacks.onNodeClicked(node, modifiers);
         }
       }
       return;
@@ -227,15 +233,86 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (path) {
       const node = this.controller.getNodeByPath(path);
       if (node) {
-        if (this.lastNodeConfig?.shouldToggleOnNodeClick && node.hasChildren) {
+        if (!modifiers.ctrl && !modifiers.shift && this.lastNodeConfig?.shouldToggleOnNodeClick && node.hasChildren) {
           if (node.isExpanded) {
             this.controller.collapseNodes(path);
           } else {
             this.controller.expandNodes(path);
           }
         }
-        this.controller.nodeCallbacks.onNodeClicked(node);
+        this.controller.nodeCallbacks.onNodeClicked(node, modifiers);
       }
+    }
+  };
+
+  private _onBodyKeydown = (event: KeyboardEvent) => {
+    if (!this.controller) return;
+    const ctrl = event.ctrlKey || event.metaKey;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.controller.navNext();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.controller.navPrev();
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        this.controller.navInto();
+        break;
+      case 'ArrowLeft':
+        event.preventDefault();
+        this.controller.navOut();
+        break;
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        this.controller.navToggle();
+        break;
+      case 'Home':
+        event.preventDefault();
+        this.controller.navFirst();
+        break;
+      case 'End':
+        event.preventDefault();
+        this.controller.navLast();
+        break;
+      case 'a':
+        if (ctrl) {
+          event.preventDefault();
+          this.controller.selectAll();
+        }
+        break;
+      case 'c':
+        if (ctrl) {
+          event.preventDefault();
+          this.controller.copyNodes();
+        }
+        break;
+      case 'x':
+        if (ctrl) {
+          event.preventDefault();
+          this.controller.cutNodes();
+        }
+        break;
+      case 'v':
+        if (ctrl) {
+          event.preventDefault();
+          const selected = this.controller.selectedNode;
+          if (selected) {
+            this.controller.pasteNodes(selected.path);
+          }
+        }
+        break;
+      case 'Escape':
+        if (this.controller.cutPaths.size > 0) {
+          this.controller.cancelCut();
+        } else {
+          this.controller.deselectAll();
+        }
+        break;
     }
   };
 
@@ -493,7 +570,11 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
   private _attachBodyListeners() {
     if (!this.bodyEl) return;
+    // Enable keyboard focus
+    this.bodyEl.setAttribute('tabindex', '0');
+    this.bodyEl.style.outline = 'none';
     this.bodyEl.addEventListener('click', this._onBodyClick);
+    this.bodyEl.addEventListener('keydown', this._onBodyKeydown);
     this.bodyEl.addEventListener('contextmenu', this._onBodyContextMenu);
     this.bodyEl.addEventListener('dragstart', this._onBodyDragStart);
     this.bodyEl.addEventListener('dragover', this._onBodyDragOver);
@@ -510,6 +591,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _detachBodyListeners() {
     if (!this.bodyEl) return;
     this.bodyEl.removeEventListener('click', this._onBodyClick);
+    this.bodyEl.removeEventListener('keydown', this._onBodyKeydown);
     this.bodyEl.removeEventListener('contextmenu', this._onBodyContextMenu);
     this.bodyEl.removeEventListener('dragstart', this._onBodyDragStart);
     this.bodyEl.removeEventListener('dragover', this._onBodyDragOver);
@@ -835,6 +917,11 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       el.classList.add(nodeConfig.selectedNodeClass);
     }
 
+    // Cut dimming
+    if (snapshot.cutPaths.has(node.path)) {
+      el.classList.add('ltree-cut');
+    }
+
     // Node row
     const row = document.createElement('div');
     row.className = 'ltree-node-row';
@@ -903,6 +990,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (nodeConfig?.selectedNodeClass) {
       el.classList.toggle(nodeConfig.selectedNodeClass, !!node.isSelected);
     }
+
+    // Cut dimming
+    el.classList.toggle('ltree-cut', snapshot.cutPaths.has(node.path));
 
     // Update toggle icon
     const toggle = el.querySelector('.ltree-toggle-icon') as HTMLElement;

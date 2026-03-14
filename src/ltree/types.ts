@@ -164,6 +164,11 @@ export interface Ltree<T> {
 		position?: 'above' | 'below'
 	): { success: boolean; rootNode?: LTreeNode<T>; count: number; error?: string };
 
+	// Bulk operations
+	insertBranch(parentPath: string, data: T[]): { success: boolean; count: number; error?: string };
+	replaceBranch(parentPath: string, data: T[]): { success: boolean; removed: number; added: number; error?: string };
+	deleteBranch(path: string, keepParent?: boolean): { success: boolean; count: number; error?: string };
+
 	// State persistence methods
 	getExpandedPaths(): string[];
 	setExpandedPaths(paths: string[]): void;

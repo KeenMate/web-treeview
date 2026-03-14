@@ -35,18 +35,36 @@ make publish-dry     # Dry-run publish
 src/
 ├── index.ts              # Entry point, global API, exports
 ├── web-component.ts      # WebTreeViewElement (extends HTMLElement)
-├── treeview.ts           # WebTreeView core engine (pure logic)
+├── treeview.ts           # WebTreeView facade (controller + renderer)
 ├── types.ts              # All TypeScript interfaces
+├── clipboard.ts          # Module-level clipboard singleton (cross-tree copy/cut/paste)
+├── navigation.ts         # TreeNavigation<T> interface definitions
 ├── vite-env.d.ts         # Vite environment types
+├── controller/
+│   ├── types.ts          # Controller config, snapshot, SelectionModifiers
+│   ├── tree-controller.ts# TreeController (state, multi-select, clipboard, nav, DnD)
+│   └── event-emitter.ts  # Typed EventEmitter base class
+├── ltree/
+│   ├── types.ts          # Ltree interface, bulk ops, context menu types
+│   ├── ltree.ts          # createLTree factory (core tree engine)
+│   ├── ltree-node.ts     # LTreeNode class
+│   ├── flex.ts           # FlexSearch integration
+│   └── indexer.ts        # Async search indexing
+├── renderer/
+│   ├── types.ts          # TreeViewRenderer interface
+│   ├── dom-renderer.ts   # DomRenderer (flat DOM, event delegation, keyboard)
+│   └── render-coordinator.ts # Progressive rendering coordinator
 └── css/
     ├── main.css          # Entry point importing partials
     ├── _variables.css    # CSS custom properties with --base fallbacks
-    └── _base.css         # Host styles, FOUC prevention, layout
+    └── _tree.css         # Component styles (nodes, DnD, context menu, cut state)
 ```
 
-### Two-Layer Architecture
-1. **`WebTreeView<T>`** (`treeview.ts`) — Pure engine class. Takes an `HTMLElement` + config, manages tree state and rendering. No `HTMLElement` subclass, works anywhere.
-2. **`WebTreeViewElement<T>`** (`web-component.ts`) — Custom element wrapper. Extends `HTMLElement`, uses Shadow DOM, proxies attributes/properties to the engine, dispatches `CustomEvent`s.
+### Three-Layer Architecture
+1. **`WebTreeViewElement<T>`** (`web-component.ts`) — Custom element wrapper. Extends `HTMLElement`, uses Shadow DOM, proxies attributes/properties to the engine, dispatches `CustomEvent`s.
+2. **`WebTreeView<T>`** (`treeview.ts`) — Thin facade wrapping TreeController + TreeViewRenderer. Can be used standalone without the web component.
+3. **`TreeController<T>`** (`controller/tree-controller.ts`) — All state & logic: multi-select, clipboard, navigation, drag-and-drop, context menu, progressive rendering. Uses `LTree` for tree data.
+4. **`DomRenderer<T>`** (`renderer/dom-renderer.ts`) — Default renderer with flat DOM, event delegation, keyed reconciliation, keyboard handling.
 
 ### Data Flow
 - **Attributes** (kebab-case HTML) → `attributeChangedCallback` → engine config
