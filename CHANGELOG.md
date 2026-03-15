@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [2.0.0-rc02] - 2026-03-14 (unpublished)
+## [2.0.0-rc02] - 2026-03-15 (unpublished)
 
 ### Added
 
@@ -47,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `deleteBranch(path, keepParent?)` — remove a node and all descendants (optionally keep the parent)
 - Single `_emitTreeChanged()` per bulk operation for efficient rendering
 - Proxied through TreeController, WebTreeView facade, and WebTreeViewElement
+
+#### Examples
+- `examples-multiselect.html` — 5 interactive demos: multi-select, keyboard navigation, cross-tree clipboard, bulk operations, range selection mode comparison
 
 ### Changed
 - `NodeCallbacks.onNodeClicked` signature extended with optional `SelectionModifiers` parameter

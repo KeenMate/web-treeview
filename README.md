@@ -337,6 +337,8 @@ tree.addEventListener('selection-change', (e) => {
 <web-treeview range-selection-mode="logical"></web-treeview>
 ```
 
+See `examples-multiselect.html` for interactive demos of multi-select, clipboard, keyboard navigation, and bulk operations.
+
 ## Clipboard (Copy/Cut/Paste)
 
 ```javascript
