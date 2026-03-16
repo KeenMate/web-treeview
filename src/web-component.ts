@@ -57,7 +57,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
   // Behavior
   private _expandLevel?: number;
-  private _shouldToggleOnNodeClick?: boolean;
+  private _clickBehavior?: import('./controller/types').ClickBehavior;
   private _isSorted?: boolean;
   private _isLoading?: boolean;
   private _shouldDisplayDebugInformation?: boolean;
@@ -149,7 +149,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       'order-member', 'allowed-drop-positions-member',
 
       // Behavior
-      'expand-level', 'tree-path-separator', 'should-toggle-on-node-click',
+      'expand-level', 'tree-path-separator', 'click-behavior',
       'is-sorted', 'should-use-internal-search-index',
       'indexer-batch-size', 'indexer-timeout',
 
@@ -295,8 +295,8 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get expandLevel(): number | undefined { return this._expandLevel; }
   set expandLevel(value: number | undefined) { this._expandLevel = value; this._scheduleUpdate(); }
 
-  get shouldToggleOnNodeClick(): boolean | undefined { return this._shouldToggleOnNodeClick; }
-  set shouldToggleOnNodeClick(value: boolean | undefined) { this._shouldToggleOnNodeClick = value; this._scheduleUpdate(); }
+  get clickBehavior(): import('./controller/types').ClickBehavior | undefined { return this._clickBehavior; }
+  set clickBehavior(value: import('./controller/types').ClickBehavior | undefined) { this._clickBehavior = value; this._scheduleUpdate(); }
 
   get isSorted(): boolean | undefined { return this._isSorted; }
   set isSorted(value: boolean | undefined) { this._isSorted = value; this._scheduleUpdate(); }
@@ -931,8 +931,8 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     const treePathSeparator = this.getAttribute('tree-path-separator');
     if (treePathSeparator !== null) config.treePathSeparator = treePathSeparator;
 
-    const shouldToggle = this._shouldToggleOnNodeClick ?? (this.getAttribute('should-toggle-on-node-click') !== null ? this.getAttribute('should-toggle-on-node-click') !== 'false' : undefined);
-    if (shouldToggle !== undefined) config.shouldToggleOnNodeClick = shouldToggle;
+    const clickBehavior = this._clickBehavior ?? this.getAttribute('click-behavior') as import('./controller/types').ClickBehavior;
+    if (clickBehavior === 'select' || clickBehavior === 'expand' || clickBehavior === 'expand-and-focus') config.clickBehavior = clickBehavior;
 
     const isSorted = this._isSorted ?? (this.getAttribute('is-sorted') !== null ? this.getAttribute('is-sorted') !== 'false' : undefined);
     if (isSorted !== undefined) config.isSorted = isSorted;

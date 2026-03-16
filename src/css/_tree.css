@@ -191,10 +191,10 @@
 }
 
 .ltree-selected-border {
-  border: var(--tv-selected-border) !important;
+  outline: var(--tv-selected-border) !important;
+  outline-offset: -2px;
   border-radius: var(--tv-border-radius-sm) !important;
   background: var(--tv-selected-bg) !important;
-  padding: calc(0.6 * var(--tv-rem)) calc(1 * var(--tv-rem)) !important;
 }
 
 .ltree-selected-brackets {

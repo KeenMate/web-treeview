@@ -61,7 +61,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   // ── Stable callback & config objects for renderer ───────────────────
   nodeCallbacks!: NodeCallbacks<T>;
   private _nodeConfig: NodeConfig = {
-    shouldToggleOnNodeClick: true,
+    clickBehavior: 'expand-and-focus',
     expandIconClass: 'ltree-icon-expand',
     collapseIconClass: 'ltree-icon-collapse',
     leafIconClass: 'ltree-icon-leaf',
@@ -126,7 +126,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private onRenderCompleteCb: ((stats: RenderStats) => void) | undefined;
 
   // Visual config
-  private _shouldToggleOnNodeClick: boolean = true;
+  private _clickBehavior: import('./types').ClickBehavior = 'expand-and-focus';
   private _expandIconClass: string = 'ltree-icon-expand';
   private _collapseIconClass: string = 'ltree-icon-collapse';
   private _leafIconClass: string = 'ltree-icon-leaf';
@@ -315,8 +315,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   get autoHandleCopy() { return this._autoHandleCopy; }
   set autoHandleCopy(v: boolean) { this._autoHandleCopy = v; }
 
-  get shouldToggleOnNodeClick() { return this._shouldToggleOnNodeClick; }
-  set shouldToggleOnNodeClick(v: boolean) { this._shouldToggleOnNodeClick = v; this._updateNodeConfig(); }
+  get clickBehavior() { return this._clickBehavior; }
+  set clickBehavior(v: import('./types').ClickBehavior) { this._clickBehavior = v; this._updateNodeConfig(); }
 
   get expandIconClass() { return this._expandIconClass; }
   set expandIconClass(v: string) { this._expandIconClass = v; this._updateNodeConfig(); }
@@ -525,7 +525,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._virtualOverscan = props.virtualOverscan ?? 5;
     this._virtualContainerHeight = props.virtualContainerHeight;
 
-    this._shouldToggleOnNodeClick = props.shouldToggleOnNodeClick ?? true;
+    this._clickBehavior = props.clickBehavior ?? 'expand-and-focus';
     this._expandIconClass = props.expandIconClass ?? 'ltree-icon-expand';
     this._collapseIconClass = props.collapseIconClass ?? 'ltree-icon-collapse';
     this._leafIconClass = props.leafIconClass ?? 'ltree-icon-leaf';
@@ -1019,34 +1019,26 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     }
   }
 
-  /** Navigate into first child (expand if collapsed). */
+  /** Navigate into first child (expand if collapsed, then move to child). */
   navInto(): void {
     const node = this._selectedNode;
-    if (!node) return;
-    if (node.hasChildren) {
-      if (!node.isExpanded) {
-        this.tree?.expandNodes(node.path);
-      }
-      // After expansion, select first child
-      const visible = this.tree?.visibleFlatNodes ?? [];
-      const idx = visible.findIndex(n => n.path === node.path);
-      if (idx >= 0 && idx < visible.length - 1) {
-        this.selectNode(visible[idx + 1].path);
-      }
+    if (!node || !node.hasChildren) return;
+
+    if (!node.isExpanded) {
+      this.tree?.expandNodes(node.path);
+    }
+    // visibleFlatNodes updated synchronously — move to first child
+    const visible = this.tree?.visibleFlatNodes ?? [];
+    const idx = visible.findIndex(n => n.path === node.path);
+    if (idx >= 0 && idx + 1 < visible.length) {
+      this.selectNode(visible[idx + 1].path);
     }
   }
 
-  /** Navigate to parent. */
+  /** Navigate to parent node (no collapse — matches svelte-treeview). */
   navOut(): void {
     const node = this._selectedNode;
     if (!node) return;
-    // If expanded, collapse first
-    if (node.hasChildren && node.isExpanded) {
-      this.tree?.collapseNodes(node.path);
-      this._scheduleNotify();
-      return;
-    }
-    // Otherwise go to parent
     const sep = this._treePathSeparator;
     const lastSep = node.path.lastIndexOf(sep);
     if (lastSep > 0) {
@@ -1660,8 +1652,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.isLoading !== undefined) this._isLoading = updates.isLoading ?? false;
     if (updates.bodyClass !== undefined) this._bodyClass = updates.bodyClass;
 
-    if (updates.shouldToggleOnNodeClick !== undefined)
-      this._shouldToggleOnNodeClick = updates.shouldToggleOnNodeClick ?? true;
+    if (updates.clickBehavior !== undefined)
+      this._clickBehavior = updates.clickBehavior ?? 'expand-and-focus';
     if (updates.expandIconClass !== undefined)
       this._expandIconClass = updates.expandIconClass ?? 'ltree-icon-expand';
     if (updates.collapseIconClass !== undefined)
@@ -1976,7 +1968,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   private _updateNodeConfig() {
     this._nodeConfig = {
-      shouldToggleOnNodeClick: this._shouldToggleOnNodeClick,
+      clickBehavior: this._clickBehavior,
       expandIconClass: this._expandIconClass,
       collapseIconClass: this._collapseIconClass,
       leafIconClass: this._leafIconClass,

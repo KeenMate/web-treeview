@@ -205,42 +205,49 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       }
     }
 
-    // Node content click
+    // Node content click (or indent zone click)
     const contentEl = target.closest('.ltree-node-content') as HTMLElement;
-    if (contentEl) {
-      const nodeEl = contentEl.closest('.ltree-node') as HTMLElement;
-      const path = nodeEl?.getAttribute('data-tree-path');
-      if (path) {
-        const node = this.controller.getNodeByPath(path);
-        if (node) {
-          // Toggle on node click if configured (only for plain clicks)
-          if (!modifiers.ctrl && !modifiers.shift && this.lastNodeConfig?.shouldToggleOnNodeClick && node.hasChildren) {
-            if (node.isExpanded) {
-              this.controller.collapseNodes(path);
-            } else {
-              this.controller.expandNodes(path);
-            }
-          }
-          this.controller.nodeCallbacks.onNodeClicked(node, modifiers);
-        }
-      }
-      return;
-    }
-
-    // Indent zone click — treat like content click
-    const nodeEl = target.closest('.ltree-node') as HTMLElement;
+    const nodeEl = (contentEl || target).closest('.ltree-node') as HTMLElement;
     const path = nodeEl?.getAttribute('data-tree-path');
     if (path) {
       const node = this.controller.getNodeByPath(path);
       if (node) {
-        if (!modifiers.ctrl && !modifiers.shift && this.lastNodeConfig?.shouldToggleOnNodeClick && node.hasChildren) {
-          if (node.isExpanded) {
-            this.controller.collapseNodes(path);
-          } else {
-            this.controller.expandNodes(path);
-          }
+        const behavior = this.lastNodeConfig?.clickBehavior ?? 'expand-and-focus';
+        const isPlainClick = !modifiers.ctrl && !modifiers.shift;
+
+        if (behavior === 'expand-and-focus' && isPlainClick && node.hasChildren) {
+          // Select + expand/collapse
+          if (node.isExpanded) this.controller.collapseNodes(path);
+          else this.controller.expandNodes(path);
+          this.controller.nodeCallbacks.onNodeClicked(node, modifiers);
+        } else if (behavior === 'expand' && isPlainClick && node.hasChildren) {
+          // Expand/collapse only, no selection
+          if (node.isExpanded) this.controller.collapseNodes(path);
+          else this.controller.expandNodes(path);
+        } else if (behavior === 'select' || !isPlainClick) {
+          // Select only (ctrl/shift always selects regardless of behavior)
+          this.controller.nodeCallbacks.onNodeClicked(node, modifiers);
+        } else {
+          // expand-and-focus on leaf, or expand on leaf — just select
+          this.controller.nodeCallbacks.onNodeClicked(node, modifiers);
         }
-        this.controller.nodeCallbacks.onNodeClicked(node, modifiers);
+      }
+    }
+  };
+
+  private _onBodyDblClick = (event: MouseEvent) => {
+    if (!this.controller) return;
+    const behavior = this.lastNodeConfig?.clickBehavior ?? 'expand-and-focus';
+    if (behavior !== 'select') return;
+
+    const target = event.target as HTMLElement;
+    const nodeEl = target.closest('.ltree-node') as HTMLElement;
+    const path = nodeEl?.getAttribute('data-tree-path');
+    if (path) {
+      const node = this.controller.getNodeByPath(path);
+      if (node?.hasChildren) {
+        if (node.isExpanded) this.controller.collapseNodes(path);
+        else this.controller.expandNodes(path);
       }
     }
   };
@@ -265,6 +272,10 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       case 'ArrowLeft':
         event.preventDefault();
         this.controller.navOut();
+        break;
+      case 'Backspace':
+        event.preventDefault();
+        this.controller.navBackOut();
         break;
       case 'Enter':
       case ' ':
@@ -574,6 +585,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.bodyEl.setAttribute('tabindex', '0');
     this.bodyEl.style.outline = 'none';
     this.bodyEl.addEventListener('click', this._onBodyClick);
+    this.bodyEl.addEventListener('dblclick', this._onBodyDblClick);
     this.bodyEl.addEventListener('keydown', this._onBodyKeydown);
     this.bodyEl.addEventListener('contextmenu', this._onBodyContextMenu);
     this.bodyEl.addEventListener('dragstart', this._onBodyDragStart);
@@ -591,6 +603,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _detachBodyListeners() {
     if (!this.bodyEl) return;
     this.bodyEl.removeEventListener('click', this._onBodyClick);
+    this.bodyEl.removeEventListener('dblclick', this._onBodyDblClick);
     this.bodyEl.removeEventListener('keydown', this._onBodyKeydown);
     this.bodyEl.removeEventListener('contextmenu', this._onBodyContextMenu);
     this.bodyEl.removeEventListener('dragstart', this._onBodyDragStart);
@@ -959,7 +972,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     const content = document.createElement('div');
     content.className = 'ltree-node-content';
 
-    if (nodeConfig?.shouldToggleOnNodeClick && node.hasChildren) {
+    if (nodeConfig?.clickBehavior !== 'expand' && node.hasChildren) {
       content.classList.add('ltree-clickable');
     }
 
@@ -1016,7 +1029,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (content) {
       // Reset classes
       content.className = 'ltree-node-content';
-      if (nodeConfig?.shouldToggleOnNodeClick && node.hasChildren) {
+      if (nodeConfig?.clickBehavior !== 'expand' && node.hasChildren) {
         content.classList.add('ltree-clickable');
       }
 

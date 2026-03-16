@@ -290,7 +290,7 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     selectedNode: options.selectedNode,
 
     expandLevel: options.expandLevel,
-    shouldToggleOnNodeClick: options.shouldToggleOnNodeClick,
+    clickBehavior: options.clickBehavior,
     searchText: options.searchText,
     shouldUseInternalSearchIndex: options.shouldUseInternalSearchIndex,
     indexerBatchSize: options.indexerBatchSize,

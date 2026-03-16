@@ -31,8 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 #### Keyboard Navigation
 - Tree body gains focus on click (`tabindex="0"`)
 - **Arrow Down/Up** — navigate to next/previous visible node
-- **Arrow Right** — expand or navigate into first child
-- **Arrow Left** — collapse or navigate to parent
+- **Arrow Right** — expand and move to first child
+- **Arrow Left** — move to parent node
+- **Backspace** — collapse parent and move to it
 - **Enter/Space** — toggle expand/collapse on current node
 - **Home/End** — jump to first/last visible node
 - **Ctrl+A** — select all visible nodes
@@ -52,9 +53,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `examples-multiselect.html` — 5 interactive demos: multi-select, keyboard navigation, cross-tree clipboard, bulk operations, range selection mode comparison
 
 ### Changed
+- **`clickBehavior`** replaces `shouldToggleOnNodeClick` — new `ClickBehavior` type: `'select'` | `'expand'` | `'expand-and-focus'` (default)
+  - `'expand-and-focus'`: single click selects + expands (same as old `shouldToggleOnNodeClick: true`)
+  - `'select'`: single click selects only, double-click expands/collapses
+  - `'expand'`: single click expands/collapses only, no selection
 - `NodeCallbacks.onNodeClicked` signature extended with optional `SelectionModifiers` parameter
 - `TreeControllerSnapshot` now includes `selectedPaths` and `cutPaths` sets
-- DomRenderer click handler skips toggle-on-click when Ctrl or Shift is held (multi-select takes priority)
+- DomRenderer click handler respects `clickBehavior` and skips toggle when Ctrl or Shift is held
+- `.ltree-selected-border` uses `outline` instead of `border`+`padding` to prevent layout shift on selected nodes
+
+### Removed
+- `shouldToggleOnNodeClick` property/attribute — replaced by `clickBehavior`
 
 ---
 

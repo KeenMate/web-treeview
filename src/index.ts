@@ -22,6 +22,7 @@ export { EventEmitter } from './controller/event-emitter';
 export type {
   NodeCallbacks,
   NodeConfig,
+  ClickBehavior,
   SelectionModifiers,
   RangeSelectionMode,
   TreeControllerConfig,

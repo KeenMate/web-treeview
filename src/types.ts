@@ -18,6 +18,7 @@ export type { ContextMenuItem, ContextMenuDivider, ContextMenuEntry } from './lt
 export type {
   NodeCallbacks,
   NodeConfig,
+  ClickBehavior,
   SelectionModifiers,
   RangeSelectionMode,
   TreeControllerConfig,
@@ -40,7 +41,7 @@ export type { RenderCoordinator, RenderStats, RenderCoordinatorCallbacks } from 
 import type { LTreeNode } from './ltree/ltree-node';
 import type { DropPosition } from './ltree/ltree-node';
 import type { DragDropMode, DropOperation, ContextMenuItem, ContextMenuEntry } from './ltree/types';
-import type { RangeSelectionMode, SelectionModifiers } from './controller/types';
+import type { ClickBehavior, RangeSelectionMode, SelectionModifiers } from './controller/types';
 import type { PasteResult } from './clipboard';
 import type { RenderStats } from './renderer/render-coordinator';
 
@@ -71,7 +72,7 @@ export interface TreeViewConfig<T = any> {
   // Behavior
   expandLevel?: number | null;
   treePathSeparator?: string | null;
-  shouldToggleOnNodeClick?: boolean | null;
+  clickBehavior?: ClickBehavior | null;
   isSorted?: boolean | null;
 
   // Search

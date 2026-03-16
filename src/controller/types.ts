@@ -41,9 +41,10 @@ export interface NodeCallbacks<T> {
 }
 
 export type ToggleIconMode = 'rotate' | 'swap';
+export type ClickBehavior = 'select' | 'expand' | 'expand-and-focus';
 
 export interface NodeConfig {
-  shouldToggleOnNodeClick: boolean;
+  clickBehavior: ClickBehavior;
   expandIconClass: string;
   collapseIconClass: string;
   leafIconClass: string;
@@ -97,7 +98,7 @@ export interface TreeControllerConfig<T> {
 
   // BEHAVIOUR
   expandLevel?: number | null | undefined;
-  shouldToggleOnNodeClick?: boolean | null | undefined;
+  clickBehavior?: ClickBehavior | null | undefined;
   initializeIndexCallback?: () => Index;
   searchText?: string | null | undefined;
   shouldUseInternalSearchIndex?: boolean | null | undefined;

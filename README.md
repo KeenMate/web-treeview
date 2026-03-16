@@ -168,7 +168,7 @@ All attributes use kebab-case. Equivalent camelCase property setters are availab
 | `allow-copy` | `boolean` | `false` | Enable copy operations (Ctrl+drag) |
 | `icon-member` | `string` | — | Property name for per-node icon CSS class(es) |
 | `align-node-icons` | `boolean` | `true` | Reserve icon column width even for nodes without icons |
-| `should-toggle-on-node-click` | `boolean` | `true` | Toggle expand/collapse on node click |
+| `click-behavior` | `string` | `'expand-and-focus'` | `'select'` \| `'expand'` \| `'expand-and-focus'` — what happens on click |
 | `use-flat-rendering` | `boolean` | `true` | Flat rendering mode (single DOM list with `paddingLeft` indent) |
 | `virtual-scroll` | `boolean` | `false` | Virtual scroll mode — only renders visible rows in the viewport |
 | `virtual-row-height` | `number` | auto | Row height in px for virtual scroll (auto-measured if omitted) |
@@ -364,8 +364,9 @@ When the tree body has focus (click any node first), keyboard navigation is acti
 | Key | Action |
 |-----|--------|
 | Arrow Down / Up | Navigate to next / previous visible node |
-| Arrow Right | Expand node or navigate to first child |
-| Arrow Left | Collapse node or navigate to parent |
+| Arrow Right | Expand and move to first child |
+| Arrow Left | Move to parent node |
+| Backspace | Collapse parent and move to it |
 | Enter / Space | Toggle expand/collapse |
 | Home / End | Jump to first / last visible node |
 | Ctrl+A | Select all visible nodes |
