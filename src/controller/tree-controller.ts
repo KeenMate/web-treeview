@@ -1088,25 +1088,41 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     }
   }
 
-  /** Navigate to next sibling (skip children). */
+  /** Navigate to next visible node at the same level. */
   navNextSibling(): void {
-    const node = this._selectedNode;
-    if (!node) return;
-    const siblings = this.tree?.getSiblings(node.path) ?? [];
-    const idx = siblings.findIndex(s => s.path === node.path);
-    if (idx >= 0 && idx < siblings.length - 1) {
-      this.selectNode(siblings[idx + 1].path);
+    const visible = this.tree?.visibleFlatNodes ?? [];
+    if (visible.length === 0) return;
+    const currentPath = this._selectedNode?.path;
+    const currentIndex = currentPath ? visible.findIndex(n => n.path === currentPath) : -1;
+    if (currentIndex === -1) {
+      this.selectNode(visible[0].path);
+      return;
+    }
+    const currentLevel = visible[currentIndex].level;
+    for (let i = currentIndex + 1; i < visible.length; i++) {
+      if (visible[i].level === currentLevel) {
+        this.selectNode(visible[i].path);
+        return;
+      }
     }
   }
 
-  /** Navigate to previous sibling. */
+  /** Navigate to previous visible node at the same level. */
   navPrevSibling(): void {
-    const node = this._selectedNode;
-    if (!node) return;
-    const siblings = this.tree?.getSiblings(node.path) ?? [];
-    const idx = siblings.findIndex(s => s.path === node.path);
-    if (idx > 0) {
-      this.selectNode(siblings[idx - 1].path);
+    const visible = this.tree?.visibleFlatNodes ?? [];
+    if (visible.length === 0) return;
+    const currentPath = this._selectedNode?.path;
+    const currentIndex = currentPath ? visible.findIndex(n => n.path === currentPath) : -1;
+    if (currentIndex === -1) {
+      this.selectNode(visible[visible.length - 1].path);
+      return;
+    }
+    const currentLevel = visible[currentIndex].level;
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      if (visible[i].level === currentLevel) {
+        this.selectNode(visible[i].path);
+        return;
+      }
     }
   }
 

@@ -73,6 +73,26 @@
             <p class="subtitle">Ctrl+click, Shift+click, keyboard navigation, copy/cut/paste, and batch tree mutations</p>
         </header>
 
+        <!-- Global clickBehavior setting -->
+        <div class="card">
+            <h2>Click Behavior</h2>
+            <p>Controls what happens when you click a node. This setting applies to all trees on this page and persists across reloads.</p>
+            <div class="controls">
+                <label>
+                    <input type="radio" name="click-behavior" value="expand-and-focus" onchange="setClickBehavior('expand-and-focus')">
+                    <code>expand-and-focus</code> — click selects + expands
+                </label>
+                <label>
+                    <input type="radio" name="click-behavior" value="select" onchange="setClickBehavior('select')">
+                    <code>select</code> — click selects only, double-click expands
+                </label>
+                <label>
+                    <input type="radio" name="click-behavior" value="expand" onchange="setClickBehavior('expand')">
+                    <code>expand</code> — click expands only, no selection
+                </label>
+            </div>
+        </div>
+
         <!-- Example 1: Multi-Select -->
         <div class="card">
             <h2>Example 1: Multi-Select</h2>
@@ -112,7 +132,7 @@
             <div class="note">
                 <div class="note-title">Keyboard shortcuts</div>
                 <ul>
-                    <li><span class="kbd">&darr;</span> / <span class="kbd">&uarr;</span> &mdash; Next / previous visible node</li>
+                    <li><span class="kbd">&darr;</span> / <span class="kbd">&uarr;</span> &mdash; Next / previous sibling</li>
                     <li><span class="kbd">&rarr;</span> &mdash; Expand and move to first child</li>
                     <li><span class="kbd">&larr;</span> &mdash; Move to parent node</li>
                     <li><span class="kbd">Backspace</span> &mdash; Collapse parent and move to it</li>
@@ -312,6 +332,25 @@
 
         // ── Initialize ──────────────────────────────────────────────────
 
+        // ── Click behavior (persisted to localStorage) ──────────────────
+        const STORAGE_KEY = 'web-treeview-click-behavior';
+        const allTreeIds = ['tree1', 'tree2', 'tree3a', 'tree3b', 'tree4', 'tree5'];
+
+        function applyClickBehavior(behavior) {
+            for (const id of allTreeIds) {
+                const el = document.getElementById(id);
+                if (el) el.clickBehavior = behavior;
+            }
+            // Update radio buttons
+            const radio = document.querySelector(`input[name="click-behavior"][value="${behavior}"]`);
+            if (radio) radio.checked = true;
+        }
+
+        window.setClickBehavior = (behavior) => {
+            localStorage.setItem(STORAGE_KEY, behavior);
+            applyClickBehavior(behavior);
+        };
+
         customElements.whenDefined('web-treeview').then(() => {
             const treeConfig = { idMember: 'id', pathMember: 'path', displayValueMember: 'name' };
 
@@ -455,6 +494,10 @@
                 document.getElementById('range-mode').textContent = mode;
                 tree5.deselectAll();
             };
+
+            // Restore click behavior from localStorage
+            const saved = localStorage.getItem(STORAGE_KEY) || 'expand-and-focus';
+            applyClickBehavior(saved);
         });
     </script>
 </body>

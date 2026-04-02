@@ -259,11 +259,11 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault();
-        this.controller.navNext();
+        this.controller.navNextSibling();
         break;
       case 'ArrowUp':
         event.preventDefault();
-        this.controller.navPrev();
+        this.controller.navPrevSibling();
         break;
       case 'ArrowRight':
         event.preventDefault();

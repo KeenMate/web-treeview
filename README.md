@@ -363,7 +363,7 @@ When the tree body has focus (click any node first), keyboard navigation is acti
 
 | Key | Action |
 |-----|--------|
-| Arrow Down / Up | Navigate to next / previous visible node |
+| Arrow Down / Up | Navigate to next / previous sibling |
 | Arrow Right | Expand and move to first child |
 | Arrow Left | Move to parent node |
 | Backspace | Collapse parent and move to it |

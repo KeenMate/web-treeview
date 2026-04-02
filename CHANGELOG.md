@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 #### Keyboard Navigation
 - Tree body gains focus on click (`tabindex="0"`)
-- **Arrow Down/Up** — navigate to next/previous visible node
+- **Arrow Down/Up** — navigate to next/previous visible node at the same level (crosses parent boundaries)
 - **Arrow Right** — expand and move to first child
 - **Arrow Left** — move to parent node
 - **Backspace** — collapse parent and move to it
@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Proxied through TreeController, WebTreeView facade, and WebTreeViewElement
 
 #### Examples
-- `examples-multiselect.html` — 5 interactive demos: multi-select, keyboard navigation, cross-tree clipboard, bulk operations, range selection mode comparison
+- `examples-multiselect.html` — interactive demos: multi-select, keyboard navigation, cross-tree clipboard, bulk operations, range selection mode, clickBehavior setting (persisted to localStorage)
 
 ### Changed
 - **`clickBehavior`** replaces `shouldToggleOnNodeClick` — new `ClickBehavior` type: `'select'` | `'expand'` | `'expand-and-focus'` (default)
