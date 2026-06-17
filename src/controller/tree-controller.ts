@@ -1577,10 +1577,25 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     const elementId = `${this._treeId}-${node.id}`;
     const rootEl = containerElement || this.containerElement;
-    const element = rootEl
-      ? rootEl.querySelector(`#${CSS.escape(elementId)}`)
-      : document.getElementById(elementId);
-    const contentDiv = element?.querySelector('.ltree-node-content') as HTMLElement | null;
+    const findContent = (): HTMLElement | null => {
+      const el = rootEl
+        ? rootEl.querySelector(`#${CSS.escape(elementId)}`)
+        : document.getElementById(elementId);
+      return (el?.querySelector('.ltree-node-content') as HTMLElement | null) ?? null;
+    };
+    // Progressive flat rendering adds newly-revealed rows in rAF-deferred
+    // batches (initialBatchSize, doubling each step). After expandNodes and
+    // the microtask flush above, the immediate batch is in DOM but rows past
+    // that batch arrive over subsequent frames. Retry across up to ~6 frames
+    // before giving up — without this, scrollToPath silently no-ops on any
+    // target that lands past the first batch.
+    let contentDiv = findContent();
+    if (!contentDiv) {
+      for (let i = 0; i < 6 && !contentDiv; i++) {
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+        contentDiv = findContent();
+      }
+    }
 
     if (!contentDiv) {
       console.warn(`[Tree ${this._treeId}] DOM element not found for node ID: ${elementId}`);

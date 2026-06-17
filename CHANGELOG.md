@@ -61,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `TreeControllerSnapshot` now includes `selectedPaths` and `cutPaths` sets
 - DomRenderer click handler respects `clickBehavior` and skips toggle when Ctrl or Shift is held
 - `.ltree-selected-border` uses `outline` instead of `border`+`padding` to prevent layout shift on selected nodes
+- **Context menu `offset` middleware reduced from `4` to `0`**: The root menu's top-left now lands exactly at `(cursor.x + contextMenuXOffset, cursor.y + contextMenuYOffset)` with no implicit 4px vertical gap. Restores the pre-Floating UI positioning so consumers' `xOffset` / `yOffset` props are honored pixel-exactly. Submenu positioning is unchanged.
+- **`scrollToPath` retries the DOM lookup across rAF frames before giving up**: With `useFlatRendering` + `progressiveRender` (the default), `expandNodes` reveals new rows in rAF-deferred batches sized `initialBatchSize` (default 20) and doubling. Previously, `scrollToPath` queried the DOM after one microtask flush — only the immediate batch was rendered, so any target row past that batch produced a `console.warn("DOM element not found")` and the function returned `false` without scrolling or highlighting. Now retries for up to ~6 additional frames before giving up. Same fix as `@keenmate/svelte-treeview` rc-next.
 
 ### Removed
 - `shouldToggleOnNodeClick` property/attribute — replaced by `clickBehavior`

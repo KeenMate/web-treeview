@@ -1222,7 +1222,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       computePosition(virtualRef, menuEl, {
         strategy: 'fixed',
         placement: 'bottom-start',
-        middleware: [offset(4), flip(), shift({ padding: 8 })],
+        middleware: [offset(0), flip(), shift({ padding: 8 })],
       }).then(({ x: fx, y: fy }) => {
         menuEl.style.left = `${fx}px`;
         menuEl.style.top = `${fy}px`;
