@@ -407,7 +407,9 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     rangeSelectionMode: options.rangeSelectionMode,
     selectionMode: options.selectionMode,
     showCheckboxes: options.showCheckboxes,
+    checkboxMode: options.checkboxMode,
     clickTogglesCheckbox: options.clickTogglesCheckbox,
+    beforeCheckboxToggleCallback: options.beforeCheckboxToggleCallback,
     onSelectionChange: options.onSelectionChange,
     onHighlightChange: options.onHighlightChange,
   } as TreeControllerConfig<T>;

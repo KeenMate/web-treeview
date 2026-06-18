@@ -157,7 +157,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       'theme',
       'body-class', 'highlighted-node-class', 'focused-node-class', 'drag-over-node-class',
       // Selection model
-      'selection-mode', 'show-checkboxes', 'click-toggles-checkbox',
+      'selection-mode', 'show-checkboxes', 'checkbox-mode', 'click-toggles-checkbox',
       'expand-icon-class', 'collapse-icon-class', 'leaf-icon-class', 'toggle-icon-mode',
       'scroll-highlight-timeout', 'scroll-highlight-class',
 
@@ -1117,6 +1117,10 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
     const showCheckboxesAttr = this.getAttribute('show-checkboxes');
     if (showCheckboxesAttr !== null) config.showCheckboxes = showCheckboxesAttr !== 'false';
+
+    const checkboxModeAttr = this.getAttribute('checkbox-mode');
+    if (checkboxModeAttr === 'independent' || checkboxModeAttr === 'cascade')
+      config.checkboxMode = checkboxModeAttr;
 
     const clickTogglesCheckboxAttr = this.getAttribute('click-toggles-checkbox');
     if (clickTogglesCheckboxAttr !== null) config.clickTogglesCheckbox = clickTogglesCheckboxAttr !== 'false';

@@ -693,6 +693,22 @@
   overflow: visible;
 }
 
+/* ── Checkbox ────────────────────────────────────────────────────── */
+
+.ltree-checkbox {
+  width: var(--tv-icon-size);
+  height: var(--tv-icon-size);
+  margin: 0 var(--tv-spacing-sm) 0 0;
+  flex: 0 0 auto;
+  accent-color: var(--tv-accent-color);
+  cursor: pointer;
+}
+
+.ltree-checkbox:focus-visible {
+  outline: 2px solid var(--tv-accent-color);
+  outline-offset: 1px;
+}
+
 /* ── Container ────────────────────────────────────────────────────── */
 
 .ltree-container {

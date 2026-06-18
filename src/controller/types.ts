@@ -38,10 +38,12 @@ export interface NodeCallbacks<T> {
   onTouchDragStart: (node: LTreeNode<T>, event: TouchEvent) => void;
   onTouchDragMove: (node: LTreeNode<T>, event: TouchEvent) => void;
   onTouchDragEnd: (node: LTreeNode<T>, event: TouchEvent) => void;
+  onCheckboxToggle: (node: LTreeNode<T>, options?: { skipFocus?: boolean }) => void;
 }
 
 export type ToggleIconMode = 'rotate' | 'swap';
 export type ClickBehavior = 'select' | 'expand' | 'expand-and-focus';
+export type CheckboxMode = 'independent' | 'cascade';
 
 export interface NodeConfig {
   clickBehavior: ClickBehavior;
@@ -153,7 +155,13 @@ export interface TreeControllerConfig<T> {
   rangeSelectionMode?: RangeSelectionMode;
   selectionMode?: 'single' | 'multi';
   showCheckboxes?: boolean;
+  checkboxMode?: CheckboxMode;
   clickTogglesCheckbox?: boolean;
+  beforeCheckboxToggleCallback?: (
+    node: LTreeNode<T>,
+    checked: boolean,
+    affectedPaths: string[]
+  ) => boolean | string[] | void;
   onSelectionChange?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
   onHighlightChange?: (highlightedPaths: Set<string>, highlightedNodes: LTreeNode<T>[]) => void;
 

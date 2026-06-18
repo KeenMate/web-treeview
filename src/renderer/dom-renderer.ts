@@ -203,6 +203,21 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       shift: event.shiftKey
     };
 
+    // Checkbox click
+    const checkbox = target.closest('.ltree-checkbox') as HTMLInputElement;
+    if (checkbox) {
+      event.stopPropagation();
+      const nodeEl = checkbox.closest('.ltree-node') as HTMLElement;
+      const path = nodeEl?.getAttribute('data-tree-path');
+      if (path) {
+        const node = this.controller.getNodeByPath(path);
+        if (node) {
+          this.controller.nodeCallbacks.onCheckboxToggle(node, { skipFocus: false });
+          return;
+        }
+      }
+    }
+
     // Toggle icon click
     const toggleIcon = target.closest('.ltree-toggle-icon') as HTMLElement;
     if (toggleIcon) {
@@ -230,15 +245,29 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         const behavior = this.lastNodeConfig?.clickBehavior ?? 'expand-and-focus';
         const isPlainClick = !modifiers.ctrl && !modifiers.shift;
 
+        // clickTogglesCheckbox: a plain click on a selectable node with
+        // checkboxes shown toggles the checkbox instead of running the
+        // normal click/highlight flow. Expand-on-click still fires.
+        if (
+          this.controller.clickTogglesCheckbox &&
+          this.lastNodeConfig?.showCheckboxes &&
+          node.isSelectable &&
+          isPlainClick
+        ) {
+          this.controller.nodeCallbacks.onCheckboxToggle(node, { skipFocus: true });
+          if (behavior !== 'select' && node.hasChildren) {
+            this.controller.toggleNodeExpanded(path);
+          }
+          return;
+        }
+
         if (behavior === 'expand-and-focus' && isPlainClick && node.hasChildren) {
           // Select + expand/collapse
-          if (node.isExpanded) this.controller.collapseNodes(path);
-          else this.controller.expandNodes(path);
+          this.controller.toggleNodeExpanded(path);
           this.controller.nodeCallbacks.onNodeClicked(node, modifiers);
         } else if (behavior === 'expand' && isPlainClick && node.hasChildren) {
           // Expand/collapse only, no selection
-          if (node.isExpanded) this.controller.collapseNodes(path);
-          else this.controller.expandNodes(path);
+          this.controller.toggleNodeExpanded(path);
         } else if (behavior === 'select' || !isPlainClick) {
           // Select only (ctrl/shift always selects regardless of behavior)
           this.controller.nodeCallbacks.onNodeClicked(node, modifiers);
@@ -261,8 +290,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (path) {
       const node = this.controller.getNodeByPath(path);
       if (node?.hasChildren) {
-        if (node.isExpanded) this.controller.collapseNodes(path);
-        else this.controller.expandNodes(path);
+        this.controller.toggleNodeExpanded(path);
       }
     }
   };
@@ -944,6 +972,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (node.isHighlighted && nodeConfig?.highlightedNodeClass) {
       el.classList.add(nodeConfig.highlightedNodeClass);
     }
+    if (snapshot.focusedNode?.path === node.path && nodeConfig?.focusedNodeClass) {
+      el.classList.add(nodeConfig.focusedNodeClass);
+    }
 
     // Cut dimming
     if (snapshot.cutPaths.has(node.path)) {
@@ -983,6 +1014,17 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     row.appendChild(toggle);
 
+    // Checkbox (between toggle and content). Rendered only when
+    // showCheckboxes is true and the node is selectable.
+    if (nodeConfig?.showCheckboxes && node.isSelectable) {
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'ltree-checkbox';
+      cb.checked = !!node.isSelected;
+      cb.indeterminate = node.visualState === 'indeterminate';
+      row.appendChild(cb);
+    }
+
     // Node content
     const content = document.createElement('div');
     content.className = 'ltree-node-content';
@@ -1021,6 +1063,29 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     // Cut dimming
     el.classList.toggle('ltree-cut', snapshot.cutPaths.has(node.path));
+
+    // Focused-node class
+    if (nodeConfig?.focusedNodeClass) {
+      el.classList.toggle(nodeConfig.focusedNodeClass, snapshot.focusedNode?.path === node.path);
+    }
+
+    // Sync checkbox checked / indeterminate
+    if (nodeConfig?.showCheckboxes && node.isSelectable) {
+      let cb = el.querySelector('.ltree-checkbox') as HTMLInputElement | null;
+      if (!cb) {
+        // Showed checkboxes was just toggled on — insert one.
+        cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'ltree-checkbox';
+        const toggle = el.querySelector('.ltree-toggle-icon');
+        toggle?.after(cb);
+      }
+      cb.checked = !!node.isSelected;
+      cb.indeterminate = node.visualState === 'indeterminate';
+    } else {
+      const cb = el.querySelector('.ltree-checkbox');
+      cb?.remove();
+    }
 
     // Update toggle icon
     const toggle = el.querySelector('.ltree-toggle-icon') as HTMLElement;

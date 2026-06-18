@@ -162,9 +162,22 @@ export interface TreeViewConfig<T = any> {
   selectionMode?: 'single' | 'multi';
   /** Render a checkbox per selectable node. Default `false`. */
   showCheckboxes?: boolean;
+  /** `'independent'` (default) — checkbox state is per-node; toggling a parent
+   *  does NOT cascade to descendants. `'cascade'` — toggling a parent cascades
+   *  to every descendant; partial selection shows an indeterminate state on
+   *  the parent. */
+  checkboxMode?: 'independent' | 'cascade';
   /** When `true`, plain clicks on a selectable node toggle its checkbox
    *  instead of focusing/highlighting. Requires `showCheckboxes=true`. */
   clickTogglesCheckbox?: boolean;
+  /** Interceptor invoked before applying a checkbox toggle. Return `false`
+   *  to cancel, return a `string[]` to override which paths are affected,
+   *  or return `void` to apply unchanged. */
+  beforeCheckboxToggleCallback?: (
+    node: LTreeNode<T>,
+    checked: boolean,
+    affectedPaths: string[]
+  ) => boolean | string[] | void;
   rangeSelectionMode?: RangeSelectionMode;
   /** Fires on changes to the checkbox / data-state selection set. */
   onSelectionChange?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
