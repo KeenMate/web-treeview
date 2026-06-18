@@ -599,7 +599,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     targetParentPath: string,
     dataTransform: (data: T) => T,
     siblingPath?: string,
-    position?: 'above' | 'below'
+    position?: 'before' | 'after'
   ): any {
     return this.treeview?.copyNodeWithDescendants(sourceNode, targetParentPath, dataTransform, siblingPath, position);
   }
@@ -686,7 +686,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     this.treeview?.cutNodes(paths);
   }
 
-  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: 'above' | 'below' | 'child'): PasteResult<T> {
+  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: DropPosition): PasteResult<T> {
     return this.treeview?.pasteNodes(targetPath, transformData, position) ?? { success: false, pastedCount: 0, error: 'Not initialized' };
   }
 

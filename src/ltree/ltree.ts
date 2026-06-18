@@ -1,6 +1,6 @@
 import FlexSearch, { Index, type SearchOptions } from 'flexsearch';
 
-import { type LTreeNode, createLTreeNode } from './ltree-node';
+import { type LTreeNode, type DropPosition, createLTreeNode } from './ltree-node';
 
 import { isEmptyString } from '../helpers/string-helpers';
 import {
@@ -976,10 +976,10 @@ export function createLTree<T>(
 		 * Move a node to a new location in the tree
 		 * @param sourcePath - Path of the node to move
 		 * @param targetPath - Path of the target node
-		 * @param position - Where to place relative to target: 'above', 'below', or 'child'
+		 * @param position - Where to place relative to target: 'before', 'after', or 'child'
 		 * @returns Object with success status and optional error message
 		 */
-		moveNode(sourcePath: string, targetPath: string, position: 'above' | 'below' | 'child'): { success: boolean; error?: string } {
+		moveNode(sourcePath: string, targetPath: string, position: DropPosition): { success: boolean; error?: string } {
 			// Find source node
 			const sourceNode = this.getNodeByPath(sourcePath);
 			if (!sourceNode) {
@@ -1071,7 +1071,7 @@ export function createLTree<T>(
 				const siblings = Object.values(newParent.children) as LTreeNode<T>[];
 				const targetOrder = (targetNode.data ? getField(targetNode.data, om) : 0) ?? 0;
 
-				if (position === 'above') {
+				if (position === 'before') {
 					const siblingOrders = siblings
 						.filter(s => s !== sourceNode && s.data && getField(s.data, om) !== undefined)
 						.map(s => getField(s.data!, om) as number)
@@ -1096,11 +1096,11 @@ export function createLTree<T>(
 				const newChildren: Record<string, LTreeNode<T>> = {};
 				for (const [key, child] of Object.entries(newParent.children)) {
 					if (key === sourceSegmentKey) continue; // skip source, we'll insert it
-					if (key === targetSegment && position === 'above') {
+					if (key === targetSegment && position === 'before') {
 						newChildren[sourceSegmentKey] = sourceNode;
 					}
 					newChildren[key] = child as LTreeNode<T>;
-					if (key === targetSegment && position === 'below') {
+					if (key === targetSegment && position === 'after') {
 						newChildren[sourceSegmentKey] = sourceNode;
 					}
 				}
@@ -1385,7 +1385,7 @@ export function createLTree<T>(
 		 * @param targetParentPath - Path where to insert the copy (empty string for root)
 		 * @param transformData - Function to transform each node's data (e.g., assign new IDs)
 		 * @param siblingPath - Optional path of sibling to position relative to
-		 * @param position - Optional position relative to sibling ('above' or 'below')
+		 * @param position - Optional position relative to sibling ('before' or 'after')
 		 * @returns Object with success status, the created root node, and count of nodes created
 		 */
 		copyNodeWithDescendants(
@@ -1393,7 +1393,7 @@ export function createLTree<T>(
 			targetParentPath: string,
 			transformData: (data: T) => T,
 			siblingPath?: string,
-			position?: 'above' | 'below'
+			position?: 'before' | 'after'
 		): { success: boolean; rootNode?: LTreeNode<T>; count: number; error?: string } {
 			if (!sourceNode.data) {
 				return { success: false, count: 0, error: 'Source node has no data' };
@@ -1449,7 +1449,7 @@ export function createLTree<T>(
 							const oKey = this.orderMember!;
 							const siblingOrder = (siblingNode.data as any)?.[oKey] ?? 0;
 
-							if (position === 'above') {
+							if (position === 'before') {
 								const siblingOrders = siblings
 									.filter(s => s !== rootNode && (s.data as any)?.[oKey] !== undefined)
 									.map(s => (s.data as any)[oKey] as number)
@@ -1475,11 +1475,11 @@ export function createLTree<T>(
 							const newChildren: Record<string, LTreeNode<T>> = {};
 							for (const [key, child] of Object.entries(parent.children)) {
 								if (key === rootSegment) continue;
-								if (key === siblingSegment && position === 'above') {
+								if (key === siblingSegment && position === 'before') {
 									newChildren[rootSegment] = rootNode;
 								}
 								newChildren[key] = child as LTreeNode<T>;
-								if (key === siblingSegment && position === 'below') {
+								if (key === siblingSegment && position === 'after') {
 									newChildren[rootSegment] = rootNode;
 								}
 							}

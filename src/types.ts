@@ -315,7 +315,7 @@ export interface TreeViewMethods<T = any> {
   // Clipboard
   copyNodes(paths?: string[]): void;
   cutNodes(paths?: string[]): void;
-  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: 'above' | 'below' | 'child'): PasteResult<T>;
+  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: DropPosition): PasteResult<T>;
   cancelCut(): void;
   hasClipboardContent(): boolean;
   getClipboardOperation(): 'copy' | 'cut' | null;

@@ -811,7 +811,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   moveNode(
     sourcePath: string,
     targetPath: string,
-    position: 'above' | 'below' | 'child'
+    position: DropPosition
   ): { success: boolean; error?: string } {
     this._skipInsertArray = true;
     const result = this.tree?.moveNode(sourcePath, targetPath, position) || {
@@ -874,7 +874,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     targetParentPath: string,
     transformData: (data: T) => T,
     siblingPath?: string,
-    position?: 'above' | 'below'
+    position?: 'before' | 'after'
   ): { success: boolean; rootNode?: LTreeNode<T>; count: number; error?: string } {
     this._skipInsertArray = true;
     const result = this.tree?.copyNodeWithDescendants(
@@ -1537,7 +1537,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   pasteNodes(
     targetPath: string,
     transformData?: (data: T) => T,
-    position?: 'above' | 'below' | 'child'
+    position?: DropPosition
   ): PasteResult<T> {
     const clipboard = getClipboard<T>();
     if (!clipboard || clipboard.entries.length === 0) {
@@ -1853,9 +1853,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (x > startPx) {
       idealPosition = 'child';
     } else if (y < height / 2) {
-      idealPosition = 'above';
+      idealPosition = 'before';
     } else {
-      idealPosition = 'below';
+      idealPosition = 'after';
     }
 
     if (!allowedPositions || allowedPositions.length === 0) {
@@ -1870,8 +1870,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       return allowedPositions[0];
     }
 
-    if (allowedPositions.includes('above') && allowedPositions.includes('below')) {
-      return y < height / 2 ? 'above' : 'below';
+    if (allowedPositions.includes('before') && allowedPositions.includes('after')) {
+      return y < height / 2 ? 'before' : 'after';
     }
 
     return allowedPositions[0];
@@ -2560,8 +2560,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     const rect = element.getBoundingClientRect();
     const y = event.clientY - rect.top;
     const height = rect.height;
-    if (y < height * 0.25) return 'above';
-    if (y > height * 0.75) return 'below';
+    if (y < height * 0.25) return 'before';
+    if (y > height * 0.75) return 'after';
     return 'child';
   }
 
@@ -2708,10 +2708,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       for (let i = 0; i < topLevelPaths.length; i++) {
         const sourcePath = topLevelPaths[i];
         const targetPath = i === 0 ? dropNode!.path : prevMovedNode!.path;
-        // web-treeview's DropPosition still uses the pre-rc02 names
-        // ('above' / 'below' / 'child'); 'below' is the equivalent of
-        // svelte-treeview's 'after' for the chain.
-        const pos: DropPosition = i === 0 ? position : 'below';
+        // Chain: first move uses the requested position, subsequent moves
+        // land 'after' the previously moved node so the whole set arrives
+        // in source order.
+        const pos: DropPosition = i === 0 ? position : 'after';
         const sourceNode = this.tree?.getNodeByPath(sourcePath);
         const r = this.moveNode(sourcePath, targetPath, pos);
         if (!r.success) {

@@ -1146,7 +1146,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
       // Clear previous drag classes
       el.classList.remove('ltree-dragged');
-      content.classList.remove('ltree-glow-above', 'ltree-glow-below', 'ltree-glow-child', 'ltree-drop-copy');
+      content.classList.remove('ltree-glow-before', 'ltree-glow-after', 'ltree-glow-child', 'ltree-drop-copy');
 
       // Dragged node style
       if (path === snapshot.draggedNodePath) {
@@ -1231,7 +1231,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     zones.style.setProperty('--drop-zone-start', typeof start === 'number' ? `${start}%` : start);
     zones.style.setProperty('--drop-zone-max-width', `${maxWidth}px`);
 
-    const positions: DropPosition[] = allowedPositions || ['above', 'below', 'child'];
+    const positions: DropPosition[] = allowedPositions || ['before', 'after', 'child'];
     for (const pos of positions) {
       const zone = document.createElement('div');
       zone.className = `ltree-drop-zone ltree-drop-${pos}`;

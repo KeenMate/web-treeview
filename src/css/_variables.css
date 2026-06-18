@@ -155,25 +155,25 @@
   /* ==========================================================================
      DRAG & DROP GLOW INDICATORS
      ========================================================================== */
-  --tv-glow-above-color: rgba(134, 179, 152, 0.8);
-  --tv-glow-below-color: rgba(242, 182, 158, 0.8);
+  --tv-glow-before-color: rgba(134, 179, 152, 0.8);
+  --tv-glow-after-color: rgba(242, 182, 158, 0.8);
   --tv-glow-child-color: rgba(167, 155, 198, 0.8);
-  --tv-glow-above-bg: rgba(134, 179, 152, 0.25);
-  --tv-glow-below-bg: rgba(242, 182, 158, 0.25);
+  --tv-glow-before-bg: rgba(134, 179, 152, 0.25);
+  --tv-glow-after-bg: rgba(242, 182, 158, 0.25);
   --tv-glow-child-bg: rgba(167, 155, 198, 0.25);
 
   /* Drop zone active states */
-  --tv-glow-above-bg-active: rgba(134, 179, 152, 0.85);
-  --tv-glow-below-bg-active: rgba(242, 182, 158, 0.85);
+  --tv-glow-before-bg-active: rgba(134, 179, 152, 0.85);
+  --tv-glow-after-bg-active: rgba(242, 182, 158, 0.85);
   --tv-glow-child-bg-active: rgba(167, 155, 198, 0.85);
-  --tv-glow-above-color-active: rgb(32, 54, 40);
-  --tv-glow-below-color-active: rgb(80, 45, 30);
+  --tv-glow-before-color-active: rgb(32, 54, 40);
+  --tv-glow-after-color-active: rgb(80, 45, 30);
   --tv-glow-child-color-active: rgb(45, 38, 62);
-  --tv-glow-above-shadow: 0 2px 12px rgba(134, 179, 152, 0.4);
-  --tv-glow-below-shadow: 0 2px 12px rgba(242, 182, 158, 0.4);
+  --tv-glow-before-shadow: 0 2px 12px rgba(134, 179, 152, 0.4);
+  --tv-glow-after-shadow: 0 2px 12px rgba(242, 182, 158, 0.4);
   --tv-glow-child-shadow: 0 2px 12px rgba(167, 155, 198, 0.4);
-  --tv-glow-above-text: rgba(62, 89, 72, 0.7);
-  --tv-glow-below-text: rgba(120, 70, 50, 0.7);
+  --tv-glow-before-text: rgba(62, 89, 72, 0.7);
+  --tv-glow-after-text: rgba(120, 70, 50, 0.7);
   --tv-glow-child-text: rgba(72, 62, 98, 0.7);
 
   /* Drag-over states */

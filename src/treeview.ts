@@ -152,7 +152,7 @@ export class WebTreeView<T = any> {
     targetParentPath: string,
     dataTransform: (data: T) => T,
     siblingPath?: string,
-    position?: 'above' | 'below'
+    position?: 'before' | 'after'
   ) {
     return this.controller.copyNodeWithDescendants(sourceNode, targetParentPath, dataTransform, siblingPath, position);
   }
@@ -275,7 +275,7 @@ export class WebTreeView<T = any> {
     this.controller.cutNodes(paths);
   }
 
-  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: 'above' | 'below' | 'child'): PasteResult<T> {
+  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: DropPosition): PasteResult<T> {
     return this.controller.pasteNodes(targetPath, transformData, position);
   }
 
