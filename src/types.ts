@@ -126,7 +126,11 @@ export interface TreeViewConfig<T = any> {
   // Callbacks
   getDisplayValueCallback?: (node: LTreeNode<T>) => string;
   getSearchValueCallback?: (node: LTreeNode<T>) => string;
+  getIsExpandedCallback?: (node: LTreeNode<T>) => boolean;
+  getIsSelectableCallback?: (node: LTreeNode<T>) => boolean;
+  getIsSelectedCallback?: (node: LTreeNode<T>) => boolean;
   getIsDraggableCallback?: (node: LTreeNode<T>) => boolean;
+  getIsDropAllowedCallback?: (node: LTreeNode<T>) => boolean;
   getIsCollapsibleCallback?: (node: LTreeNode<T>) => boolean;
   getAllowedDropPositionsCallback?: (node: LTreeNode<T>) => DropPosition[] | null | undefined;
   sortCallback?: (items: LTreeNode<T>[]) => LTreeNode<T>[];

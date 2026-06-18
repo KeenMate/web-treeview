@@ -69,10 +69,15 @@ export interface TreeControllerConfig<T> {
   parentPathMember?: string | null | undefined;
   levelMember?: string | null | undefined;
   isExpandedMember?: string | null | undefined;
+  getIsExpandedCallback?: (node: LTreeNode<T>) => boolean;
   isSelectedMember?: string | null | undefined;
+  getIsSelectedCallback?: (node: LTreeNode<T>) => boolean;
+  isSelectableMember?: string | null | undefined;
+  getIsSelectableCallback?: (node: LTreeNode<T>) => boolean;
   isDraggableMember?: string | null | undefined;
   getIsDraggableCallback?: (node: LTreeNode<T>) => boolean;
   isDropAllowedMember?: string | null | undefined;
+  getIsDropAllowedCallback?: (node: LTreeNode<T>) => boolean;
   allowedDropPositionsMember?: string | null | undefined;
   getAllowedDropPositionsCallback?: (node: LTreeNode<T>) => DropPosition[] | null | undefined;
   isCollapsibleMember?: string | null | undefined;

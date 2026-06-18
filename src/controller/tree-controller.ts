@@ -565,10 +565,15 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       props.levelMember,
       props.hasChildrenMember,
       props.isExpandedMember,
+      props.getIsExpandedCallback,
+      props.isSelectableMember,
+      props.getIsSelectableCallback,
       props.isSelectedMember,
+      props.getIsSelectedCallback,
       props.isDraggableMember,
       props.getIsDraggableCallback,
       props.isDropAllowedMember,
+      props.getIsDropAllowedCallback,
       props.allowedDropPositionsMember,
       props.displayValueMember,
       props.getDisplayValueCallback,
@@ -1665,6 +1670,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       updates.getDisplayValueCallback !== undefined ||
       updates.getSearchValueCallback !== undefined ||
       updates.getIsDraggableCallback !== undefined ||
+      updates.getIsExpandedCallback !== undefined ||
+      updates.getIsSelectableCallback !== undefined ||
+      updates.getIsSelectedCallback !== undefined ||
+      updates.getIsDropAllowedCallback !== undefined ||
       updates.getIsCollapsibleCallback !== undefined ||
       updates.getAllowedDropPositionsCallback !== undefined ||
       updates.sortCallback !== undefined;
@@ -1768,10 +1777,15 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         updates.levelMember ?? this.tree.levelMember,
         updates.hasChildrenMember ?? this.tree.hasChildrenMember,
         updates.isExpandedMember ?? this.tree.isExpandedMember,
-        updates.isSelectedMember,
+        updates.getIsExpandedCallback ?? this.tree.getIsExpandedCallback,
+        updates.isSelectableMember ?? this.tree.isSelectableMember,
+        updates.getIsSelectableCallback ?? this.tree.getIsSelectableCallback,
+        updates.isSelectedMember ?? this.tree.isSelectedMember,
+        updates.getIsSelectedCallback ?? this.tree.getIsSelectedCallback,
         updates.isDraggableMember ?? this.tree.isDraggableMember,
         updates.getIsDraggableCallback ?? this.tree.getIsDraggableCallback,
         updates.isDropAllowedMember ?? this.tree.isDropAllowedMember,
+        updates.getIsDropAllowedCallback ?? this.tree.getIsDropAllowedCallback,
         updates.allowedDropPositionsMember ?? this.tree.allowedDropPositionsMember,
         updates.displayValueMember ?? this.tree.displayValueMember,
         updates.getDisplayValueCallback ?? this.tree.getDisplayValueCallback,

@@ -27,10 +27,15 @@ export function createLTree<T>(
 	_levelMember?: string | null | undefined,
 	_hasChildrenMember?: string | null | undefined,
 	_isExpandedMember?: string | null | undefined,
+	_getIsExpandedCallback?: (node: LTreeNode<T>) => boolean,
 	_isSelectableMember?: string | null | undefined,
+	_getIsSelectableCallback?: (node: LTreeNode<T>) => boolean,
+	_isSelectedMember?: string | null | undefined,
+	_getIsSelectedCallback?: (node: LTreeNode<T>) => boolean,
 	_isDraggableMember?: string | null | undefined,
 	_getIsDraggableCallback?: (node: LTreeNode<T>) => boolean,
 	_isDropAllowedMember?: string | null | undefined,
+	_getIsDropAllowedCallback?: (node: LTreeNode<T>) => boolean,
 	_allowedDropPositionsMember?: string | null | undefined,
 	_displayValueMember?: string | null | undefined,
 	_getDisplayValueCallback?: (node: LTreeNode<T>) => string,
@@ -61,6 +66,7 @@ export function createLTree<T>(
 	let shouldCalculateHasChildren: boolean = isEmptyString(_hasChildrenMember);
 	let shouldCalculateIsExpanded: boolean = isEmptyString(_isExpandedMember);
 	let shouldCalculateIsSelectable: boolean = isEmptyString(_isSelectableMember);
+	let shouldCalculateIsSelected: boolean = isEmptyString(_isSelectedMember);
 	let shouldCalculateIsDraggable: boolean = isEmptyString(_isDraggableMember);
 	let shouldCalculateIsDropAllowed: boolean = isEmptyString(_isDropAllowedMember);
 	let shouldCalculateAllowedDropPositions: boolean = isEmptyString(_allowedDropPositionsMember);
@@ -126,10 +132,15 @@ export function createLTree<T>(
 		parentPathMember: _parentPathMember,
 		levelMember: _levelMember,
 		isExpandedMember: _isExpandedMember,
+		getIsExpandedCallback: _getIsExpandedCallback,
+		isSelectedMember: _isSelectedMember,
+		getIsSelectedCallback: _getIsSelectedCallback,
 		isSelectableMember: _isSelectableMember,
+		getIsSelectableCallback: _getIsSelectableCallback,
 		isDraggableMember: _isDraggableMember,
 		getIsDraggableCallback: _getIsDraggableCallback,
 		isDropAllowedMember: _isDropAllowedMember,
+		getIsDropAllowedCallback: _getIsDropAllowedCallback,
 		allowedDropPositionsMember: _allowedDropPositionsMember,
 		hasChildrenMember: _hasChildrenMember,
 		displayValueMember: _displayValueMember,
@@ -278,13 +289,24 @@ export function createLTree<T>(
 				if (!shouldCalculateLevel) node.level = getField(row, _levelMember!);
 				else node.level = getLevel(node.path, this.treePathSeparator);
 
-				if (!shouldCalculateIsExpanded) node.isExpanded = getField(row, _isExpandedMember!);
+				// isExpanded: callback > member > expandLevel
+				if (_getIsExpandedCallback) node.isExpanded = _getIsExpandedCallback(node);
+				else if (!shouldCalculateIsExpanded) node.isExpanded = getField(row, _isExpandedMember!);
 				else if (_expandLevel) node.isExpanded = (node.level ?? 0) <= _expandLevel;
 
-				if (!shouldCalculateIsSelectable) node.isSelectable = getField(row, _isSelectableMember!);
-				if (!shouldCalculateIsDraggable) node.isDraggable = getField(row, _isDraggableMember!);
+				// isSelectable: callback > member (stored on node so renderers can read directly)
+				if (_getIsSelectableCallback) node.isSelectable = _getIsSelectableCallback(node);
+				else if (!shouldCalculateIsSelectable) node.isSelectable = getField(row, _isSelectableMember!);
+
+				// isSelected: callback > member
+				if (_getIsSelectedCallback) node.isSelected = _getIsSelectedCallback(node);
+				else if (!shouldCalculateIsSelected) node.isSelected = getField(row, _isSelectedMember!);
+
+				if (_getIsDraggableCallback) node.isDraggable = _getIsDraggableCallback(node);
+				else if (!shouldCalculateIsDraggable) node.isDraggable = getField(row, _isDraggableMember!);
 				if (!shouldCalculateIsCollapsible) node.isCollapsible = getField(row, _isCollapsibleMember!);
-				if (!shouldCalculateIsDropAllowed) node.isDropAllowed = getField(row, _isDropAllowedMember!);
+				if (_getIsDropAllowedCallback) node.isDropAllowed = _getIsDropAllowedCallback(node);
+				else if (!shouldCalculateIsDropAllowed) node.isDropAllowed = getField(row, _isDropAllowedMember!);
 				if (!shouldCalculateAllowedDropPositions) node.allowedDropPositions = getField(row, _allowedDropPositionsMember!);
 
 				if (!shouldCalculateHasChildren) node.hasChildren = getField(row, _hasChildrenMember!);
@@ -737,6 +759,12 @@ export function createLTree<T>(
 			return node.isCollapsible;
 		},
 
+		getNodeIsDropAllowed(node: LTreeNode<T>): boolean {
+			if (this.getIsDropAllowedCallback) return this.getIsDropAllowedCallback(node);
+			if (!shouldCalculateIsDropAllowed && node.data) return getField(node.data, _isDropAllowedMember!);
+			return node.isDropAllowed;
+		},
+
 		refresh(): void {
 			this._emitTreeChanged();
 		},
@@ -1084,7 +1112,24 @@ export function createLTree<T>(
 			newNode.parentPath = parentPath || null;
 			newNode.level = getLevel(newPath, this.treePathSeparator);
 			newNode.data = data;
-			newNode.isExpanded = _expandLevel ? newNode.level! <= _expandLevel : false;
+
+			// Apply seed precedence (callback > member > default) to match insertArray
+			if (_getIsExpandedCallback) newNode.isExpanded = _getIsExpandedCallback(newNode);
+			else if (!shouldCalculateIsExpanded && data) newNode.isExpanded = getField(data, _isExpandedMember!);
+			else newNode.isExpanded = _expandLevel ? newNode.level! <= _expandLevel : false;
+
+			if (_getIsSelectableCallback) newNode.isSelectable = _getIsSelectableCallback(newNode);
+			else if (!shouldCalculateIsSelectable && data) newNode.isSelectable = getField(data, _isSelectableMember!);
+
+			if (_getIsSelectedCallback) newNode.isSelected = _getIsSelectedCallback(newNode);
+			else if (!shouldCalculateIsSelected && data) newNode.isSelected = getField(data, _isSelectedMember!);
+
+			if (_getIsDraggableCallback) newNode.isDraggable = _getIsDraggableCallback(newNode);
+			else if (!shouldCalculateIsDraggable && data) newNode.isDraggable = getField(data, _isDraggableMember!);
+
+			if (_getIsDropAllowedCallback) newNode.isDropAllowed = _getIsDropAllowedCallback(newNode);
+			else if (!shouldCalculateIsDropAllowed && data) newNode.isDropAllowed = getField(data, _isDropAllowedMember!);
+
 			newNode.hasChildren = false;
 
 			// Update path in data if pathMember is defined
