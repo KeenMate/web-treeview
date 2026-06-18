@@ -1167,7 +1167,10 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     if (selectionModeAttr === 'single' || selectionModeAttr === 'multi') config.selectionMode = selectionModeAttr;
 
     const showCheckboxesAttr = this.getAttribute('show-checkboxes');
-    if (showCheckboxesAttr !== null) config.showCheckboxes = showCheckboxesAttr !== 'false';
+    // Always send a boolean so the controller flips off when the attribute is
+    // removed at runtime (the demo toggles `show-checkboxes` via setAttribute /
+    // removeAttribute). `update()` only applies keys defined in the config bag.
+    config.showCheckboxes = showCheckboxesAttr !== null && showCheckboxesAttr !== 'false';
 
     const checkboxModeAttr = this.getAttribute('checkbox-mode');
     if (checkboxModeAttr === 'independent' || checkboxModeAttr === 'cascade')

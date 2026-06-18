@@ -62,9 +62,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   nodeCallbacks!: NodeCallbacks<T>;
   private _nodeConfig: NodeConfig = {
     clickBehavior: 'expand-and-focus',
-    expandIconClass: 'ltree-icon-expand',
-    collapseIconClass: 'ltree-icon-collapse',
-    leafIconClass: 'ltree-icon-leaf',
+    expandIconClass: 'wtv-icon-expand',
+    collapseIconClass: 'wtv-icon-collapse',
+    leafIconClass: 'wtv-icon-leaf',
     toggleIconMode: 'rotate',
     highlightedNodeClass: undefined,
     focusedNodeClass: undefined,
@@ -95,7 +95,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _shouldDisplayContextMenuInDebugMode: boolean = false;
   private _isLoading: boolean = false;
   private _useFlatRendering: boolean = true;
-  private _flatIndentSize: string = 'var(--tv-column-width)';
+  private _flatIndentSize: string = 'var(--wtv-column-width)';
   private _progressiveRender: boolean = true;
   private _initialBatchSize: number = 20;
   private _maxBatchSize: number = 500;
@@ -140,9 +140,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   // Visual config
   private _clickBehavior: import('./types').ClickBehavior = 'expand-and-focus';
   private _accordionExpand: boolean = false;
-  private _expandIconClass: string = 'ltree-icon-expand';
-  private _collapseIconClass: string = 'ltree-icon-collapse';
-  private _leafIconClass: string = 'ltree-icon-leaf';
+  private _expandIconClass: string = 'wtv-icon-expand';
+  private _collapseIconClass: string = 'wtv-icon-collapse';
+  private _leafIconClass: string = 'wtv-icon-leaf';
   private _toggleIconMode: import('./types').ToggleIconMode = 'rotate';
   private _highlightedNodeClass: string | null | undefined = undefined;
   private _focusedNodeClass: string | null | undefined = undefined;
@@ -152,7 +152,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _dropZoneStart: number | string = 33;
   private _dropZoneMaxWidth: number = 120;
   private _scrollHighlightTimeout: number = 4000;
-  private _scrollHighlightClass: string | null | undefined = 'ltree-scroll-highlight';
+  private _scrollHighlightClass: string | null | undefined = 'wtv-scroll-highlight';
   private _contextMenuXOffset: number = 8;
   private _contextMenuYOffset: number = 0;
   private _hasContextMenuRenderer: boolean = false;
@@ -183,6 +183,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _hoveredNodeForDrop: LTreeNode<any> | null = null;
   private _activeDropPosition: DropPosition | null = null;
   private _currentDropOperation: DropOperation = 'move';
+  // Snapshot of `highlightedPaths` taken in the dragstart rAF before the
+  // OS-convention sync replaces it with the dragged node. Restored on
+  // Esc-cancel so the user isn't left with the dragged node "stuck" selected.
+  private _preDragHighlightSnapshot: Set<string> | null = null;
 
   // Touch drag
   private touchDragState: {
@@ -560,7 +564,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._isLoading = props.isLoading ?? false;
 
     this._useFlatRendering = props.useFlatRendering ?? true;
-    this._flatIndentSize = props.flatIndentSize ?? 'var(--tv-column-width)';
+    this._flatIndentSize = props.flatIndentSize ?? 'var(--wtv-column-width)';
     this._progressiveRender = props.progressiveRender ?? true;
     this._initialBatchSize = props.initialBatchSize ?? 20;
     this._maxBatchSize = props.maxBatchSize ?? 500;
@@ -578,9 +582,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     this._clickBehavior = props.clickBehavior ?? 'expand-and-focus';
     this._accordionExpand = props.accordionExpand ?? false;
-    this._expandIconClass = props.expandIconClass ?? 'ltree-icon-expand';
-    this._collapseIconClass = props.collapseIconClass ?? 'ltree-icon-collapse';
-    this._leafIconClass = props.leafIconClass ?? 'ltree-icon-leaf';
+    this._expandIconClass = props.expandIconClass ?? 'wtv-icon-expand';
+    this._collapseIconClass = props.collapseIconClass ?? 'wtv-icon-collapse';
+    this._leafIconClass = props.leafIconClass ?? 'wtv-icon-leaf';
     this._toggleIconMode = props.toggleIconMode ?? 'rotate';
     this._highlightedNodeClass = props.highlightedNodeClass;
     this._focusedNodeClass = props.focusedNodeClass;
@@ -590,7 +594,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._dropZoneStart = props.dropZoneStart ?? 33;
     this._dropZoneMaxWidth = props.dropZoneMaxWidth ?? 120;
     this._scrollHighlightTimeout = props.scrollHighlightTimeout ?? 4000;
-    this._scrollHighlightClass = props.scrollHighlightClass ?? 'ltree-scroll-highlight';
+    this._scrollHighlightClass = props.scrollHighlightClass ?? 'wtv-scroll-highlight';
     this._contextMenuXOffset = props.contextMenuXOffset ?? 8;
     this._contextMenuYOffset = props.contextMenuYOffset ?? 0;
     this._hasContextMenuRenderer = props.hasContextMenuRenderer ?? false;
@@ -814,10 +818,63 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     position: DropPosition
   ): { success: boolean; error?: string } {
     this._skipInsertArray = true;
+    // Capture the affected path set BEFORE the move: any highlighted /
+    // selected path that is the source itself or a descendant of it needs
+    // to be remapped onto the new location. Without this the path Sets
+    // keep stale strings after a multi-drag, so the next plain click leaves
+    // visually-highlighted ghosts in the old positions and downstream
+    // operations work on dangling paths.
+    const sourceNode = this.tree?.getNodeByPath(sourcePath);
+    const sep = this._treePathSeparator;
+    const collect = (paths: Set<string>): Map<string, string> => {
+      const m = new Map<string, string>();
+      for (const p of paths) {
+        if (p === sourcePath || p.startsWith(sourcePath + sep)) {
+          m.set(p, p.substring(sourcePath.length));
+        }
+      }
+      return m;
+    };
+    const highlightAffected = collect(this._highlightedPaths);
+    const selectedAffected = collect(this._selectedPaths);
+    const lastHighlightSuffix =
+      this._lastHighlightedPath && highlightAffected.has(this._lastHighlightedPath)
+        ? highlightAffected.get(this._lastHighlightedPath)
+        : undefined;
+    const focusedAffectedSuffix =
+      this._focusedNode &&
+      (this._focusedNode.path === sourcePath ||
+        this._focusedNode.path.startsWith(sourcePath + sep))
+        ? this._focusedNode.path.substring(sourcePath.length)
+        : undefined;
+
     const result = this.tree?.moveNode(sourcePath, targetPath, position) || {
       success: false,
       error: 'Tree not initialized'
     };
+
+    if (result.success && sourceNode) {
+      const newPath = sourceNode.path; // tree.moveNode mutates this in place
+      const remap = (paths: Set<string>, affected: Map<string, string>) => {
+        if (affected.size === 0) return;
+        for (const [oldP, suffix] of affected) {
+          paths.delete(oldP);
+          paths.add(newPath + suffix);
+        }
+      };
+      remap(this._highlightedPaths, highlightAffected);
+      remap(this._selectedPaths, selectedAffected);
+      if (lastHighlightSuffix !== undefined) {
+        this._lastHighlightedPath = newPath + lastHighlightSuffix;
+      }
+      if (focusedAffectedSuffix !== undefined && this._focusedNode) {
+        // _focusedNode is the same node reference; its .path was already
+        // updated by tree.moveNode. Nothing extra to do here — the suffix
+        // capture above is just a witness that focus belongs to the moved
+        // subtree, so we don't need to clear it.
+      }
+    }
+
     queueMicrotask(() => { this._skipInsertArray = false; });
     return result;
   }
@@ -1927,7 +1984,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         const targetScrollTop = Math.max(0, nodeIndex * rowHeight - containerPx / 2 + rowHeight / 2);
         this._vsScrollTop = targetScrollTop;
         // Set the actual DOM scroll position
-        const scrollEl = (containerElement || this.containerElement)?.querySelector('.ltree-tree') as HTMLElement;
+        const scrollEl = (containerElement || this.containerElement)?.querySelector('.wtv-tree') as HTMLElement;
         if (scrollEl) {
           scrollEl.scrollTop = targetScrollTop;
         }
@@ -1944,7 +2001,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       const el = rootEl
         ? rootEl.querySelector(`#${CSS.escape(elementId)}`)
         : document.getElementById(elementId);
-      return (el?.querySelector('.ltree-node-content') as HTMLElement | null) ?? null;
+      return (el?.querySelector('.wtv-node-content') as HTMLElement | null) ?? null;
     };
     // Progressive flat rendering adds newly-revealed rows in rAF-deferred
     // batches (initialBatchSize, doubling each step). After expandNodes and
@@ -2074,11 +2131,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.accordionExpand !== undefined)
       this._accordionExpand = updates.accordionExpand ?? false;
     if (updates.expandIconClass !== undefined)
-      this._expandIconClass = updates.expandIconClass ?? 'ltree-icon-expand';
+      this._expandIconClass = updates.expandIconClass ?? 'wtv-icon-expand';
     if (updates.collapseIconClass !== undefined)
-      this._collapseIconClass = updates.collapseIconClass ?? 'ltree-icon-collapse';
+      this._collapseIconClass = updates.collapseIconClass ?? 'wtv-icon-collapse';
     if (updates.leafIconClass !== undefined)
-      this._leafIconClass = updates.leafIconClass ?? 'ltree-icon-leaf';
+      this._leafIconClass = updates.leafIconClass ?? 'wtv-icon-leaf';
     if (updates.toggleIconMode !== undefined)
       this._toggleIconMode = updates.toggleIconMode ?? 'rotate';
     if (updates.highlightedNodeClass !== undefined)
@@ -2105,7 +2162,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.scrollHighlightTimeout !== undefined)
       this._scrollHighlightTimeout = updates.scrollHighlightTimeout ?? 4000;
     if (updates.scrollHighlightClass !== undefined)
-      this._scrollHighlightClass = updates.scrollHighlightClass ?? 'ltree-scroll-highlight';
+      this._scrollHighlightClass = updates.scrollHighlightClass ?? 'wtv-scroll-highlight';
     if (updates.contextMenuXOffset !== undefined)
       this._contextMenuXOffset = updates.contextMenuXOffset ?? 8;
     if (updates.contextMenuYOffset !== undefined)
@@ -2270,7 +2327,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (typeof document !== 'undefined') {
       this._removeDocumentTouchListeners();
       this.removeGhostElement();
-      document.querySelectorAll('.ltree-touch-ghost').forEach(el => el.remove());
+      document.querySelectorAll('.wtv-touch-ghost').forEach(el => el.remove());
     }
     this._contextMenuCleanup?.();
     this._contextMenuCleanup = null;
@@ -2455,12 +2512,12 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       if (this._isDebugMenuActive) return;
       // When the click originates inside a Shadow DOM, `event.target` is
       // retargeted to the shadow host by the time the document listener
-      // fires, so `.closest('.ltree-context-menu')` won't find the menu even
+      // fires, so `.closest('.wtv-context-menu')` won't find the menu even
       // if the actual click landed on it. Walk the composed path instead so
       // the check sees the real chain through the shadow boundary.
       const path = event.composedPath();
       const insideMenu = path.some(
-        (n) => n instanceof Element && n.classList?.contains('ltree-context-menu')
+        (n) => n instanceof Element && n.classList?.contains('wtv-context-menu')
       );
       if (!insideMenu) {
         this.closeContextMenu();
@@ -2609,6 +2666,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       requestAnimationFrame(() => {
         // Esc-cancel can fire dragend before this rAF runs.
         if (!this._isDragInProgress) return;
+        // Snapshot the prior highlight so _onNodeDragEnd can restore it if
+        // the drag is Esc-cancelled. Without this, the user is left with
+        // the dragged node selected even though they cancelled the operation.
+        this._preDragHighlightSnapshot = new Set(this._highlightedPaths);
         this._clearHighlightFlags();
         node.isHighlighted = true;
         node._rev++;
@@ -2650,10 +2711,31 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   }
 
   _onNodeDragEnd = (event: DragEvent) => {
+    const dropEffect = event.dataTransfer?.dropEffect;
     dragLogger.debug('Drag ended', {
-      dropEffect: event.dataTransfer?.dropEffect,
+      dropEffect,
       operation: this._currentDropOperation
     });
+    // Esc-cancel / drop-on-invalid-target: restore the pre-drag highlight so
+    // the dragged node doesn't end up "stuck" selected. Mirrors svelte-treeview.
+    if (dropEffect === 'none' && this._preDragHighlightSnapshot) {
+      const prior = this._preDragHighlightSnapshot;
+      this._clearHighlightFlags();
+      this._highlightedPaths = new Set(prior);
+      for (const path of prior) {
+        const n = this.tree?.getNodeByPath(path);
+        if (n) {
+          n.isHighlighted = true;
+          n._rev++;
+        }
+      }
+      // When the snapshot was empty, focus also belonged to nobody — clear it.
+      if (prior.size === 0) this._focusedNode = null;
+      this._emitHighlightChange();
+      this._mirrorHighlightToSelected();
+      this.tree.refresh();
+    }
+    this._preDragHighlightSnapshot = null;
     this._resetDragState();
   };
 
@@ -2811,7 +2893,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (isValidDrop) {
       event.preventDefault();
       this._hoveredNodeForDrop = node;
-      const nodeElement = (event.target as Element).closest('.ltree-node-content');
+      const nodeElement = (event.target as Element).closest('.wtv-node-content');
       if (nodeElement) {
         this._activeDropPosition = this.calculateDropPosition(event, nodeElement);
       }
@@ -2999,8 +3081,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       const dropElement = document.elementFromPoint(touch.clientX, touch.clientY);
       const dropNode = this.findNodeFromElement(dropElement);
 
-      const emptyTarget = dropElement?.closest('.ltree-empty-state, .ltree-empty-zone');
-      const rootDropZone = dropElement?.closest('.ltree-root-drop-zone');
+      const emptyTarget = dropElement?.closest('.wtv-empty-state, .wtv-empty-zone');
+      const rootDropZone = dropElement?.closest('.wtv-root-drop-zone');
       if ((emptyTarget || rootDropZone) && !dropNode) {
         dragLogger.debug(`Touch drag ended: ${this._draggedNode.path} -> empty tree`);
         this._handleDrop(null, this._draggedNode, 'child', event);
@@ -3032,10 +3114,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   private createGhostElement(node: LTreeNode<any>, x: number, y: number) {
     this.removeGhostElement();
-    document.querySelectorAll('.ltree-touch-ghost').forEach(el => el.remove());
+    document.querySelectorAll('.wtv-touch-ghost').forEach(el => el.remove());
 
     const ghost = document.createElement('div');
-    ghost.className = 'ltree-touch-ghost';
+    ghost.className = 'wtv-touch-ghost';
     ghost.textContent = this.tree.getNodeDisplayValue(node);
     ghost.style.left = `${x}px`;
     ghost.style.top = `${y}px`;
@@ -3052,7 +3134,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   private findNodeFromElement(element: Element | null): LTreeNode<any> | null {
     if (!element) return null;
-    const nodeElement = element.closest('.ltree-node');
+    const nodeElement = element.closest('.wtv-node');
     if (!nodeElement) return null;
     const path = nodeElement.getAttribute('data-tree-path');
     if (!path) return null;
@@ -3064,12 +3146,12 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     if (this.touchDragState.currentDropTarget && this.touchDragState.currentDropTarget !== newTarget) {
       const prevElement = document.querySelector(
-        `[data-tree-path="${this.touchDragState.currentDropTarget.path}"] .ltree-node-content`
+        `[data-tree-path="${this.touchDragState.currentDropTarget.path}"] .wtv-node-content`
       );
-      prevElement?.classList.remove(this._dragOverNodeClass || 'ltree-dragover-highlight');
+      prevElement?.classList.remove(this._dragOverNodeClass || 'wtv-dragover-highlight');
     }
 
-    const emptyTarget = element?.closest('.ltree-empty-state, .ltree-empty-zone');
+    const emptyTarget = element?.closest('.wtv-empty-state, .wtv-empty-zone');
     if (emptyTarget && !newTarget) {
       this._isDropPlaceholderActive = true;
       this.touchDragState.currentDropTarget = null;
@@ -3081,9 +3163,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     if (newTarget && newTarget !== this._draggedNode && newTarget.isDropAllowed) {
       const targetElement = document.querySelector(
-        `[data-tree-path="${newTarget.path}"] .ltree-node-content`
+        `[data-tree-path="${newTarget.path}"] .wtv-node-content`
       );
-      targetElement?.classList.add(this._dragOverNodeClass || 'ltree-dragover-highlight');
+      targetElement?.classList.add(this._dragOverNodeClass || 'wtv-dragover-highlight');
       this.touchDragState.currentDropTarget = newTarget;
     } else {
       this.touchDragState.currentDropTarget = null;
@@ -3093,9 +3175,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private clearDropTargetHighlight() {
     if (this.touchDragState.currentDropTarget) {
       const element = document.querySelector(
-        `[data-tree-path="${this.touchDragState.currentDropTarget.path}"] .ltree-node-content`
+        `[data-tree-path="${this.touchDragState.currentDropTarget.path}"] .wtv-node-content`
       );
-      element?.classList.remove(this._dragOverNodeClass || 'ltree-dragover-highlight');
+      element?.classList.remove(this._dragOverNodeClass || 'wtv-dragover-highlight');
     }
   }
 

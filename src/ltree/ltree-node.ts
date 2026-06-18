@@ -65,7 +65,7 @@ export function createLTreeNode<T>(data?: Partial<LTreeNode<T>>): LTreeNode<T> {
 		isInsertAllowed: true,
 		isNestAllowed: true,
 		isCheckboxVisible: false,
-		visualState: VisualState.indeterminate,
+		visualState: VisualState.notSelected,
 		isExpanded: false,
 		isSelected: false,
 		isHighlighted: false,
