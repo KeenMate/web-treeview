@@ -209,11 +209,23 @@ export interface TreeViewConfig<T = any> {
 // ── Methods ────────────────────────────────────────────────────────────
 
 export interface TreeViewMethods<T = any> {
-  expandNodes(nodePath: string): void;
-  collapseNodes(nodePath: string): void;
+  expandNodes(
+    nodePath: string | string[],
+    options?: { exclusive?: boolean; noEmit?: boolean }
+  ): void;
+  collapseNodes(
+    nodePath: string | string[],
+    options?: { noEmit?: boolean }
+  ): void;
   toggleNodeExpanded(path: string): void;
-  expandAll(nodePath?: string | null): void;
-  collapseAll(nodePath?: string | null): void;
+  expandAll(
+    nodePath?: string | string[] | null,
+    options?: { exclusive?: boolean; noEmit?: boolean }
+  ): void;
+  collapseAll(
+    nodePath?: string | string[] | null,
+    options?: { noEmit?: boolean }
+  ): void;
   filterNodes(searchText: string): void;
   searchNodes(searchText: string | null): LTreeNode<T>[];
   scrollToPath(path: string, options?: ScrollToPathOptions): Promise<boolean>;

@@ -57,12 +57,18 @@ export class WebTreeView<T = any> {
     }
   }
 
-  expandNodes(nodePath: string): void {
-    this.controller.expandNodes(nodePath);
+  expandNodes(
+    nodePath: string | string[],
+    options?: { exclusive?: boolean; noEmit?: boolean }
+  ): void {
+    this.controller.expandNodes(nodePath, options);
   }
 
-  collapseNodes(nodePath: string): void {
-    this.controller.collapseNodes(nodePath);
+  collapseNodes(
+    nodePath: string | string[],
+    options?: { noEmit?: boolean }
+  ): void {
+    this.controller.collapseNodes(nodePath, options);
   }
 
   /** Toggle the expand state of a node as if the user had clicked its toggle
@@ -71,12 +77,18 @@ export class WebTreeView<T = any> {
     this.controller.toggleNodeExpanded(path);
   }
 
-  expandAll(nodePath?: string | null): void {
-    this.controller.expandAll(nodePath);
+  expandAll(
+    nodePath?: string | string[] | null,
+    options?: { exclusive?: boolean; noEmit?: boolean }
+  ): void {
+    this.controller.expandAll(nodePath, options);
   }
 
-  collapseAll(nodePath?: string | null): void {
-    this.controller.collapseAll(nodePath);
+  collapseAll(
+    nodePath?: string | string[] | null,
+    options?: { noEmit?: boolean }
+  ): void {
+    this.controller.collapseAll(nodePath, options);
   }
 
   filterNodes(searchText: string, searchOptions?: SearchOptions): void {

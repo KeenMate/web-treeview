@@ -666,12 +666,18 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   // ── Public API methods ──────────────────────────────────────────────
 
-  expandNodes(nodePath: string) {
-    this.tree.expandNodes(nodePath);
+  expandNodes(
+    nodePath: string | string[],
+    options?: { exclusive?: boolean; noEmit?: boolean }
+  ) {
+    this.tree.expandNodes(nodePath, options);
   }
 
-  collapseNodes(nodePath: string) {
-    this.tree.collapseNodes(nodePath);
+  collapseNodes(
+    nodePath: string | string[],
+    options?: { noEmit?: boolean }
+  ) {
+    this.tree.collapseNodes(nodePath, options);
   }
 
   /** Toggle expand/collapse for a node clicked via the toggle UI. Honors the
@@ -704,12 +710,18 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     else this.tree.collapseNodes(path);
   }
 
-  expandAll(nodePath?: string | null | undefined) {
-    this.tree?.expandAll(nodePath);
+  expandAll(
+    nodePath?: string | string[] | null | undefined,
+    options?: { exclusive?: boolean; noEmit?: boolean }
+  ) {
+    this.tree?.expandAll(nodePath, options);
   }
 
-  collapseAll(nodePath?: string | null | undefined) {
-    this.tree?.collapseAll(nodePath);
+  collapseAll(
+    nodePath?: string | string[] | null | undefined,
+    options?: { noEmit?: boolean }
+  ) {
+    this.tree?.collapseAll(nodePath, options);
   }
 
   filterNodes(searchTextVal: string, searchOptions?: SearchOptions): void {
