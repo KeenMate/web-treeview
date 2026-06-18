@@ -127,6 +127,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   // Visual config
   private _clickBehavior: import('./types').ClickBehavior = 'expand-and-focus';
+  private _accordionExpand: boolean = false;
   private _expandIconClass: string = 'ltree-icon-expand';
   private _collapseIconClass: string = 'ltree-icon-collapse';
   private _leafIconClass: string = 'ltree-icon-leaf';
@@ -317,6 +318,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   get clickBehavior() { return this._clickBehavior; }
   set clickBehavior(v: import('./types').ClickBehavior) { this._clickBehavior = v; this._updateNodeConfig(); }
+
+  get accordionExpand() { return this._accordionExpand; }
+  set accordionExpand(v: boolean) { this._accordionExpand = v; }
 
   get expandIconClass() { return this._expandIconClass; }
   set expandIconClass(v: string) { this._expandIconClass = v; this._updateNodeConfig(); }
@@ -526,6 +530,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._virtualContainerHeight = props.virtualContainerHeight;
 
     this._clickBehavior = props.clickBehavior ?? 'expand-and-focus';
+    this._accordionExpand = props.accordionExpand ?? false;
     this._expandIconClass = props.expandIconClass ?? 'ltree-icon-expand';
     this._collapseIconClass = props.collapseIconClass ?? 'ltree-icon-collapse';
     this._leafIconClass = props.leafIconClass ?? 'ltree-icon-leaf';
@@ -667,6 +672,36 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   collapseNodes(nodePath: string) {
     this.tree.collapseNodes(nodePath);
+  }
+
+  /** Toggle expand/collapse for a node clicked via the toggle UI. Honors the
+   *  `accordionExpand` config: when expanding under accordion mode, every
+   *  expanded sibling (whose `isCollapsible` allows it) is first collapsed
+   *  in a single batch. Programmatic `expandNodes` / `expandAll` callers
+   *  bypass the accordion. Mirrors svelte-treeview Node.svelte's
+   *  toggleExpanded() flow. */
+  toggleNodeExpanded(path: string): void {
+    const node = this.getNodeByPath(path);
+    if (!node || !node.hasChildren) return;
+    // svelte-treeview blocks the entire toggle (both directions) when
+    // a node is marked non-collapsible. Match that gate exactly so the
+    // two packages behave the same way.
+    if (!this.tree.getNodeIsCollapsible(node)) return;
+
+    const shouldExpand = !node.isExpanded;
+
+    if (shouldExpand && this._accordionExpand) {
+      const siblings = this.tree.getSiblings(path);
+      for (const sibling of siblings) {
+        if (sibling.path !== path && sibling.isExpanded && this.tree.getNodeIsCollapsible(sibling)) {
+          sibling.isExpanded = false;
+          (sibling as any)._rev = ((sibling as any)._rev || 0) + 1;
+        }
+      }
+    }
+
+    if (shouldExpand) this.tree.expandNodes(path);
+    else this.tree.collapseNodes(path);
   }
 
   expandAll(nodePath?: string | null | undefined) {
@@ -1694,6 +1729,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     if (updates.clickBehavior !== undefined)
       this._clickBehavior = updates.clickBehavior ?? 'expand-and-focus';
+    if (updates.accordionExpand !== undefined)
+      this._accordionExpand = updates.accordionExpand ?? false;
     if (updates.expandIconClass !== undefined)
       this._expandIconClass = updates.expandIconClass ?? 'ltree-icon-expand';
     if (updates.collapseIconClass !== undefined)

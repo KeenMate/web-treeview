@@ -159,6 +159,9 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       'expand-icon-class', 'collapse-icon-class', 'leaf-icon-class', 'toggle-icon-mode',
       'scroll-highlight-timeout', 'scroll-highlight-class',
 
+      // Behaviour
+      'accordion-expand',
+
       // Bindable
       'search-text',
 
@@ -934,6 +937,9 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
     const clickBehavior = this._clickBehavior ?? this.getAttribute('click-behavior') as import('./controller/types').ClickBehavior;
     if (clickBehavior === 'select' || clickBehavior === 'expand' || clickBehavior === 'expand-and-focus') config.clickBehavior = clickBehavior;
+
+    const accordionAttr = this.getAttribute('accordion-expand');
+    if (accordionAttr !== null) config.accordionExpand = accordionAttr !== 'false';
 
     const isSorted = this._isSorted ?? (this.getAttribute('is-sorted') !== null ? this.getAttribute('is-sorted') !== 'false' : undefined);
     if (isSorted !== undefined) config.isSorted = isSorted;

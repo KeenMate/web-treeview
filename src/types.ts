@@ -73,6 +73,11 @@ export interface TreeViewConfig<T = any> {
   expandLevel?: number | null;
   treePathSeparator?: string | null;
   clickBehavior?: ClickBehavior | null;
+  /** When true, expanding a node via the toggle UI auto-collapses its
+   *  siblings. Programmatic `expandNodes` / `expandAll` are unaffected.
+   *  Respects `isCollapsibleMember` / `getIsCollapsibleCallback`.
+   *  Mirrors svelte-treeview rc03. */
+  accordionExpand?: boolean | null;
   isSorted?: boolean | null;
 
   // Search
@@ -206,6 +211,7 @@ export interface TreeViewConfig<T = any> {
 export interface TreeViewMethods<T = any> {
   expandNodes(nodePath: string): void;
   collapseNodes(nodePath: string): void;
+  toggleNodeExpanded(path: string): void;
   expandAll(nodePath?: string | null): void;
   collapseAll(nodePath?: string | null): void;
   filterNodes(searchText: string): void;

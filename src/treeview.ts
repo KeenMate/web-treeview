@@ -65,6 +65,12 @@ export class WebTreeView<T = any> {
     this.controller.collapseNodes(nodePath);
   }
 
+  /** Toggle the expand state of a node as if the user had clicked its toggle
+   *  icon. Honors `accordionExpand`. */
+  toggleNodeExpanded(path: string): void {
+    this.controller.toggleNodeExpanded(path);
+  }
+
   expandAll(nodePath?: string | null): void {
     this.controller.expandAll(nodePath);
   }
@@ -295,6 +301,7 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     selectedNode: options.selectedNode,
 
     expandLevel: options.expandLevel,
+    accordionExpand: options.accordionExpand,
     clickBehavior: options.clickBehavior,
     searchText: options.searchText,
     shouldUseInternalSearchIndex: options.shouldUseInternalSearchIndex,

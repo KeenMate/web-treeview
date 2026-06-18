@@ -103,6 +103,11 @@ export interface TreeControllerConfig<T> {
 
   // BEHAVIOUR
   expandLevel?: number | null | undefined;
+  /** When true, expanding a node via the toggle UI auto-collapses its
+   *  siblings. Programmatic `expandNodes` / `expandAll` are NOT constrained.
+   *  Respects `isCollapsibleMember` / `getIsCollapsibleCallback`.
+   *  Mirrors svelte-treeview rc03. */
+  accordionExpand?: boolean | null | undefined;
   clickBehavior?: ClickBehavior | null | undefined;
   initializeIndexCallback?: () => Index;
   searchText?: string | null | undefined;
