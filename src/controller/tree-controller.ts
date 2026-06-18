@@ -105,6 +105,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _dragDropMode: DragDropMode = 'none';
   private _allowCopy: boolean = false;
   private _autoHandleCopy: boolean = true;
+  private _autoHandleMove: boolean = true;
 
   // Three-level selection model (rc06+)
   private _highlightedPaths: Set<string> = new Set();
@@ -353,6 +354,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   get autoHandleCopy() { return this._autoHandleCopy; }
   set autoHandleCopy(v: boolean) { this._autoHandleCopy = v; }
 
+  get autoHandleMove() { return this._autoHandleMove; }
+  set autoHandleMove(v: boolean) { this._autoHandleMove = v; }
+
   get clickBehavior() { return this._clickBehavior; }
   set clickBehavior(v: import('./types').ClickBehavior) { this._clickBehavior = v; this._updateNodeConfig(); }
 
@@ -565,6 +569,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._dragDropMode = props.dragDropMode ?? 'none';
     this._allowCopy = props.allowCopy ?? false;
     this._autoHandleCopy = props.autoHandleCopy ?? true;
+    this._autoHandleMove = props.autoHandleMove ?? true;
 
     this._virtualScroll = props.virtualScroll ?? false;
     this._virtualRowHeight = props.virtualRowHeight;
@@ -2090,6 +2095,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.allowCopy !== undefined) this._allowCopy = updates.allowCopy ?? false;
     if (updates.autoHandleCopy !== undefined)
       this._autoHandleCopy = updates.autoHandleCopy ?? true;
+    if (updates.autoHandleMove !== undefined)
+      this._autoHandleMove = updates.autoHandleMove ?? true;
     if (updates.dragDropMode !== undefined)
       this._dragDropMode = updates.dragDropMode ?? 'none';
     if (updates.scrollHighlightTimeout !== undefined)
@@ -2567,7 +2574,60 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._draggedNode = node;
     this._isDragInProgress = true;
     this.onNodeDragStartCb?.(node, event);
+
+    // OS-convention highlight sync: grabbing a node that isn't part of the
+    // current highlight set replaces the highlight with just that node.
+    // Mirrors Windows Explorer / macOS Finder — without it the prior
+    // highlight stays visible while the drag silently carries only the
+    // grabbed node, making it impossible to tell what's actually moving.
+    // Skipped when the node is already in the set (multi-drag) or when
+    // the node is unselectable.
+    // Deferred to rAF rather than running synchronously: a sync mutation
+    // of the source row before the browser commits the drag image causes
+    // the renderer's keyed update to drop the dragged element and the
+    // drag silently aborts. rAF runs after the drag is committed.
+    if (node.isSelectable && !this._highlightedPaths.has(node.path)) {
+      requestAnimationFrame(() => {
+        // Esc-cancel can fire dragend before this rAF runs.
+        if (!this._isDragInProgress) return;
+        this._clearHighlightFlags();
+        node.isHighlighted = true;
+        node._rev++;
+        this._highlightedPaths = new Set([node.path]);
+        this._lastHighlightedPath = node.path;
+        this._focusedNode = node;
+        this._emitHighlightChange();
+        this._mirrorHighlightToSelected();
+        this.tree.refresh();
+        this._scheduleNotify();
+      });
+    }
+
     this._scheduleNotify();
+  }
+
+  /** Pick out the "top-level highlighted" subset of `highlightedPaths`:
+   *  every path whose nearest highlighted ancestor is NOT in the set.
+   *  Descendants whose ancestor is also highlighted are absorbed — they
+   *  ride along inside the ancestor's subtree during multi-drag. */
+  private _getTopLevelHighlightedPaths(): string[] {
+    const paths = this._highlightedPaths;
+    if (paths.size === 0) return [];
+    const sep = this._treePathSeparator;
+    const result: string[] = [];
+    for (const p of paths) {
+      let cursor = p;
+      let absorbed = false;
+      while (cursor.includes(sep)) {
+        cursor = cursor.substring(0, cursor.lastIndexOf(sep));
+        if (paths.has(cursor)) {
+          absorbed = true;
+          break;
+        }
+      }
+      if (!absorbed) result.push(p);
+    }
+    return result;
   }
 
   _onNodeDragEnd = (event: DragEvent) => {
@@ -2621,10 +2681,60 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     }
 
     const isSameTreeDrag = draggedNodeRef.treeId === this._treeId;
-    if (isSameTreeDrag && operation === 'move' && dropNode) {
-      const result = this.moveNode(draggedNodeRef.path, dropNode.path, position);
+
+    // Multi-drag: when the dragged node is in a multi-highlight set, move
+    // every top-level highlighted subtree. First node uses the requested
+    // position; subsequent nodes chain `'after'` the previous so the whole
+    // set lands as siblings in source order. Mirrors svelte-treeview rc09.
+    const isMultiDrag =
+      isSameTreeDrag &&
+      operation === 'move' &&
+      dropNode &&
+      this._autoHandleMove &&
+      this._highlightedPaths.has(draggedNodeRef.path) &&
+      this._highlightedPaths.size > 1;
+
+    if (isMultiDrag) {
+      const topLevelPaths = this._getTopLevelHighlightedPaths()
+        .filter((p) => p !== dropNode!.path);
+      dragLogger.info(`Multi-drag: moving ${topLevelPaths.length} top-level subtree(s)`, {
+        topLevelPaths,
+        totalHighlighted: this._highlightedPaths.size,
+        dropTarget: dropNode!.path,
+        position
+      });
+      let allOk = true;
+      let prevMovedNode: LTreeNode<T> | null = null;
+      for (let i = 0; i < topLevelPaths.length; i++) {
+        const sourcePath = topLevelPaths[i];
+        const targetPath = i === 0 ? dropNode!.path : prevMovedNode!.path;
+        // web-treeview's DropPosition still uses the pre-rc02 names
+        // ('above' / 'below' / 'child'); 'below' is the equivalent of
+        // svelte-treeview's 'after' for the chain.
+        const pos: DropPosition = i === 0 ? position : 'below';
+        const sourceNode = this.tree?.getNodeByPath(sourcePath);
+        const r = this.moveNode(sourcePath, targetPath, pos);
+        if (!r.success) {
+          allOk = false;
+        } else if (sourceNode) {
+          // moveNode mutates the LTreeNode in place — its .path now reflects
+          // the new location, so we can use it as the next chain target.
+          prevMovedNode = sourceNode;
+        }
+      }
       this.onNodeDropCb?.(dropNode, draggedNodeRef, position, event, operation);
-      return result.success;
+      return allOk;
+    }
+
+    if (isSameTreeDrag && operation === 'move' && dropNode) {
+      if (this._autoHandleMove) {
+        const result = this.moveNode(draggedNodeRef.path, dropNode.path, position);
+        this.onNodeDropCb?.(dropNode, draggedNodeRef, position, event, operation);
+        return result.success;
+      }
+      // autoHandleMove=false: don't mutate the tree, just notify the consumer
+      this.onNodeDropCb?.(dropNode, draggedNodeRef, position, event, operation);
+      return true;
     }
 
     if (isSameTreeDrag && operation === 'copy' && dropNode && this._autoHandleCopy) {

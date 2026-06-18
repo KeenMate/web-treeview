@@ -150,6 +150,7 @@ export interface TreeControllerConfig<T> {
   dropZoneMaxWidth?: number;
   allowCopy?: boolean;
   autoHandleCopy?: boolean;
+  autoHandleMove?: boolean;
 
   // SELECTION MODEL (rc06+: focusedNode / highlightedPaths / selectedPaths)
   rangeSelectionMode?: RangeSelectionMode;

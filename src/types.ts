@@ -196,6 +196,10 @@ export interface TreeViewConfig<T = any> {
   dropZoneMaxWidth?: number;
   allowCopy?: boolean;
   autoHandleCopy?: boolean;
+  /** When `true` (default), drop operations with `move` semantics call
+   *  `moveNode` automatically. Set to `false` to receive the `onNodeDrop`
+   *  callback without mutating the tree (consumer handles the move). */
+  autoHandleMove?: boolean;
 
   // Event handlers
   onNodeClicked?: (node: LTreeNode<T>) => void;

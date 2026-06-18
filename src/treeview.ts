@@ -375,6 +375,7 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     dropZoneMaxWidth: options.dropZoneMaxWidth,
     allowCopy: options.allowCopy,
     autoHandleCopy: options.autoHandleCopy,
+    autoHandleMove: options.autoHandleMove,
 
     onNodeClicked: options.onNodeClicked,
     onNodeDragStart: options.onNodeDragStart,
