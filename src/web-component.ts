@@ -526,20 +526,32 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
   // ── Public methods (proxy to engine) ───────────────────────────────
 
-  expandAll(nodePath?: string | null): void {
-    this.treeview?.expandAll(nodePath);
+  expandAll(
+    nodePath?: string | string[] | null,
+    options?: { exclusive?: boolean; noEmit?: boolean }
+  ): void {
+    this.treeview?.expandAll(nodePath, options);
   }
 
-  collapseAll(nodePath?: string | null): void {
-    this.treeview?.collapseAll(nodePath);
+  collapseAll(
+    nodePath?: string | string[] | null,
+    options?: { noEmit?: boolean }
+  ): void {
+    this.treeview?.collapseAll(nodePath, options);
   }
 
-  expandNodes(nodePath: string): void {
-    this.treeview?.expandNodes(nodePath);
+  expandNodes(
+    nodePath: string | string[],
+    options?: { exclusive?: boolean; noEmit?: boolean }
+  ): void {
+    this.treeview?.expandNodes(nodePath, options);
   }
 
-  collapseNodes(nodePath: string): void {
-    this.treeview?.collapseNodes(nodePath);
+  collapseNodes(
+    nodePath: string | string[],
+    options?: { noEmit?: boolean }
+  ): void {
+    this.treeview?.collapseNodes(nodePath, options);
   }
 
   filterNodes(searchText: string): void {
@@ -632,18 +644,50 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     return this.treeview?.deleteBranch(path, keepParent) ?? { success: false, count: 0, error: 'Not initialized' };
   }
 
-  // ── Multi-select ──────────────────────────────────────────────────
+  // ── Highlight (focus + multi-select) ──────────────────────────────
 
+  highlightNode(
+    path: string,
+    mode: 'replace' | 'toggle' | 'range' = 'replace',
+    options?: { silent?: boolean }
+  ): void {
+    this.treeview?.highlightNode(path, mode, options);
+  }
+
+  highlightNodes(paths: string[], options?: { silent?: boolean }): void {
+    this.treeview?.highlightNodes(paths, options);
+  }
+
+  clearHighlight(options?: { silent?: boolean }): void {
+    this.treeview?.clearHighlight(options);
+  }
+
+  getHighlightedNodes(): LTreeNode<T>[] {
+    return this.treeview?.getHighlightedNodes() ?? [];
+  }
+
+  getHighlightedPaths(): Set<string> {
+    return this.treeview?.getHighlightedPaths() ?? new Set();
+  }
+
+  isNodeHighlighted(path: string): boolean {
+    return this.treeview?.isNodeHighlighted(path) ?? false;
+  }
+
+  // ── Selection (checkbox data state; deprecated highlight aliases) ─
+
+  /** @deprecated Use highlightNode (rc03 split focus vs checkbox state). */
   selectNode(path: string, modifiers?: SelectionModifiers): void {
     this.treeview?.selectNode(path, modifiers);
   }
 
+  /** @deprecated Use highlightNodes. */
   selectNodes(paths: string[]): void {
     this.treeview?.selectNodes(paths);
   }
 
-  deselectAll(): void {
-    this.treeview?.deselectAll();
+  deselectAll(options?: { silent?: boolean }): void {
+    this.treeview?.deselectAll(options);
   }
 
   getSelectedNodes(): LTreeNode<T>[] {
@@ -660,6 +704,19 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
   selectAll(): void {
     this.treeview?.selectAll();
+  }
+
+  // ── Expand toggle (honors accordionExpand) ────────────────────────
+
+  toggleNodeExpanded(path: string): void {
+    this.treeview?.toggleNodeExpanded(path);
+  }
+
+  // ── Insert diagnostics ────────────────────────────────────────────
+
+  /** Result of the most recent insertArray (successful / failed / failedDetails). */
+  getInsertResult() {
+    return this.treeview?.getInsertResult();
   }
 
   // ── Navigation ────────────────────────────────────────────────────
@@ -836,16 +893,38 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       }));
     };
 
+    // Wire highlight-change / selection-change through the controller's
+    // callbacks (not state-change snapshot diff), so the `silent: true`
+    // option on highlightNode / clearHighlight / deselectAll suppresses the
+    // DOM event the same way it suppresses the user callback.
+    const userOnHighlightChange = config.onHighlightChange;
+    config.onHighlightChange = (highlightedPaths, highlightedNodes) => {
+      userOnHighlightChange?.(highlightedPaths, highlightedNodes);
+      this.dispatchEvent(new CustomEvent('highlight-change', {
+        bubbles: true,
+        composed: true,
+        detail: { highlightedPaths, highlightedNodes }
+      }));
+    };
+
+    const userOnSelectionChange = config.onSelectionChange;
+    config.onSelectionChange = (selectedNodes, selectedPaths) => {
+      userOnSelectionChange?.(selectedNodes, selectedPaths);
+      this.dispatchEvent(new CustomEvent('selection-change', {
+        bubbles: true,
+        composed: true,
+        detail: { selectedNodes, selectedPaths }
+      }));
+    };
+
     this.treeview = new WebTreeView<T>(this.containerElement, config, this._renderer);
 
     const ctrl = this.treeview.getController();
 
-    // Dispatch tree-changed, selected-node-changed, and selection-change from controller state changes
+    // State-change still drives the bulk `tree-changed` event and the
+    // `focused-node-changed` event (which has no silent option yet).
     let prevFocusedPath: string | null = null;
-    let prevHighlightedPaths: string = '';
-    let prevSelectedPaths: string = '';
-    const controller = ctrl;
-    controller.on('state-change', (snapshot) => {
+    ctrl.on('state-change', (snapshot) => {
       this.dispatchEvent(new CustomEvent('tree-changed', {
         bubbles: true,
         composed: true
@@ -858,34 +937,6 @@ export class WebTreeViewElement<T = any> extends BaseElement {
           bubbles: true,
           composed: true,
           detail: { focusedNode: snapshot.focusedNode ?? null }
-        }));
-      }
-
-      // Dispatch highlight-change when the highlight set changes (Ctrl/Shift+click).
-      const currentHighlightedPaths = [...snapshot.highlightedPaths].sort().join(',');
-      if (currentHighlightedPaths !== prevHighlightedPaths) {
-        prevHighlightedPaths = currentHighlightedPaths;
-        this.dispatchEvent(new CustomEvent('highlight-change', {
-          bubbles: true,
-          composed: true,
-          detail: {
-            highlightedNodes: controller.getHighlightedNodes(),
-            highlightedPaths: new Set(snapshot.highlightedPaths)
-          }
-        }));
-      }
-
-      // Dispatch selection-change when the checkbox-style selection set changes.
-      const currentSelectedPaths = [...snapshot.selectedPaths].sort().join(',');
-      if (currentSelectedPaths !== prevSelectedPaths) {
-        prevSelectedPaths = currentSelectedPaths;
-        this.dispatchEvent(new CustomEvent('selection-change', {
-          bubbles: true,
-          composed: true,
-          detail: {
-            selectedNodes: controller.getSelectedNodes(),
-            selectedPaths: new Set(snapshot.selectedPaths)
-          }
         }));
       }
     });
