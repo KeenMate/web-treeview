@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [2.0.0-rc03] - unreleased
+## [2.0.0-rc03] - 2026-06-18 (unpublished)
 
 Catch-up release pulling forward the features `@keenmate/svelte-treeview` shipped from `5.0.0-rc05` through `5.0.0-rc10` so the two packages expose the same surface again. Public API parity is the goal — prop names, method signatures, callback shapes, CSS class names, and event semantics mirror the Svelte side. The CSS variable prefix stays `--tv-*` (matching `--ms-*` / `--drp-*` in the sibling KeenMate components).
 
