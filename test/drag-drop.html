@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Drag Drop Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; max-width: 900px; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        h2 { margin: 0 0 0.5rem; font-size: 1rem; }
+        .card { border: 1px solid #ccc; padding: 0.75rem; margin-bottom: 0.75rem; border-radius: 4px; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; max-width: 520px; }
+        .readouts { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; margin-top: 0.5rem; font-family: monospace; font-size: 0.85rem; }
+        .readouts dt { font-weight: 600; }
+        .readouts dd { margin: 0; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Drag Drop Fixture</h1>
+
+        <!-- Section 1: Single-tree drag -->
+        <div class="card" data-testid="section-single">
+            <h2>Single-tree drag</h2>
+            <div class="tree-container">
+                <web-treeview id="tree-single" expand-level="3" drag-drop-mode="both"></web-treeview>
+            </div>
+            <dl class="readouts">
+                <dt>drop-count</dt><dd data-testid="single-drop-count">0</dd>
+                <dt>dragged</dt><dd data-testid="single-drop-dragged"></dd>
+                <dt>target</dt><dd data-testid="single-drop-target"></dd>
+                <dt>operation</dt><dd data-testid="single-drop-operation"></dd>
+                <dt>position</dt><dd data-testid="single-drop-position"></dd>
+            </dl>
+        </div>
+
+        <!-- Section 3: restricted via allowedDropPositionsMember -->
+        <div class="card" data-testid="section-restricted-member">
+            <h2>allowedDropPositionsMember</h2>
+            <div class="tree-container">
+                <web-treeview id="tree-r-member"
+                    expand-level="2"
+                    drag-drop-mode="both"
+                    allowed-drop-positions-member="allowedPositions"></web-treeview>
+            </div>
+            <dl class="readouts">
+                <dt>drop-count</dt><dd data-testid="r-member-drop-count">0</dd>
+                <dt>target</dt><dd data-testid="r-member-drop-target"></dd>
+                <dt>position</dt><dd data-testid="r-member-drop-position"></dd>
+                <dt>hint(1)</dt><dd data-testid="r-member-hint-1">[child]</dd>
+                <dt>hint(3)</dt><dd data-testid="r-member-hint-3">[before|after]</dd>
+            </dl>
+        </div>
+
+        <!-- Section 4: restricted via callback -->
+        <div class="card" data-testid="section-restricted-callback">
+            <h2>getAllowedDropPositionsCallback</h2>
+            <div class="tree-container">
+                <web-treeview id="tree-r-callback" expand-level="2" drag-drop-mode="both"></web-treeview>
+            </div>
+            <dl class="readouts">
+                <dt>drop-count</dt><dd data-testid="r-callback-drop-count">0</dd>
+                <dt>target</dt><dd data-testid="r-callback-drop-target"></dd>
+                <dt>position</dt><dd data-testid="r-callback-drop-position"></dd>
+            </dl>
+        </div>
+
+        <!-- Section 6: multi-drag -->
+        <div class="card" data-testid="section-multi">
+            <h2>Multi-drag (selectionMode='multi')</h2>
+            <div class="tree-container">
+                <web-treeview id="tree-multi"
+                    expand-level="3"
+                    drag-drop-mode="both"
+                    selection-mode="multi"
+                    click-behavior="select"
+                    use-flat-rendering="true"></web-treeview>
+            </div>
+            <dl class="readouts">
+                <dt>highlighted-size</dt><dd data-testid="multi-highlighted-size">0</dd>
+                <dt>drop-count</dt><dd data-testid="multi-drop-count">0</dd>
+                <dt>dragged</dt><dd data-testid="multi-drop-dragged"></dd>
+            </dl>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const singleData = [
+            { id: 1, path: '1', name: 'Alpha', sortOrder: 10 },
+            { id: 2, path: '1.1', name: 'Alpha-1', sortOrder: 10 },
+            { id: 3, path: '1.2', name: 'Alpha-2', sortOrder: 20 },
+            { id: 4, path: '2', name: 'Beta', sortOrder: 20 },
+            { id: 5, path: '2.1', name: 'Beta-1', sortOrder: 10 }
+        ];
+
+        const restrictedMemberData = [
+            { id: 1, path: '1', name: 'TrashChildOnly', sortOrder: 10, allowedPositions: ['child'] },
+            { id: 2, path: '2', name: 'AnyTarget', sortOrder: 20 },
+            { id: 3, path: '3', name: 'BeforeAfterOnly', sortOrder: 30, allowedPositions: ['before', 'after'] },
+            { id: 4, path: '4', name: 'Source', sortOrder: 40 }
+        ];
+
+        const restrictedCallbackData = [
+            { id: 31, path: '1', name: 'OddBeforeOnly-31', sortOrder: 10 },
+            { id: 32, path: '2', name: 'EvenChildOnly-32', sortOrder: 20 },
+            { id: 33, path: '3', name: 'OddBeforeOnly-33', sortOrder: 30 },
+            { id: 4, path: '4', name: 'Source', sortOrder: 40 }
+        ];
+
+        const multiData = [
+            { id: 1, path: '1', name: 'Multi-A', sortOrder: 10 },
+            { id: 11, path: '1.1', name: 'A-1', sortOrder: 10 },
+            { id: 12, path: '1.2', name: 'A-2', sortOrder: 20 },
+            { id: 2, path: '2', name: 'Multi-B', sortOrder: 20 },
+            { id: 3, path: '3', name: 'Multi-C', sortOrder: 30 },
+            { id: 4, path: '4', name: 'Multi-D', sortOrder: 40 }
+        ];
+
+        const sortByOrder = (items) =>
+            [...items].sort((a, b) => {
+                if (a.parentPath !== b.parentPath) return (a.parentPath || '').localeCompare(b.parentPath || '');
+                return (a.data?.sortOrder ?? 0) - (b.data?.sortOrder ?? 0);
+            });
+
+        function setText(id, text) {
+            const el = document.querySelector(`[data-testid="${id}"]`);
+            if (el) el.textContent = text;
+        }
+
+        const counters = { single: 0, rMember: 0, rCallback: 0, multi: 0 };
+
+        function wireDrop(tree, prefix, counterKey) {
+            tree.onNodeDrop = (dropNode, draggedNode, position, _event, operation) => {
+                counters[counterKey]++;
+                setText(`${prefix}-drop-count`, String(counters[counterKey]));
+                setText(`${prefix}-drop-dragged`, draggedNode?.data?.name ?? '');
+                setText(`${prefix}-drop-target`, dropNode?.data?.name ?? '');
+                setText(`${prefix}-drop-operation`, operation ?? '');
+                setText(`${prefix}-drop-position`, position ?? '');
+            };
+        }
+
+        customElements.whenDefined('web-treeview').then(() => {
+            // ── Section 1 ──
+            const single = document.getElementById('tree-single');
+            single.idMember = 'id';
+            single.pathMember = 'path';
+            single.displayValueMember = 'name';
+            single.sortCallback = sortByOrder;
+            single.isSorted = true;
+            wireDrop(single, 'single', 'single');
+            single.data = singleData;
+
+            // ── Section 3 ──
+            const rMember = document.getElementById('tree-r-member');
+            rMember.idMember = 'id';
+            rMember.pathMember = 'path';
+            rMember.displayValueMember = 'name';
+            rMember.sortCallback = sortByOrder;
+            rMember.isSorted = true;
+            wireDrop(rMember, 'r-member', 'rMember');
+            rMember.data = restrictedMemberData;
+
+            // ── Section 4 ──
+            const rCallback = document.getElementById('tree-r-callback');
+            rCallback.idMember = 'id';
+            rCallback.pathMember = 'path';
+            rCallback.displayValueMember = 'name';
+            rCallback.sortCallback = sortByOrder;
+            rCallback.isSorted = true;
+            rCallback.getAllowedDropPositionsCallback = (node) => {
+                const id = node.data?.id ?? 0;
+                if (id === 4) return null; // source can land anywhere
+                return id % 2 === 0 ? ['child'] : ['before'];
+            };
+            wireDrop(rCallback, 'r-callback', 'rCallback');
+            rCallback.data = restrictedCallbackData;
+
+            // ── Section 6 ──
+            const multi = document.getElementById('tree-multi');
+            multi.idMember = 'id';
+            multi.pathMember = 'path';
+            multi.displayValueMember = 'name';
+            multi.renderNodeCallback = (node, container) => {
+                container.innerHTML = '';
+                const span = document.createElement('span');
+                span.setAttribute('data-testid', `multi-node-${node.data?.id}`);
+                span.textContent = node.data?.name ?? '';
+                container.appendChild(span);
+            };
+            multi.sortCallback = sortByOrder;
+            multi.isSorted = true;
+            wireDrop(multi, 'multi', 'multi');
+            multi.addEventListener('highlight-change', (e) => {
+                setText('multi-highlighted-size', String(e.detail.highlightedPaths.size));
+            });
+            multi.data = multiData;
+        });
+    </script>
+</body>
+</html>

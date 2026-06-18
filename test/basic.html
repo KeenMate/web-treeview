@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Basic Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        h2 { margin: 0 0 0.5rem; font-size: 1rem; }
+        .card { border: 1px solid #ccc; padding: 0.75rem; margin-bottom: 0.75rem; border-radius: 4px; }
+        .controls { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap; font-size: 0.85rem; }
+        .controls input[type='number'] { width: 60px; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; min-height: 80px; max-width: 520px; }
+        .output { margin-top: 0.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 0.5rem; }
+        .output-label { margin: 0 0 0.25rem; font-size: 0.8rem; font-weight: 600; }
+        .output pre { margin: 0; font-size: 0.8rem; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Basic Test Fixture</h1>
+
+        <div class="card">
+            <h2>Simple Tree</h2>
+            <div class="tree-container">
+                <web-treeview id="tree-simple" expand-level="2"></web-treeview>
+            </div>
+
+            <div class="output" id="simple-focused" hidden>
+                <p class="output-label">Selected Node</p>
+                <pre></pre>
+            </div>
+
+            <div class="output" id="simple-clicked" hidden>
+                <p class="output-label">Last Clicked</p>
+                <pre></pre>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Expand Controls</h2>
+            <div class="controls">
+                <label>
+                    Expand Level:
+                    <input type="number" id="ctrl-expand-level" min="0" max="5" value="2">
+                </label>
+                <label>
+                    <input type="checkbox" id="ctrl-accordion-expand">
+                    Accordion Expand
+                </label>
+            </div>
+
+            <div class="tree-container">
+                <web-treeview id="tree-expand-controls" expand-level="2"></web-treeview>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Scroll to Path</h2>
+            <div class="controls">
+                <input type="text" id="scroll-path-input" value="1.2.1" placeholder="Enter path">
+                <button id="scroll-btn">Scroll to Path</button>
+            </div>
+
+            <div class="tree-container">
+                <web-treeview id="tree-scroll" expand-level="3"></web-treeview>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Programmatic Expand/Collapse</h2>
+            <div class="controls">
+                <button id="prog-expand-all">Expand All</button>
+                <button id="prog-collapse-all">Collapse All</button>
+                <button id="prog-expand-docs">Expand "Documents" (1)</button>
+                <button id="prog-collapse-docs">Collapse "Documents" (1)</button>
+            </div>
+
+            <div class="tree-container">
+                <web-treeview id="tree-prog" expand-level="1"></web-treeview>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const sampleData = [
+            { id: 1, path: '1', name: 'Documents' },
+            { id: 2, path: '1.1', name: 'Work' },
+            { id: 3, path: '1.1.1', name: 'Reports' },
+            { id: 4, path: '1.1.2', name: 'Presentations' },
+            { id: 5, path: '1.2', name: 'Personal' },
+            { id: 6, path: '1.2.1', name: 'Photos' },
+            { id: 7, path: '1.2.2', name: 'Music' },
+            { id: 8, path: '2', name: 'Downloads' },
+            { id: 9, path: '2.1', name: 'Software' },
+            { id: 10, path: '2.2', name: 'Media' },
+            { id: 11, path: '3', name: 'Projects' },
+            { id: 12, path: '3.1', name: 'Web App' },
+            { id: 13, path: '3.1.1', name: 'Frontend' },
+            { id: 14, path: '3.1.2', name: 'Backend' },
+            { id: 15, path: '3.2', name: 'Mobile App' }
+        ];
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        function configure(tree) {
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByName;
+            tree.isSorted = true;
+            tree.data = sampleData;
+        }
+
+        function show(el, text) {
+            el.hidden = false;
+            el.querySelector('pre').textContent = text;
+        }
+
+        customElements.whenDefined('web-treeview').then(() => {
+            // ── Card 1: Simple Tree ──
+            const simple = document.getElementById('tree-simple');
+            configure(simple);
+
+            const focusedOut = document.getElementById('simple-focused');
+            const clickedOut = document.getElementById('simple-clicked');
+
+            simple.addEventListener('focused-node-changed', (e) => {
+                const node = e.detail.focusedNode;
+                if (!node) { focusedOut.hidden = true; return; }
+                show(focusedOut, JSON.stringify({ path: node.path, name: node.data?.name }, null, 2));
+            });
+
+            simple.addEventListener('node-clicked', (e) => {
+                const node = e.detail.node;
+                show(clickedOut, `${node.data?.name} (path: ${node.path})`);
+            });
+
+            // ── Card 2: Expand Controls ──
+            const expandControls = document.getElementById('tree-expand-controls');
+            configure(expandControls);
+
+            const levelInput = document.getElementById('ctrl-expand-level');
+            const accordionInput = document.getElementById('ctrl-accordion-expand');
+            levelInput.addEventListener('input', () => {
+                const level = parseInt(levelInput.value, 10);
+                if (Number.isNaN(level)) return;
+                // Re-seed expansion from the new level — collapse everything,
+                // then apply new expandLevel and re-feed the data so the seed
+                // walk runs against the new level.
+                expandControls.collapseAll();
+                expandControls.expandLevel = level;
+                expandControls.data = sampleData;
+            });
+            accordionInput.addEventListener('change', () => {
+                if (accordionInput.checked) {
+                    expandControls.setAttribute('accordion-expand', 'true');
+                } else {
+                    expandControls.removeAttribute('accordion-expand');
+                }
+            });
+
+            // ── Card 3: Scroll to Path ──
+            const scroll = document.getElementById('tree-scroll');
+            configure(scroll);
+
+            const pathInput = document.getElementById('scroll-path-input');
+            document.getElementById('scroll-btn').addEventListener('click', () => {
+                scroll.scrollToPath(pathInput.value, { scrollOptions: { behavior: 'smooth', block: 'center' } });
+            });
+
+            // ── Card 4: Programmatic Expand/Collapse ──
+            const prog = document.getElementById('tree-prog');
+            configure(prog);
+
+            document.getElementById('prog-expand-all').addEventListener('click', () => prog.expandAll());
+            document.getElementById('prog-collapse-all').addEventListener('click', () => prog.collapseAll());
+            document.getElementById('prog-expand-docs').addEventListener('click', () => prog.expandNodes('1'));
+            document.getElementById('prog-collapse-docs').addEventListener('click', () => prog.collapseNodes('1'));
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Keyboard Navigation Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; max-width: 520px; }
+        .readouts { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; margin-top: 0.75rem; font-family: monospace; font-size: 0.9rem; }
+        .readouts dt { font-weight: 600; }
+        .readouts dd { margin: 0; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Keyboard Navigation Fixture</h1>
+
+        <div class="tree-container">
+            <web-treeview id="tree" expand-level="3" selection-mode="multi" click-behavior="select"></web-treeview>
+        </div>
+
+        <dl class="readouts">
+            <dt>focused-path:</dt>
+            <dd><span data-testid="focused-path"></span></dd>
+            <dt>highlighted-size:</dt>
+            <dd><span data-testid="highlighted-size">0</span></dd>
+            <dt>highlighted-sorted:</dt>
+            <dd><span data-testid="highlighted-sorted"></span></dd>
+        </dl>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const sampleData = [
+            { id: 1, path: '1', name: 'Root-A' },
+            { id: 11, path: '1.1', name: 'A-1' },
+            { id: 111, path: '1.1.1', name: 'A-1-x' },
+            { id: 112, path: '1.1.2', name: 'A-1-y' },
+            { id: 12, path: '1.2', name: 'A-2' },
+            { id: 121, path: '1.2.1', name: 'A-2-x' },
+            { id: 122, path: '1.2.2', name: 'A-2-y' },
+            { id: 13, path: '1.3', name: 'A-3' },
+            { id: 2, path: '2', name: 'Root-B' },
+            { id: 21, path: '2.1', name: 'B-1' },
+            { id: 211, path: '2.1.1', name: 'B-1-x' },
+            { id: 212, path: '2.1.2', name: 'B-1-y' },
+            { id: 22, path: '2.2', name: 'B-2' },
+            { id: 3, path: '3', name: 'Root-C' },
+            { id: 31, path: '3.1', name: 'C-1' },
+            { id: 32, path: '3.2', name: 'C-2' },
+            { id: 4, path: '4', name: 'Root-D' },
+            { id: 5, path: '5', name: 'Root-E' }
+        ];
+
+        // Path-order sort keeps the visible flat list deterministic and matches
+        // the index table in the spec.
+        const sortByPath = (items) =>
+            [...items].sort((a, b) => a.path.localeCompare(b.path));
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByPath;
+            tree.isSorted = true;
+            tree.data = sampleData;
+
+            const focusedEl = document.querySelector('[data-testid="focused-path"]');
+            const sizeEl = document.querySelector('[data-testid="highlighted-size"]');
+            const sortedEl = document.querySelector('[data-testid="highlighted-sorted"]');
+
+            tree.addEventListener('focused-node-changed', (e) => {
+                focusedEl.textContent = e.detail.focusedNode?.path ?? '';
+            });
+
+            tree.addEventListener('highlight-change', (e) => {
+                const paths = [...e.detail.highlightedPaths].sort();
+                sizeEl.textContent = String(paths.length);
+                sortedEl.textContent = paths.join(',');
+            });
+        });
+    </script>
+</body>
+</html>

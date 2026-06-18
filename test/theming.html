@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Theming Scenarios</title>
+    <style>
+        main { max-width: 1400px; margin: 0 auto; padding: 1.5rem; font-family: system-ui, sans-serif; }
+        h1 { margin: 0 0 0.5rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
+        .card { border: 1px solid #ccc; border-radius: 6px; padding: 0.75rem; }
+        .card h2 { margin: 0 0 0.25rem; font-size: 1rem; }
+        .card p { margin: 0 0 0.75rem; font-size: 0.85rem; color: #555; }
+        .wrapper { padding: 0.75rem; border-radius: 6px; }
+
+        /* Brand theme using light-dark() — set on the wrapper, inherits through
+           Shadow DOM via CSS variable cascade. Used by scenarios 4 (page color-scheme)
+           and 5 (OS color-scheme). Light mode = RED, dark mode = GREEN. */
+        .wrapper.brand-debug {
+            --base-main-bg: light-dark(#dc2626, #16a34a);
+            --base-text-color-1: #ffffff;
+            --base-border-color: light-dark(#000000, #ffffff);
+        }
+
+        /* OS-preference fallback: light-dark() only flips when color-scheme is
+           declared, so add an explicit @media block for the OS test. */
+        @media (prefers-color-scheme: dark) {
+            .wrapper.brand-debug {
+                --base-main-bg: #16a34a;
+                --base-border-color: #ffffff;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Theming Scenarios</h1>
+
+        <div class="grid">
+            <!-- 1. No signal, library defaults -->
+            <div class="card" data-scenario="baseline-light">
+                <h2>1. No signal (baseline light)</h2>
+                <p>No prop, no brand theme. Expected: <strong>white</strong>.</p>
+                <div class="wrapper">
+                    <web-treeview id="tree-1" expand-level="2"></web-treeview>
+                </div>
+            </div>
+
+            <!-- 2. Per-instance theme="dark" -->
+            <div class="card" data-scenario="per-instance-dark">
+                <h2>2. Per-instance <code>theme="dark"</code></h2>
+                <p>Forwarded as <code>data-theme="dark"</code>. Expected: <strong>library dark default</strong>.</p>
+                <div class="wrapper">
+                    <web-treeview id="tree-2" expand-level="2" theme="dark"></web-treeview>
+                </div>
+            </div>
+
+            <!-- 3. Per-instance theme="light" -->
+            <div class="card" data-scenario="per-instance-light">
+                <h2>3. Per-instance <code>theme="light"</code></h2>
+                <p>Forwarded as <code>data-theme="light"</code>. Expected: <strong>white</strong>.</p>
+                <div class="wrapper">
+                    <web-treeview id="tree-3" expand-level="2" theme="light"></web-treeview>
+                </div>
+            </div>
+
+            <!-- 4. Brand theme with light-dark() — page color-scheme drives the flip -->
+            <div class="card" data-scenario="brand-debug">
+                <h2>4. Brand theme (<code>light-dark()</code>)</h2>
+                <p>Wrapper sets <code>--base-main-bg: light-dark(red, green)</code>. Light page = RED, dark page = GREEN.</p>
+                <div class="wrapper brand-debug">
+                    <web-treeview id="tree-4" expand-level="2"></web-treeview>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const sampleData = [
+            { id: 1, path: '1', name: 'Documents' },
+            { id: 2, path: '1.1', name: 'Work' },
+            { id: 3, path: '1.2', name: 'Personal' },
+            { id: 4, path: '2', name: 'Downloads' }
+        ];
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        customElements.whenDefined('web-treeview').then(() => {
+            for (const id of ['tree-1', 'tree-2', 'tree-3', 'tree-4']) {
+                const t = document.getElementById(id);
+                t.idMember = 'id';
+                t.pathMember = 'path';
+                t.displayValueMember = 'name';
+                t.sortCallback = sortByName;
+                t.isSorted = true;
+                t.data = sampleData;
+            }
+        });
+    </script>
+</body>
+</html>

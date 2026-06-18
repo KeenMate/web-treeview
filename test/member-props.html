@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Member Props Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; max-width: 720px; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; max-width: 520px; }
+        .readouts { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; margin-top: 0.75rem; font-family: monospace; font-size: 0.85rem; }
+        .readouts dt { font-weight: 600; }
+        .readouts dd { margin: 0; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Member Props Fixture</h1>
+
+        <div class="tree-container">
+            <web-treeview id="tree"
+                expand-level="2"
+                show-checkboxes="true"
+                checkbox-mode="independent"
+                is-selectable-member="selectable"
+                is-selected-member="selected"></web-treeview>
+        </div>
+
+        <dl class="readouts">
+            <dt>selected-paths-count:</dt>
+            <dd data-testid="selected-paths-count">0</dd>
+            <dt>selected-paths-list:</dt>
+            <dd data-testid="selected-paths-list"></dd>
+        </dl>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const data = [
+            { id: 1, path: '1', name: 'Documents',  selectable: true,  selected: false },
+            { id: 2, path: '1.1', name: 'Work',     selectable: true,  selected: true  },
+            { id: 3, path: '1.2', name: 'Locked',   selectable: false, selected: false },
+            { id: 4, path: '1.3', name: 'Pinned',   selectable: false, selected: true  },
+            { id: 5, path: '2', name: 'Music',      selectable: true,  selected: true  },
+            { id: 6, path: '2.1', name: 'Playlists',selectable: true,  selected: false }
+        ];
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByName;
+            tree.isSorted = true;
+            tree.data = data;
+
+            const countEl = document.querySelector('[data-testid="selected-paths-count"]');
+            const listEl = document.querySelector('[data-testid="selected-paths-list"]');
+
+            function refresh() {
+                const paths = [...tree.getSelectedPaths()].sort();
+                countEl.textContent = String(paths.length);
+                listEl.textContent = paths.join(',');
+            }
+
+            tree.addEventListener('selection-change', refresh);
+            // Initial seed from isSelectedMember is set during construction;
+            // emit a synthetic refresh on first frame so the initial readout matches.
+            requestAnimationFrame(refresh);
+        });
+    </script>
+</body>
+</html>

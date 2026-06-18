@@ -1,9 +1,9 @@
 SHELL := /bin/bash
-.PHONY: help setup dev build package publish publish-dry clean clean-dist preview lint test check-version update-deps install-dev
+.PHONY: help setup dev build package publish publish-dry clean clean-dist preview lint test test-e2e test-e2e-ui test-e2e-headed test-e2e-install check-version update-deps install-dev
 
 help: ## Show this help message
 	@echo "Available targets:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-18s %s\n", $$1, $$2}'
 
 setup: ## Install dependencies and prepare project
 	@echo "Installing dependencies..."
@@ -55,9 +55,19 @@ lint: ## Run linter (if configured)
 	@echo "Linting is not configured yet"
 	@echo "Consider adding ESLint in the future"
 
-test: ## Run tests (if configured)
-	@echo "Tests are not configured yet"
-	@echo "Consider adding tests in the future"
+test: test-e2e ## Run all tests (alias for test-e2e)
+
+test-e2e: ## Run Playwright e2e tests (headless)
+	npm run test:e2e
+
+test-e2e-ui: ## Open Playwright Test UI for debugging
+	npm run test:e2e:ui
+
+test-e2e-headed: ## Run Playwright e2e tests with visible browser
+	npm run test:e2e:headed
+
+test-e2e-install: ## Download Chromium browser binary (one-time setup)
+	npm run test:e2e:install
 
 check-version: ## Show current package version
 	@echo "Current version:"

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Search Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; max-width: 720px; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        .search-bar { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .search-bar input { flex: 1; padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+        .search-counter { font-family: monospace; font-size: 0.85rem; min-width: 3.5rem; text-align: right; }
+        .search-counter.no-results { color: #b91c1c; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Search Fixture</h1>
+
+        <div class="search-bar">
+            <input class="search-input" type="text" placeholder="Type to filter…" data-testid="search-input">
+            <button class="clear-btn" title="Clear (Esc)" data-testid="clear-btn">×</button>
+            <span class="search-counter" data-testid="search-counter" hidden></span>
+        </div>
+
+        <div class="tree-container">
+            <web-treeview id="tree" expand-level="2" should-use-internal-search-index="true"></web-treeview>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const data = [
+            { id: 1, path: '1', name: 'United States' },
+            { id: 11, path: '1.1', name: 'New York' },
+            { id: 12, path: '1.2', name: 'Los Angeles' },
+            { id: 2, path: '2', name: 'United Kingdom' },
+            { id: 21, path: '2.1', name: 'London' },
+            { id: 22, path: '2.2', name: 'Manchester' },
+            { id: 3, path: '3', name: 'Germany' },
+            { id: 31, path: '3.1', name: 'Berlin' },
+            { id: 32, path: '3.2', name: 'Munich' },
+            { id: 4, path: '4', name: 'Japan' },
+            { id: 41, path: '4.1', name: 'Tokyo' },
+            { id: 42, path: '4.2', name: 'Osaka' },
+            { id: 5, path: '5', name: 'Canada' },
+            { id: 51, path: '5.1', name: 'London' },
+            { id: 52, path: '5.2', name: 'Toronto' }
+        ];
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.searchValueMember = 'name';
+            tree.sortCallback = sortByName;
+            tree.isSorted = true;
+            tree.data = data;
+
+            const input = document.querySelector('[data-testid="search-input"]');
+            const counter = document.querySelector('[data-testid="search-counter"]');
+            const clearBtn = document.querySelector('[data-testid="clear-btn"]');
+
+            function setCounter(text, noResults) {
+                if (text === null) {
+                    counter.hidden = true;
+                    counter.textContent = '';
+                    counter.classList.remove('no-results');
+                } else {
+                    counter.hidden = false;
+                    counter.textContent = text;
+                    counter.classList.toggle('no-results', !!noResults);
+                }
+            }
+
+            function runFilter() {
+                const q = input.value;
+                if (q === '') {
+                    tree.filterNodes('');
+                    setCounter(null, false);
+                    return;
+                }
+                tree.filterNodes(q);
+                const matches = tree.searchNodes(q);
+                if (matches.length === 0) {
+                    setCounter('0 results', true);
+                } else {
+                    setCounter(`${matches.length}/${matches.length}`, false);
+                }
+            }
+
+            input.addEventListener('input', runFilter);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    input.value = '';
+                    runFilter();
+                }
+            });
+            clearBtn.addEventListener('click', () => {
+                input.value = '';
+                runFilter();
+            });
+        });
+    </script>
+</body>
+</html>

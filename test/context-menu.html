@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Context Menu Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; max-width: 720px; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        h2 { margin: 0 0 0.5rem; font-size: 1rem; }
+        .card { border: 1px solid #ccc; padding: 0.75rem; margin-bottom: 0.75rem; border-radius: 4px; }
+        .controls { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; font-size: 0.85rem; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; max-width: 520px; }
+        .output { margin-top: 0.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 0.5rem; }
+        .output pre { margin: 0; font-size: 0.8rem; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Context Menu Fixture</h1>
+
+        <div class="card">
+            <h2>Callback Approach</h2>
+            <div class="controls">
+                <label>
+                    <input type="checkbox" id="debug-mode-1">
+                    Debug Mode (menu appears at fixed position)
+                </label>
+                <button id="clear-log-1">Clear Log</button>
+            </div>
+            <div class="tree-container">
+                <web-treeview id="tree-1" expand-level="3"></web-treeview>
+            </div>
+            <div class="output" id="log-1-wrap" hidden>
+                <pre id="log-1"></pre>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const data = [
+            { id: 1, path: '1', name: 'Documents', type: 'folder', readonly: false },
+            { id: 2, path: '1.1', name: 'Reports', type: 'folder', readonly: false },
+            { id: 3, path: '1.1.1', name: 'Q1 Report.pdf', type: 'file', readonly: false },
+            { id: 4, path: '1.1.2', name: 'Q2 Report.pdf', type: 'file', readonly: true },
+            { id: 5, path: '1.2', name: 'Notes.txt', type: 'file', readonly: false },
+            { id: 6, path: '2', name: 'Images', type: 'folder', readonly: false },
+            { id: 7, path: '2.1', name: 'Photo.jpg', type: 'file', readonly: false },
+            { id: 8, path: '2.2', name: 'Logo.png', type: 'file', readonly: false }
+        ];
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree-1');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByName;
+            tree.isSorted = true;
+
+            const logLines = [];
+            const logEl = document.getElementById('log-1');
+            const logWrap = document.getElementById('log-1-wrap');
+
+            function append(msg) {
+                logLines.push(msg);
+                logEl.textContent = logLines.join('\n');
+                logWrap.hidden = false;
+            }
+
+            document.getElementById('clear-log-1').addEventListener('click', () => {
+                logLines.length = 0;
+                logEl.textContent = '';
+                logWrap.hidden = true;
+            });
+
+            document.getElementById('debug-mode-1').addEventListener('change', (e) => {
+                tree.shouldDisplayContextMenuInDebugMode = e.target.checked;
+            });
+
+            tree.contextMenuCallback = (node, close) => {
+                const isFolder = node.data?.type === 'folder';
+                const isReadonly = !!node.data?.readonly;
+                const entries = [];
+
+                if (isFolder) {
+                    entries.push({ label: 'New File', onclick: () => { append(`New File in "${node.data?.name}"`); close(); } });
+                    entries.push({ label: 'New Folder', onclick: () => { append(`New Folder in "${node.data?.name}"`); close(); } });
+                    entries.push({ divider: true });
+                }
+
+                entries.push({ label: 'Copy', onclick: () => { append(`Copied "${node.data?.name}"`); close(); } });
+                entries.push({ label: 'Cut', isDisabled: isReadonly, onclick: () => { append(`Cut "${node.data?.name}"`); close(); } });
+                entries.push({ label: 'Paste', isDisabled: !isFolder, onclick: () => { append(`Pasted into "${node.data?.name}"`); close(); } });
+                entries.push({
+                    label: 'Export As...',
+                    children: [
+                        { label: 'JSON', onclick: () => { append(`Export "${node.data?.name}" as JSON`); close(); } },
+                        { label: 'XML', onclick: () => { append(`Export "${node.data?.name}" as XML`); close(); } },
+                        { label: 'CSV', onclick: () => { append(`Export "${node.data?.name}" as CSV`); close(); } }
+                    ]
+                });
+                entries.push({ label: 'Rename', isDisabled: isReadonly, onclick: () => { append(`Renamed "${node.data?.name}"`); close(); } });
+                entries.push({ divider: true, label: 'Danger zone' });
+                entries.push({ label: 'Delete', isDisabled: isReadonly, className: 'danger', onclick: () => { append(`Deleted "${node.data?.name}"`); close(); } });
+
+                if (isReadonly) {
+                    entries.push({ divider: true });
+                    entries.push({ label: 'Read-only file', isDisabled: true, isVisible: true });
+                }
+
+                return entries;
+            };
+
+            tree.data = data;
+        });
+    </script>
+</body>
+</html>

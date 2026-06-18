@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Data Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        h2 { margin: 0 0 0.5rem; font-size: 1rem; }
+        .card { border: 1px solid #ccc; padding: 0.75rem; margin-bottom: 0.75rem; border-radius: 4px; }
+        .row { display: flex; gap: 0.75rem; }
+        .row .tree-container { flex: 1; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; min-height: 80px; }
+        .output { margin-top: 0.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 0.5rem; }
+        .output pre { margin: 0; font-size: 0.8rem; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Data Fixture</h1>
+
+        <!-- Card 1: dot-separator default -->
+        <div class="card">
+            <h2>Path-Based Data Structure</h2>
+            <div class="tree-container">
+                <web-treeview id="tree-dot" expand-level="3"></web-treeview>
+            </div>
+        </div>
+
+        <!-- Card 2: custom separators (slash + double-colon, side by side) -->
+        <div class="card">
+            <h2>Custom Path Separators</h2>
+            <div class="row">
+                <div class="tree-container">
+                    <web-treeview id="tree-slash" expand-level="3" tree-path-separator="/"></web-treeview>
+                </div>
+                <div class="tree-container">
+                    <web-treeview id="tree-colon" expand-level="3" tree-path-separator="::"></web-treeview>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: insertResult with problematic data -->
+        <div class="card">
+            <h2>Insert Result and Validation</h2>
+            <div class="tree-container">
+                <web-treeview id="tree-insert" expand-level="3"></web-treeview>
+            </div>
+            <div class="output"><pre id="insert-output"></pre></div>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        function configure(tree, data) {
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByName;
+            tree.isSorted = true;
+            // Custom renderer: print "<name> (<path>)" so the spec can assert
+            // both label and path content on the visible node.
+            tree.renderNodeCallback = (node, container) => {
+                container.innerHTML = '';
+                const span = document.createElement('span');
+                span.textContent = `${node.data?.name ?? ''} (${node.path})`;
+                container.appendChild(span);
+            };
+            tree.data = data;
+        }
+
+        customElements.whenDefined('web-treeview').then(() => {
+            // ── Card 1 ──
+            configure(document.getElementById('tree-dot'), [
+                { id: 1, path: '1', name: 'Root' },
+                { id: 2, path: '1.1', name: 'Child' },
+                { id: 3, path: '1.1.1', name: 'Grandchild' },
+                { id: 4, path: '1.2', name: 'Second Child' }
+            ]);
+
+            // ── Card 2 (slash) ──
+            configure(document.getElementById('tree-slash'), [
+                { id: 1, path: 'home', name: '/home' },
+                { id: 2, path: 'home/user', name: '/home/user' },
+                { id: 3, path: 'home/user/documents', name: '/home/user/documents' },
+                { id: 4, path: 'home/user/downloads', name: '/home/user/downloads' },
+                { id: 5, path: 'var', name: '/var' },
+                { id: 6, path: 'var/log', name: '/var/log' }
+            ]);
+
+            // ── Card 2 (colon) ──
+            configure(document.getElementById('tree-colon'), [
+                { id: 1, path: 'App', name: 'App' },
+                { id: 2, path: 'App::Services', name: 'App::Services' },
+                { id: 3, path: 'App::Services::Auth', name: 'App::Services::Auth' },
+                { id: 4, path: 'App::Models', name: 'App::Models' },
+                { id: 5, path: 'App::Models::User', name: 'App::Models::User' }
+            ]);
+
+            // ── Card 3 (insertResult) ──
+            const insertTree = document.getElementById('tree-insert');
+            configure(insertTree, [
+                { id: 1, path: '1', name: 'Valid Root' },
+                { id: 2, path: '1.1', name: 'Valid Child' },
+                { id: 3, path: '2.1', name: 'Orphan (parent 2 missing)' },
+                { id: 4, path: '1.1', name: 'Duplicate Path' },
+                { id: 5, path: '', name: 'Empty Path' },
+                { id: 6, path: '1.2', name: 'Another Valid Child' }
+            ]);
+
+            // Surface insertResult as JSON after the microtask-batched update lands.
+            queueMicrotask(() => {
+                queueMicrotask(() => {
+                    const result = insertTree.getInsertResult();
+                    if (!result) return;
+                    const summary = {
+                        total: result.total,
+                        successful: result.successful,
+                        failed: result.failed?.length ?? 0,
+                        failedDetails: result.failed ?? []
+                    };
+                    document.getElementById('insert-output').textContent = JSON.stringify(summary, null, 2);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

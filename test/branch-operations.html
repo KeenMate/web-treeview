@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Branch Operations Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; max-width: 720px; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        .controls { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; max-width: 520px; }
+        .readouts { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; margin-top: 0.75rem; font-family: monospace; font-size: 0.85rem; }
+        .readouts dt { font-weight: 600; }
+        .readouts dd { margin: 0; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Branch Operations Fixture</h1>
+
+        <div class="controls">
+            <button data-testid="btn-insert-under-1">insertBranch under 1</button>
+            <button data-testid="btn-insert-under-3">insertBranch under 3</button>
+            <button data-testid="btn-replace-1">replaceBranch 1</button>
+            <button data-testid="btn-replace-2.1">replaceBranch 2.1</button>
+            <button data-testid="btn-delete-2.1">deleteBranch 2.1</button>
+            <button data-testid="btn-delete-2.1-keepParent">deleteBranch 2.1 (keepParent)</button>
+            <button data-testid="btn-delete-3">deleteBranch 3</button>
+            <button data-testid="btn-cut-2.1">cut 2.1</button>
+            <button data-testid="btn-cut-1.1">cut 1.1</button>
+            <button data-testid="btn-paste-3">paste under 3</button>
+            <button data-testid="btn-paste-into-self">paste into self</button>
+            <button data-testid="btn-clear-clipboard">clear clipboard</button>
+            <button data-testid="btn-fail-insert-parent">insert invalid parent</button>
+            <button data-testid="btn-fail-insert-items">insert mixed-validity</button>
+            <button data-testid="btn-fail-replace-parent">replace invalid parent</button>
+            <button data-testid="btn-fail-delete-path">delete invalid path</button>
+            <button data-testid="btn-reset">Reset Tree</button>
+        </div>
+
+        <div class="tree-container">
+            <web-treeview id="tree" expand-level="3"></web-treeview>
+        </div>
+
+        <dl class="readouts">
+            <dt>op-call-count</dt><dd data-testid="op-call-count">0</dd>
+            <dt>total-node-count</dt><dd data-testid="total-node-count">0</dd>
+            <dt>clipboard-source</dt><dd data-testid="clipboard-source">(empty)</dd>
+            <dt>last-op-name</dt><dd data-testid="last-op-name"></dd>
+            <dt>last-op-success</dt><dd data-testid="last-op-success"></dd>
+            <dt>last-op-count</dt><dd data-testid="last-op-count"></dd>
+            <dt>last-op-removed</dt><dd data-testid="last-op-removed"></dd>
+            <dt>last-op-failed-count</dt><dd data-testid="last-op-failed-count"></dd>
+            <dt>last-op-error</dt><dd data-testid="last-op-error"></dd>
+        </dl>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        function initialData() {
+            return [
+                { id: 1, path: '1', name: 'Root-A', sortOrder: 10 },
+                { id: 2, path: '1.1', name: 'A-child-1', sortOrder: 10 },
+                { id: 3, path: '1.2', name: 'A-child-2', sortOrder: 20 },
+                { id: 4, path: '2', name: 'Root-B', sortOrder: 20 },
+                { id: 5, path: '2.1', name: 'B-child-1', sortOrder: 10 },
+                { id: 6, path: '2.1.1', name: 'B-grand-1', sortOrder: 10 },
+                { id: 7, path: '2.1.2', name: 'B-grand-2', sortOrder: 20 },
+                { id: 8, path: '3', name: 'Root-C', sortOrder: 30 }
+            ];
+        }
+
+        const sortByOrder = (items) =>
+            [...items].sort((a, b) => {
+                if (a.parentPath !== b.parentPath) return (a.parentPath || '').localeCompare(b.parentPath || '');
+                return (a.data?.sortOrder ?? 0) - (b.data?.sortOrder ?? 0);
+            });
+
+        let nextId = 1000;
+        let clipboard = null;
+        let opCallCount = 0;
+
+        function setText(id, text) {
+            document.querySelector(`[data-testid="${id}"]`).textContent = text;
+        }
+
+        function refreshTotals(tree) {
+            setText('total-node-count', String(tree.getAllData().length));
+            setText('clipboard-source', clipboard ? clipboard.sourcePath : '(empty)');
+        }
+
+        function recordInsert(tree, name, inputLength, result) {
+            opCallCount++;
+            setText('op-call-count', String(opCallCount));
+            setText('last-op-name', name);
+            setText('last-op-success', String(result.success));
+            setText('last-op-count', String(result.count ?? 0));
+            setText('last-op-removed', '');
+            // Web-treeview's insertBranch return doesn't have a failed[] array;
+            // derive failed count from input vs. inserted count when it succeeded.
+            const failed = result.success ? Math.max(0, inputLength - (result.count ?? 0)) : 0;
+            setText('last-op-failed-count', String(failed));
+            setText('last-op-error', result.error ?? '');
+            refreshTotals(tree);
+        }
+
+        function recordReplace(tree, name, result) {
+            opCallCount++;
+            setText('op-call-count', String(opCallCount));
+            setText('last-op-name', name);
+            setText('last-op-success', String(result.success));
+            setText('last-op-count', String(result.added ?? 0));
+            setText('last-op-removed', String(result.removed ?? 0));
+            setText('last-op-failed-count', '0');
+            setText('last-op-error', result.error ?? '');
+            refreshTotals(tree);
+        }
+
+        function recordDelete(tree, name, result) {
+            opCallCount++;
+            setText('op-call-count', String(opCallCount));
+            setText('last-op-name', name);
+            setText('last-op-success', String(result.success));
+            setText('last-op-count', '');
+            setText('last-op-removed', String(result.count ?? 0));
+            setText('last-op-failed-count', '');
+            setText('last-op-error', result.error ?? '');
+            refreshTotals(tree);
+        }
+
+        function recordError(tree, name, error) {
+            opCallCount++;
+            setText('op-call-count', String(opCallCount));
+            setText('last-op-name', name);
+            setText('last-op-success', 'false');
+            setText('last-op-count', '');
+            setText('last-op-removed', '');
+            setText('last-op-failed-count', '');
+            setText('last-op-error', error);
+            refreshTotals(tree);
+        }
+
+        function collectBranchData(node) {
+            const out = [];
+            if (!node.data) return out;
+            out.push({ ...node.data });
+            const walk = (n) => {
+                for (const child of Object.values(n.children)) {
+                    if (child.data) out.push({ ...child.data });
+                    walk(child);
+                }
+            };
+            walk(node);
+            return out;
+        }
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByOrder;
+            tree.isSorted = true;
+            tree.data = initialData();
+
+            // Initial total — wait one microtask for the batched update to land.
+            queueMicrotask(() => queueMicrotask(() => refreshTotals(tree)));
+
+            const wire = (id, fn) => document.querySelector(`[data-testid="${id}"]`).addEventListener('click', fn);
+
+            // ── Insert ──
+            const insertUnder = (parentPath) => {
+                const rootId = nextId++;
+                const childA = nextId++;
+                const childB = nextId++;
+                const branch = [
+                    { id: rootId, path: `${parentPath}.${rootId}`, name: 'New-Root', sortOrder: 100 },
+                    { id: childA, path: `${parentPath}.${rootId}.1`, name: 'New-Child-A', sortOrder: 10 },
+                    { id: childB, path: `${parentPath}.${rootId}.2`, name: 'New-Child-B', sortOrder: 20 }
+                ];
+                const result = tree.insertBranch(parentPath, branch);
+                recordInsert(tree, 'insertBranch', branch.length, result);
+            };
+            wire('btn-insert-under-1', () => insertUnder('1'));
+            wire('btn-insert-under-3', () => insertUnder('3'));
+
+            // ── Replace ──
+            const replaceUnder = (parentPath) => {
+                const base = nextId;
+                nextId += 4;
+                const newChildren = [
+                    { id: base, path: `${parentPath}.${base}`, name: 'Replaced-1', sortOrder: 10 },
+                    { id: base + 1, path: `${parentPath}.${base + 1}`, name: 'Replaced-2', sortOrder: 20 },
+                    { id: base + 2, path: `${parentPath}.${base + 2}`, name: 'Replaced-3', sortOrder: 30 },
+                    { id: base + 3, path: `${parentPath}.${base}.1`, name: 'Replaced-1-child', sortOrder: 10 }
+                ];
+                const result = tree.replaceBranch(parentPath, newChildren);
+                recordReplace(tree, 'replaceBranch', result);
+            };
+            wire('btn-replace-1', () => replaceUnder('1'));
+            wire('btn-replace-2.1', () => replaceUnder('2.1'));
+
+            // ── Delete ──
+            wire('btn-delete-2.1', () => recordDelete(tree, 'deleteBranch', tree.deleteBranch('2.1')));
+            wire('btn-delete-2.1-keepParent', () => recordDelete(tree, 'deleteBranch(keepParent)', tree.deleteBranch('2.1', true)));
+            wire('btn-delete-3', () => recordDelete(tree, 'deleteBranch', tree.deleteBranch('3')));
+
+            // ── Cut / Paste ──
+            const doCut = (sourcePath) => {
+                const node = tree.getNodeByPath(sourcePath);
+                if (!node) {
+                    recordError(tree, 'cut', `Node not found: ${sourcePath}`);
+                    return;
+                }
+                clipboard = {
+                    sourcePath: node.path,
+                    sourceName: node.data?.name ?? node.path,
+                    nodes: collectBranchData(node)
+                };
+                refreshTotals(tree);
+            };
+            wire('btn-cut-2.1', () => doCut('2.1'));
+            wire('btn-cut-1.1', () => doCut('1.1'));
+
+            const doPaste = (targetParentPath) => {
+                if (!clipboard) { recordError(tree, 'paste', 'Clipboard empty'); return; }
+                const { sourcePath, nodes } = clipboard;
+                if (targetParentPath === sourcePath || targetParentPath.startsWith(sourcePath + '.')) {
+                    recordError(tree, 'paste', 'Cannot paste into self or descendant');
+                    return;
+                }
+                const oldRootPath = nodes[0].path;
+                const newRootId = nextId++;
+                const newRootPath = targetParentPath ? `${targetParentPath}.${newRootId}` : `${newRootId}`;
+                const rewritten = nodes.map((n) => {
+                    let newPath;
+                    if (n.path === oldRootPath) newPath = newRootPath;
+                    else newPath = newRootPath + n.path.substring(oldRootPath.length);
+                    return { ...n, id: nextId++, path: newPath };
+                });
+                const delResult = tree.deleteBranch(sourcePath);
+                recordDelete(tree, 'paste:delete', delResult);
+                const insResult = tree.insertBranch(targetParentPath, rewritten);
+                recordInsert(tree, 'paste:insert', rewritten.length, insResult);
+                clipboard = null;
+                refreshTotals(tree);
+            };
+            wire('btn-paste-3', () => doPaste('3'));
+            wire('btn-paste-into-self', () => doPaste('2.1'));
+
+            wire('btn-clear-clipboard', () => { clipboard = null; refreshTotals(tree); });
+
+            // ── Failure cases ──
+            wire('btn-fail-insert-parent', () => {
+                const items = [{ id: nextId++, path: '999.999.1', name: 'X', sortOrder: 10 }];
+                recordInsert(tree, 'insertBranch(invalid-parent)', items.length, tree.insertBranch('999.999', items));
+            });
+
+            wire('btn-fail-insert-items', () => {
+                const base = nextId;
+                nextId += 4;
+                const items = [
+                    { id: base, path: `1.${base}`, name: 'Valid-1', sortOrder: 10 },
+                    { id: base + 1, path: '', name: 'Invalid-empty', sortOrder: 20 },
+                    { id: base + 2, path: `1.${base + 2}`, name: 'Valid-2', sortOrder: 30 },
+                    { id: base + 3, path: null, name: 'Invalid-null', sortOrder: 40 }
+                ];
+                recordInsert(tree, 'insertBranch(mixed-validity)', items.length, tree.insertBranch('1', items));
+            });
+
+            wire('btn-fail-replace-parent', () => {
+                recordReplace(tree, 'replaceBranch(invalid-parent)', tree.replaceBranch('999.999', []));
+            });
+
+            wire('btn-fail-delete-path', () => {
+                recordDelete(tree, 'deleteBranch(invalid-path)', tree.deleteBranch('999.999'));
+            });
+
+            // ── Reset ──
+            wire('btn-reset', () => {
+                nextId = 1000;
+                tree.replaceBranch('', initialData());
+                opCallCount = 0;
+                setText('op-call-count', '0');
+                setText('last-op-name', '');
+                setText('last-op-success', '');
+                setText('last-op-count', '');
+                setText('last-op-removed', '');
+                setText('last-op-failed-count', '');
+                setText('last-op-error', '');
+                clipboard = null;
+                refreshTotals(tree);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Exclusive Expand Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; max-width: 520px; }
+        .controls { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Exclusive Expand Fixture</h1>
+
+        <div class="controls">
+            <button data-testid="exclusive-expand-a2">expandNodes('2', exclusive)</button>
+        </div>
+
+        <div class="tree-container">
+            <web-treeview id="tree" expand-level="0"></web-treeview>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const data = [
+            { id: 1, path: '1', name: 'A1' },
+            { id: 11, path: '1.1', name: 'A1.1' },
+            { id: 12, path: '1.2', name: 'A1.2' },
+            { id: 2, path: '2', name: 'A2' },
+            { id: 21, path: '2.1', name: 'A2.1' },
+            { id: 22, path: '2.2', name: 'A2.2' },
+            { id: 3, path: '3', name: 'A3' },
+            { id: 31, path: '3.1', name: 'A3.1' },
+            { id: 32, path: '3.2', name: 'A3.2' }
+        ];
+
+        const sortByPath = (items) =>
+            [...items].sort((a, b) => a.path.localeCompare(b.path));
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByPath;
+            tree.isSorted = true;
+            tree.data = data;
+
+            document.querySelector('[data-testid="exclusive-expand-a2"]').addEventListener(
+                'click',
+                () => tree.expandNodes('2', { exclusive: true })
+            );
+        });
+    </script>
+</body>
+</html>

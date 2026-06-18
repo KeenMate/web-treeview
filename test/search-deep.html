@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Search Deep Tree</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; }
+        h1 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+        .hint { margin: 0 0 0.5rem; font-size: 0.8rem; color: #64748b; }
+        .search-bar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+        .search-bar input { padding: 0.25rem 0.4rem; flex: 0 1 240px; }
+        .tree-scroll { height: 240px; overflow: auto; border: 1px solid #cbd5e1; padding: 0.5rem; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Search Deep Tree Fixture</h1>
+        <p class="hint">10×10×10 = 1000 leaves, expandLevel=1.</p>
+
+        <div class="search-bar">
+            <input type="text" data-testid="search-input" placeholder="e.g. Leaf-7-5-3">
+            <span data-testid="result-count">0</span>
+        </div>
+
+        <div class="tree-scroll" data-testid="scroll-container">
+            <web-treeview id="tree"
+                expand-level="1"
+                should-use-internal-search-index="true"
+                use-flat-rendering="true"
+                progressive-render="true"
+                initial-batch-size="5"
+                max-batch-size="500"></web-treeview>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        function buildData() {
+            const out = [];
+            let id = 1;
+            for (let g = 1; g <= 10; g++) {
+                out.push({ id: id++, path: `${g}`, name: `Group-${g}` });
+                for (let s = 1; s <= 10; s++) {
+                    out.push({ id: id++, path: `${g}.${s}`, name: `Sub-${g}-${s}` });
+                    for (let l = 1; l <= 10; l++) {
+                        let name = `Leaf-${g}-${s}-${l}`;
+                        if (g === 9 && s === 7 && l === 10) name = 'ZZTARGETUNIQUE';
+                        else if (g === 2 && s === 3 && l === 10) name = 'AATARGETUNIQUE';
+                        out.push({ id: id++, path: `${g}.${s}.${l}`, name });
+                    }
+                }
+            }
+            return out;
+        }
+
+        const data = buildData();
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.searchValueMember = 'name';
+            tree.sortCallback = sortByName;
+            tree.isSorted = true;
+            // Render each node with a .node-name span (the spec uses it).
+            tree.renderNodeCallback = (node, container) => {
+                container.innerHTML = '';
+                const span = document.createElement('span');
+                span.className = 'node-name';
+                span.textContent = node.data?.name ?? '';
+                container.appendChild(span);
+            };
+            tree.data = data;
+
+            const input = document.querySelector('[data-testid="search-input"]');
+            const resultCount = document.querySelector('[data-testid="result-count"]');
+
+            input.addEventListener('input', () => {
+                const q = input.value.trim();
+                if (!q) { resultCount.textContent = '0'; return; }
+                const results = tree.searchNodes(q);
+                resultCount.textContent = String(results.length);
+                if (results.length > 0) {
+                    // Default scrollIntoView behavior — browser scrolls every
+                    // ancestor (including the .tree-scroll wrapper) to bring
+                    // the row into view, which works across the Shadow DOM
+                    // boundary without us having to pass containerElement.
+                    tree.scrollToPath(results[0].path, {
+                        expand: true,
+                        highlight: true,
+                        scrollOptions: { behavior: 'smooth', block: 'center' }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

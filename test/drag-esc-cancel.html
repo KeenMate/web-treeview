@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Drag Esc Cancel Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; max-width: 520px; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Drag Esc Cancel Fixture</h1>
+        <div class="tree-container">
+            <web-treeview id="tree"
+                expand-level="2"
+                drag-drop-mode="both"></web-treeview>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const data = [
+            { id: 1, path: '1', name: 'Folder' },
+            { id: 2, path: '1.1', name: 'File A' },
+            { id: 3, path: '1.2', name: 'File B' },
+            { id: 4, path: '2', name: 'Other' }
+        ];
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByName;
+            tree.isSorted = true;
+            tree.data = data;
+        });
+    </script>
+</body>
+</html>

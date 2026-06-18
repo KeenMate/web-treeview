@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Interaction Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        h2 { margin: 0 0 0.5rem; font-size: 1rem; }
+        .card { border: 1px solid #ccc; padding: 0.75rem; margin-bottom: 0.75rem; border-radius: 4px; }
+        .controls { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap; font-size: 0.85rem; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; min-height: 80px; max-width: 520px; }
+        .output { margin-top: 0.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 0.5rem; }
+        .output-label { margin: 0 0 0.25rem; font-size: 0.8rem; font-weight: 600; }
+        .output pre { margin: 0; font-size: 0.8rem; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Interaction Test Fixture</h1>
+
+        <!-- Card 1: Click Behavior -->
+        <div class="card">
+            <h2>Click Behavior</h2>
+            <div class="controls">
+                <label>
+                    Click Behavior:
+                    <select id="click-behavior">
+                        <option value="expand-and-focus">expand-and-focus</option>
+                        <option value="select">select</option>
+                        <option value="expand">expand</option>
+                    </select>
+                </label>
+                <label>
+                    <input type="checkbox" id="show-checkboxes">
+                    Show Checkboxes
+                </label>
+                <label id="lbl-checkbox-mode" hidden>
+                    Checkbox Mode:
+                    <select id="checkbox-mode">
+                        <option value="independent">independent</option>
+                        <option value="cascade">cascade</option>
+                    </select>
+                </label>
+                <label id="lbl-click-toggles" hidden>
+                    <input type="checkbox" id="click-toggles-checkbox">
+                    Click row toggles checkbox
+                </label>
+                <button id="clear-1">Clear All</button>
+            </div>
+
+            <div class="tree-container">
+                <web-treeview id="tree-1"
+                    expand-level="2"
+                    selection-mode="multi"
+                    click-behavior="expand-and-focus"></web-treeview>
+            </div>
+
+            <div class="output"><p class="output-label">Focused Node</p><pre id="out-1-focused">(none)</pre></div>
+            <div class="output"><p class="output-label">Highlighted</p><pre id="out-1-highlighted">(none)</pre></div>
+            <div class="output"><p class="output-label">Selected / Checked</p><pre id="out-1-selected">(none)</pre></div>
+        </div>
+
+        <!-- Card 2: Multi-Select -->
+        <div class="card">
+            <h2>Multi-Select</h2>
+            <div class="controls">
+                <button id="clear-2">Clear All</button>
+            </div>
+
+            <div class="tree-container">
+                <web-treeview id="tree-2" expand-level="3" selection-mode="multi"></web-treeview>
+            </div>
+
+            <div class="output"><p class="output-label">Focused Node</p><pre id="out-2-focused">(none)</pre></div>
+            <div class="output"><p class="output-label">Highlighted</p><pre id="out-2-highlighted">(none)</pre></div>
+        </div>
+
+        <!-- Card 3: Keyboard Navigation -->
+        <div class="card">
+            <h2>Keyboard Navigation</h2>
+            <div class="tree-container">
+                <web-treeview id="tree-3" expand-level="2"></web-treeview>
+            </div>
+
+            <div class="output" id="out-3-focused-wrap" hidden>
+                <p class="output-label">Focused Node</p><pre></pre>
+            </div>
+            <div class="output" id="out-3-log-wrap" hidden>
+                <p class="output-label">Navigation Log</p><pre></pre>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const sampleData = [
+            { id: 1, path: '1', name: 'Documents' },
+            { id: 2, path: '1.1', name: 'Work' },
+            { id: 3, path: '1.2', name: 'Personal' },
+            { id: 4, path: '2', name: 'Downloads' },
+            { id: 5, path: '2.1', name: 'Software' },
+            { id: 6, path: '3', name: 'Projects' },
+            { id: 7, path: '3.1', name: 'Web App' }
+        ];
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        function configure(tree) {
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByName;
+            tree.isSorted = true;
+            tree.data = sampleData;
+        }
+
+        function setText(id, text) {
+            document.getElementById(id).textContent = text;
+        }
+
+        function pathsText(set) {
+            return set && set.size > 0 ? [...set].join(', ') : '(none)';
+        }
+
+        customElements.whenDefined('web-treeview').then(() => {
+            // ── Card 1: Click Behavior ──
+            const tree1 = document.getElementById('tree-1');
+            configure(tree1);
+
+            const clickBehaviorSelect = document.getElementById('click-behavior');
+            const showCheckboxesInput = document.getElementById('show-checkboxes');
+            const checkboxModeLabel = document.getElementById('lbl-checkbox-mode');
+            const checkboxModeSelect = document.getElementById('checkbox-mode');
+            const clickTogglesLabel = document.getElementById('lbl-click-toggles');
+            const clickTogglesInput = document.getElementById('click-toggles-checkbox');
+
+            clickBehaviorSelect.addEventListener('change', () => {
+                tree1.setAttribute('click-behavior', clickBehaviorSelect.value);
+            });
+
+            showCheckboxesInput.addEventListener('change', () => {
+                if (showCheckboxesInput.checked) {
+                    tree1.setAttribute('show-checkboxes', 'true');
+                    checkboxModeLabel.hidden = false;
+                    clickTogglesLabel.hidden = false;
+                } else {
+                    tree1.removeAttribute('show-checkboxes');
+                    checkboxModeLabel.hidden = true;
+                    clickTogglesLabel.hidden = true;
+                }
+            });
+
+            checkboxModeSelect.addEventListener('change', () => {
+                tree1.setAttribute('checkbox-mode', checkboxModeSelect.value);
+            });
+
+            clickTogglesInput.addEventListener('change', () => {
+                if (clickTogglesInput.checked) {
+                    tree1.setAttribute('click-toggles-checkbox', 'true');
+                } else {
+                    tree1.removeAttribute('click-toggles-checkbox');
+                }
+            });
+
+            tree1.addEventListener('focused-node-changed', (e) => {
+                const node = e.detail.focusedNode;
+                setText('out-1-focused', node ? `${node.data?.name} (${node.path})` : '(none)');
+            });
+            tree1.addEventListener('highlight-change', (e) => {
+                setText('out-1-highlighted', pathsText(e.detail.highlightedPaths));
+            });
+            tree1.addEventListener('selection-change', (e) => {
+                setText('out-1-selected', pathsText(e.detail.selectedPaths));
+            });
+
+            document.getElementById('clear-1').addEventListener('click', () => {
+                tree1.clearHighlight?.();
+                tree1.deselectAll?.();
+                setText('out-1-highlighted', '(none)');
+                setText('out-1-selected', '(none)');
+            });
+
+            // ── Card 2: Multi-Select ──
+            const tree2 = document.getElementById('tree-2');
+            configure(tree2);
+
+            tree2.addEventListener('focused-node-changed', (e) => {
+                const node = e.detail.focusedNode;
+                setText('out-2-focused', node ? `${node.data?.name} (${node.path})` : '(none)');
+            });
+            tree2.addEventListener('highlight-change', (e) => {
+                setText('out-2-highlighted', pathsText(e.detail.highlightedPaths));
+            });
+
+            document.getElementById('clear-2').addEventListener('click', () => {
+                tree2.clearHighlight?.();
+                setText('out-2-highlighted', '(none)');
+            });
+
+            // ── Card 3: Keyboard Navigation ──
+            const tree3 = document.getElementById('tree-3');
+            configure(tree3);
+
+            const focusedWrap = document.getElementById('out-3-focused-wrap');
+            const logWrap = document.getElementById('out-3-log-wrap');
+            const log = [];
+
+            tree3.addEventListener('focused-node-changed', (e) => {
+                const node = e.detail.focusedNode;
+                if (!node) { focusedWrap.hidden = true; return; }
+                focusedWrap.hidden = false;
+                focusedWrap.querySelector('pre').textContent = `${node.data?.name} (${node.path})`;
+            });
+            tree3.addEventListener('node-clicked', (e) => {
+                const node = e.detail.node;
+                log.unshift(`Navigated to: ${node.data?.name} (${node.path})`);
+                if (log.length > 10) log.length = 10;
+                logWrap.hidden = false;
+                logWrap.querySelector('pre').textContent = log.join('\n');
+            });
+        });
+    </script>
+</body>
+</html>
