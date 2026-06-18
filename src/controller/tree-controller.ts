@@ -1967,7 +1967,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     }
 
     if (containerScroll) {
-      const container = this.findScrollableAncestor(contentDiv);
+      // Caller can pass `containerElement` explicitly — useful when the
+      // scrollable wrapper sits in the light DOM (outside the web-component's
+      // Shadow DOM), where `findScrollableAncestor` can't walk to it.
+      const container = containerElement ?? this.findScrollableAncestor(contentDiv);
       if (container) {
         const containerRect = container.getBoundingClientRect();
         const elementRect = contentDiv.getBoundingClientRect();
@@ -2196,8 +2199,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         this._data = data;
         this._skipInsertArray = true;
         queueMicrotask(() => { this._skipInsertArray = false; });
-        const result = this.tree.insertArray(data);
+        this._insertResult = this.tree.insertArray(data);
         this._seedSelectedPathsFromTree();
+        const result = this._insertResult;
         initLogger.debug(`[${this._treeId}] insertArray result`, {
           successful: result.successful,
           failed: result.failed?.length ?? 0,
@@ -2311,9 +2315,16 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _seedSelectedPathsFromTree(): void {
     if (!this.tree) return;
     if (!this.tree.isSelectedMember && !this.tree.getIsSelectedCallback) return;
-    const nodes = this.tree.visibleFlatNodes;
-    for (const node of nodes) {
-      if (node.isSelected) this._highlightedPaths.add(node.path);
+    // Walk every node — collapsed branches still need their selected flag
+    // reflected in selectedPaths so the checkbox state is correct when the
+    // user later expands them.
+    const visit = (node: LTreeNode<T>) => {
+      if (node.isSelected) this._selectedPaths.add(node.path);
+      for (const child of Object.values(node.children)) visit(child);
+    };
+    const root = this.tree.root;
+    if (root?.children) {
+      for (const child of Object.values(root.children)) visit(child);
     }
   }
 
@@ -2442,8 +2453,16 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     const handleGlobalClick = (event: MouseEvent) => {
       if (this._isDebugMenuActive) return;
-      const target = event.target as Element;
-      if (!target.closest('.ltree-context-menu')) {
+      // When the click originates inside a Shadow DOM, `event.target` is
+      // retargeted to the shadow host by the time the document listener
+      // fires, so `.closest('.ltree-context-menu')` won't find the menu even
+      // if the actual click landed on it. Walk the composed path instead so
+      // the check sees the real chain through the shadow boundary.
+      const path = event.composedPath();
+      const insideMenu = path.some(
+        (n) => n instanceof Element && n.classList?.contains('ltree-context-menu')
+      );
+      if (!insideMenu) {
         this.closeContextMenu();
       }
     };
