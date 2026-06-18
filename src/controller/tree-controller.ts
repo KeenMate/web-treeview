@@ -656,6 +656,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this.flatRenderQueue = [];
       this.currentBatchSize = 0;
       this._insertResult = this.tree.insertArray(this._data);
+      this._seedSelectedPathsFromTree();
     }
 
     // Apply initial search filter
@@ -1865,6 +1866,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         this._skipInsertArray = true;
         queueMicrotask(() => { this._skipInsertArray = false; });
         const result = this.tree.insertArray(data);
+        this._seedSelectedPathsFromTree();
         initLogger.debug(`[${this._treeId}] insertArray result`, {
           successful: result.successful,
           failed: result.failed?.length ?? 0,
@@ -1958,6 +1960,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this.flatRenderQueue = [];
       this.currentBatchSize = 0;
       this._insertResult = this.tree.insertArray(this._data);
+      this._seedSelectedPathsFromTree();
     }
   }
 
@@ -1966,6 +1969,20 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _onTreeChanged() {
     this._updateProgressiveRendering();
     this._scheduleNotify();
+  }
+
+  /** Pre-populate `_selectedPaths` from any nodes whose `isSelected` was set
+   *  at insert time (via `isSelectedMember` or `getIsSelectedCallback`). Runs
+   *  after every `insertArray` so consumers reading `getSelectedPaths()`
+   *  immediately reflect server-side initial selection.
+   *  Mirrors svelte-treeview rc07's post-insert seeding walk. */
+  private _seedSelectedPathsFromTree(): void {
+    if (!this.tree) return;
+    if (!this.tree.isSelectedMember && !this.tree.getIsSelectedCallback) return;
+    const nodes = this.tree.visibleFlatNodes;
+    for (const node of nodes) {
+      if (node.isSelected) this._selectedPaths.add(node.path);
+    }
   }
 
   // ── Internal: progressive flat rendering ────────────────────────────
