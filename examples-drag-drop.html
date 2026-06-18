@@ -128,18 +128,68 @@
             </div>
         </div>
 
-        <!-- Example 2: Restricted Drop Positions -->
+        <!-- Example 2: Multi-Drag -->
+        <div class="card">
+            <h2>Multi-Drag (Select Multiple &amp; Drag as Group)</h2>
+            <p>Set <code>selection-mode="multi"</code> and the tree honors OS-explorer drag semantics: Ctrl/Shift-click several rows, then drag any one of them &mdash; the whole highlight set moves together. Grabbing a row that's <strong>not</strong> in the highlight set replaces the highlight with just that row, matching how Finder / Explorer behave.</p>
+
+            <div class="note">
+                <p style="margin: 0 0 0.25rem; font-weight: 600;">Try it</p>
+                <ol style="margin: 0; padding: 0 0 0 1.5rem; font-size: 0.875rem;">
+                    <li><strong>Ctrl+click</strong> on three rows (e.g. Apple, Cherry, Eggplant) &mdash; you'll see them highlight.</li>
+                    <li><strong>Drag any highlighted row</strong> and drop it onto another row.</li>
+                    <li>The whole set lands as a group: first node lands at the requested position, the rest chain <em>after</em> it as siblings.</li>
+                    <li><strong>Shift+click</strong> selects a visual range between two rows.</li>
+                </ol>
+            </div>
+
+            <div class="controls">
+                <label>
+                    Click behavior:
+                    <select id="multi-click-behavior" onchange="applyMultiSettings()">
+                        <option value="select">select (single click = focus, no expand)</option>
+                        <option value="expand-and-focus">expand-and-focus (default)</option>
+                    </select>
+                </label>
+                <button class="btn-outline" onclick="resetMultiTree()">Reset Tree</button>
+            </div>
+
+            <div class="tree-pair">
+                <div>
+                    <p class="tree-label">Multi-Select Tree</p>
+                    <div class="tree-container" id="multi-container">
+                        <web-treeview id="multi-tree"
+                            selection-mode="multi"
+                            click-behavior="select"
+                            drag-drop-mode="both"
+                            expand-level="3"></web-treeview>
+                    </div>
+                </div>
+                <div>
+                    <p class="tree-label">Live State</p>
+                    <div class="output" style="margin: 0;">
+                        <p class="output-label">Highlight set (multi-select)</p>
+                        <pre id="multi-highlight">(none)</pre>
+                        <p class="output-label" style="margin-top: 0.5rem;">Focused node</p>
+                        <pre id="multi-focused">(none)</pre>
+                        <p class="output-label" style="margin-top: 0.5rem;">Last drop</p>
+                        <pre id="multi-drop">(none)</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Example 3: Restricted Drop Positions -->
         <div class="card">
             <h2>Restricted Drop Positions</h2>
-            <p>Control which drop positions are valid per node using <code>allowedDropPositionsMember</code>.
-                Try dragging items to different targets:</p>
+            <p>Control which drop positions are valid per node using <code>allowedDropPositionsMember</code> (data-driven, shown below) or <code>getAllowedDropPositionsCallback</code> (runtime per-node logic). Both let the lib snap an attempted drop to the nearest allowed position. Try dragging items to different targets:</p>
 
             <div class="note">
                 <p style="margin: 0 0 0.25rem; font-weight: 600;">Node Types</p>
                 <ul style="margin: 0; padding: 0 0 0 1.5rem;">
                     <li><strong>&#x1F5D1;&#xFE0F; Trash</strong> - Only accepts <code>child</code> drops (drop INTO, not above/below)</li>
                     <li><strong>&#x1F4C2; Projects</strong> - All positions allowed (default behavior)</li>
-                    <li><strong>&#x1F4C4; Files</strong> - Only <code>above</code> and <code>below</code> (can't drop INTO a file)</li>
+                    <li><strong>&#x1F4C4; Files</strong> - Only <code>before</code> and <code>after</code> (can't drop INTO a file)</li>
                 </ul>
             </div>
 
@@ -207,6 +257,17 @@
             { id: 109, path: '5', name: 'Source Items', icon: '\u{1F4C2}', sortOrder: 50 },
             { id: 110, path: '5.1', name: 'Drag me!', icon: '\u{1F535}', sortOrder: 10 },
             { id: 111, path: '5.2', name: 'Drag me too!', icon: '\u{1F7E2}', sortOrder: 20 },
+        ];
+
+        const multiSeedData = [
+            { id: 1, path: '1', name: 'Apple', sortOrder: 10 },
+            { id: 11, path: '1.1', name: 'Apple slice 1', sortOrder: 10 },
+            { id: 12, path: '1.2', name: 'Apple slice 2', sortOrder: 20 },
+            { id: 2, path: '2', name: 'Banana', sortOrder: 20 },
+            { id: 3, path: '3', name: 'Cherry', sortOrder: 30 },
+            { id: 4, path: '4', name: 'Date', sortOrder: 40 },
+            { id: 5, path: '5', name: 'Eggplant', sortOrder: 50 },
+            { id: 6, path: '6', name: 'Fig', sortOrder: 60 }
         ];
 
         const validationData = [
@@ -469,6 +530,51 @@
                 ];
                 restrictedOutputEl.style.display = '';
                 restrictedLogEl.textContent = restrictedLogEntries.join('\n');
+            };
+
+            // Multi-Drag tree (rc03 selection-mode='multi' + drag-drop-mode='both')
+            const multiTreeEl = document.getElementById('multi-tree');
+            multiTreeEl.idMember = 'id';
+            multiTreeEl.pathMember = 'path';
+            multiTreeEl.displayValueMember = 'name';
+            multiTreeEl.orderMember = 'sortOrder';
+            multiTreeEl.data = multiSeedData;
+
+            const multiHighlightEl = document.getElementById('multi-highlight');
+            const multiFocusedEl = document.getElementById('multi-focused');
+            const multiDropEl = document.getElementById('multi-drop');
+
+            multiTreeEl.addEventListener('highlight-change', (e) => {
+                const paths = [...e.detail.highlightedPaths].sort();
+                if (paths.length === 0) {
+                    multiHighlightEl.textContent = '(none)';
+                    return;
+                }
+                const names = e.detail.highlightedNodes.map(n => n.data?.name).join(', ');
+                multiHighlightEl.textContent = `${paths.length} highlighted — ${names}`;
+            });
+
+            multiTreeEl.addEventListener('focused-node-changed', (e) => {
+                const n = e.detail.focusedNode;
+                multiFocusedEl.textContent = n ? `${n.data?.name} (${n.path})` : '(none)';
+            });
+
+            multiTreeEl.onNodeDrop = (dropNode, draggedNode, position, _ev, op) => {
+                multiDropEl.textContent =
+                    `[${op.toUpperCase()}] "${draggedNode.data?.name}" ${position} "${dropNode?.data?.name ?? 'root'}"`;
+            };
+
+            window.applyMultiSettings = function () {
+                const beh = document.getElementById('multi-click-behavior').value;
+                multiTreeEl.clickBehavior = beh;
+            };
+
+            window.resetMultiTree = function () {
+                multiTreeEl.data = multiSeedData;
+                multiTreeEl.clearHighlight?.();
+                multiHighlightEl.textContent = '(none)';
+                multiFocusedEl.textContent = '(none)';
+                multiDropEl.textContent = '(none)';
             };
 
             // Validation tree

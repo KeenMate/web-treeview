@@ -93,6 +93,81 @@
             </div>
         </div>
 
+        <!-- NEW (rc03): Three-Level Selection + Checkboxes -->
+        <div class="card">
+            <h2>Three-Level Selection Model (rc03)</h2>
+            <p>The library tracks three independent kinds of selection. Choose which combination fits your UI:</p>
+            <ul style="margin: 0 0 1rem 1.5rem; padding: 0;">
+                <li><strong>focusedNode</strong> &mdash; single cursor row (clicks, arrow keys). Surfaces as <code>focused-node-changed</code>.</li>
+                <li><strong>highlightedPaths</strong> &mdash; multi-select set (Ctrl/Shift+click). Surfaces as <code>highlight-change</code>. Drives the highlight CSS class.</li>
+                <li><strong>selectedPaths</strong> &mdash; data state for checkboxes. Surfaces as <code>selection-change</code>. Independent from focus/highlight unless <code>showCheckboxes</code> is off (then highlight mirrors into it).</li>
+            </ul>
+
+            <div class="controls">
+                <label>
+                    <input type="checkbox" id="three-show-checkboxes" checked onchange="applyThreeSettings()">
+                    Show checkboxes
+                </label>
+                <label>
+                    Checkbox mode:
+                    <select id="three-checkbox-mode" onchange="applyThreeSettings()">
+                        <option value="independent">independent</option>
+                        <option value="cascade">cascade (parent &harr; descendants)</option>
+                    </select>
+                </label>
+                <label>
+                    Click behavior:
+                    <select id="three-click-behavior" onchange="applyThreeSettings()">
+                        <option value="select">select</option>
+                        <option value="expand-and-focus">expand-and-focus</option>
+                    </select>
+                </label>
+                <label>
+                    <input type="checkbox" id="three-click-toggles" onchange="applyThreeSettings()">
+                    Click row toggles checkbox
+                </label>
+                <button class="secondary" onclick="document.getElementById('three-tree').clearHighlight()">Clear highlight</button>
+                <button class="secondary" onclick="document.getElementById('three-tree').deselectAll()">Clear checked</button>
+            </div>
+
+            <div class="two-trees">
+                <div>
+                    <div class="tree-label">Tree</div>
+                    <div class="tree-container">
+                        <web-treeview id="three-tree"
+                            selection-mode="multi"
+                            show-checkboxes="true"
+                            checkbox-mode="independent"
+                            click-behavior="select"
+                            expand-level="2"
+                            highlighted-node-class="ltree-selected-border"></web-treeview>
+                    </div>
+                </div>
+                <div>
+                    <div class="tree-label">Live state</div>
+                    <div class="output" style="margin: 0;">
+                        <p class="output-label">focusedNode</p>
+                        <pre id="three-focused">(none)</pre>
+                        <p class="output-label" style="margin-top: 0.5rem;">highlightedPaths (Ctrl/Shift+click)</p>
+                        <pre id="three-highlight">(none)</pre>
+                        <p class="output-label" style="margin-top: 0.5rem;">selectedPaths (checkbox data state)</p>
+                        <pre id="three-selected">(none)</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="note" style="margin-top: 1rem;">
+                <p style="margin: 0 0 0.25rem; font-weight: 600;">Try it</p>
+                <ul style="margin: 0; padding: 0 0 0 1.5rem; font-size: 0.875rem;">
+                    <li>Click a row &rarr; it focuses; the highlight set replaces with that one path.</li>
+                    <li>Ctrl+click a couple more rows &rarr; highlight grows; focused stays at the last clicked.</li>
+                    <li>Click a checkbox &rarr; only <code>selectedPaths</code> changes (independent of focus/highlight).</li>
+                    <li>Switch checkbox mode to <strong>cascade</strong> &rarr; checking a parent ticks its descendants too.</li>
+                    <li>Enable <strong>Click row toggles checkbox</strong> &rarr; the row click itself toggles the box (handy for touch UIs).</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- Example 1: Multi-Select -->
         <div class="card">
             <h2>Example 1: Multi-Select</h2>
@@ -109,7 +184,7 @@
             </div>
 
             <div class="tree-container" id="tree1-container">
-                <web-treeview id="tree1" expand-level="2" selected-node-class="ltree-selected-border"></web-treeview>
+                <web-treeview id="tree1" expand-level="2" highlighted-node-class="ltree-selected-border"></web-treeview>
             </div>
 
             <div class="controls">
@@ -147,7 +222,7 @@
             </div>
 
             <div class="tree-container" id="tree2-container">
-                <web-treeview id="tree2" expand-level="1" selected-node-class="ltree-selected-bold"></web-treeview>
+                <web-treeview id="tree2" expand-level="1" highlighted-node-class="ltree-selected-bold"></web-treeview>
             </div>
 
             <div class="controls">
@@ -179,7 +254,7 @@
                 <div>
                     <div class="tree-label">Source tree</div>
                     <div class="tree-container tree-container-sm">
-                        <web-treeview id="tree3a" expand-level="2" tree-id="source" selected-node-class="ltree-selected-border"></web-treeview>
+                        <web-treeview id="tree3a" expand-level="2" tree-id="source" highlighted-node-class="ltree-selected-border"></web-treeview>
                     </div>
                     <div class="controls">
                         <button onclick="document.getElementById('tree3a').copyNodes()">Copy</button>
@@ -190,7 +265,7 @@
                 <div>
                     <div class="tree-label">Target tree</div>
                     <div class="tree-container tree-container-sm">
-                        <web-treeview id="tree3b" expand-level="2" tree-id="target" selected-node-class="ltree-selected-border"></web-treeview>
+                        <web-treeview id="tree3b" expand-level="2" tree-id="target" highlighted-node-class="ltree-selected-border"></web-treeview>
                     </div>
                     <div class="controls">
                         <button onclick="pasteIntoTarget()">Paste here</button>
@@ -210,7 +285,7 @@
             <p>Batch mutations on the tree: insert, replace, or delete entire branches in a single operation.</p>
 
             <div class="tree-container" id="tree4-container">
-                <web-treeview id="tree4" expand-level="3" selected-node-class="ltree-selected-bold"></web-treeview>
+                <web-treeview id="tree4" expand-level="3" highlighted-node-class="ltree-selected-bold"></web-treeview>
             </div>
 
             <div class="controls">
@@ -255,7 +330,7 @@
             </div>
 
             <div class="tree-container" id="tree5-container">
-                <web-treeview id="tree5" expand-level="1" selected-node-class="ltree-selected-border"></web-treeview>
+                <web-treeview id="tree5" expand-level="1" highlighted-node-class="ltree-selected-border"></web-treeview>
             </div>
 
             <p style="color: #64748b; font-size: 0.875rem; margin-top: 0.5rem;">
@@ -334,7 +409,7 @@
 
         // ── Click behavior (persisted to localStorage) ──────────────────
         const STORAGE_KEY = 'web-treeview-click-behavior';
-        const allTreeIds = ['tree1', 'tree2', 'tree3a', 'tree3b', 'tree4', 'tree5'];
+        const allTreeIds = ['tree1', 'tree2', 'tree3a', 'tree3b', 'tree4', 'tree5', 'three-tree'];
 
         function applyClickBehavior(behavior) {
             for (const id of allTreeIds) {
@@ -353,6 +428,43 @@
 
         customElements.whenDefined('web-treeview').then(() => {
             const treeConfig = { idMember: 'id', pathMember: 'path', displayValueMember: 'name' };
+
+            // ── New (rc03) three-level selection tree ─────────────────────
+            const threeTree = document.getElementById('three-tree');
+            Object.assign(threeTree, treeConfig);
+            threeTree.data = fileTree;
+
+            const threeFocusedEl = document.getElementById('three-focused');
+            const threeHighlightEl = document.getElementById('three-highlight');
+            const threeSelectedEl = document.getElementById('three-selected');
+
+            threeTree.addEventListener('focused-node-changed', (e) => {
+                const n = e.detail.focusedNode;
+                threeFocusedEl.textContent = n ? `${n.data?.name} (${n.path})` : '(none)';
+            });
+
+            threeTree.addEventListener('highlight-change', (e) => {
+                const paths = [...e.detail.highlightedPaths].sort();
+                threeHighlightEl.textContent = paths.length > 0 ? paths.join(', ') : '(none)';
+            });
+
+            threeTree.addEventListener('selection-change', (e) => {
+                const paths = [...e.detail.selectedPaths].sort();
+                threeSelectedEl.textContent = paths.length > 0 ? paths.join(', ') : '(none)';
+            });
+
+            window.applyThreeSettings = function () {
+                const showCb = document.getElementById('three-show-checkboxes').checked;
+                const mode = document.getElementById('three-checkbox-mode').value;
+                const beh = document.getElementById('three-click-behavior').value;
+                const clickToggles = document.getElementById('three-click-toggles').checked;
+                if (showCb) threeTree.setAttribute('show-checkboxes', 'true');
+                else threeTree.removeAttribute('show-checkboxes');
+                threeTree.setAttribute('checkbox-mode', mode);
+                threeTree.clickBehavior = beh;
+                if (clickToggles) threeTree.setAttribute('click-toggles-checkbox', 'true');
+                else threeTree.removeAttribute('click-toggles-checkbox');
+            };
 
             // Tree 1: Multi-select
             const tree1 = document.getElementById('tree1');
@@ -378,8 +490,8 @@
             Object.assign(tree2, treeConfig);
             tree2.data = fileTree;
 
-            tree2.addEventListener('selected-node-changed', (e) => {
-                const node = e.detail.selectedNode;
+            tree2.addEventListener('focused-node-changed', (e) => {
+                const node = e.detail.focusedNode;
                 document.getElementById('nav-current').textContent = node
                     ? `${node.data?.name} (${node.path})` : 'none';
             });
@@ -399,7 +511,7 @@
             tree3b.addEventListener('tree-changed', updateClipboardStatus);
 
             window.pasteIntoTarget = () => {
-                const selected = tree3b.getController()?.selectedNode;
+                const selected = tree3b.getController()?.focusedNode;
                 if (!selected) {
                     document.getElementById('tree3-output').textContent = 'Select a target node in the right tree first';
                     return;

@@ -98,6 +98,27 @@ element.setAttribute('display-value-member', 'label');</code></pre>
             </div>
             <button onclick="document.getElementById('tree5-log').innerHTML = ''" class="btn-outline" style="margin-top: 0.5rem">Clear log</button>
         </div>
+
+        <!-- NEW (rc03): Accordion Expand -->
+        <div class="card">
+            <h2>Example 6: Accordion Expand (rc03)</h2>
+            <p>With <code>accordion-expand="true"</code>, opening one branch automatically collapses its siblings at the same level. Useful when you want only one section open at a time (e.g. file managers, settings panels). User-driven toggles honor it; programmatic <code>expandNodes()</code> calls are unaffected.</p>
+
+            <div class="controls">
+                <label>
+                    <input type="checkbox" id="acc-enabled" onchange="applyAccordion()" checked>
+                    Accordion mode
+                </label>
+                <button class="btn-outline" onclick="document.getElementById('tree-acc').collapseAll()">Collapse all</button>
+            </div>
+
+            <div class="tree-container">
+                <web-treeview id="tree-acc" accordion-expand="true" expand-level="1"></web-treeview>
+            </div>
+            <p style="color: #64748b; font-size: 0.875rem; margin-top: 0.5rem;">
+                Try expanding "src", then "public" &mdash; with accordion on, opening "public" auto-collapses "src". Untick the box and the two sections can stay open together.
+            </p>
+        </div>
     </div>
 
     <script type="module">
@@ -267,8 +288,20 @@ element.setAttribute('display-value-member', 'label');</code></pre>
             }
 
             tree5.addEventListener('node-clicked', (e) => logEvent('node-clicked', e.detail));
-            tree5.addEventListener('selected-node-changed', (e) => logEvent('selected-node-changed', e.detail));
+            tree5.addEventListener('focused-node-changed', (e) => logEvent('focused-node-changed', e.detail));
             tree5.addEventListener('tree-changed', () => logEvent('tree-changed'));
+
+            // Example 6: Accordion expand
+            const accTree = document.getElementById('tree-acc');
+            accTree.data = fileTree;
+            accTree.idMember = 'id';
+            accTree.pathMember = 'path';
+            accTree.displayValueMember = 'name';
+            window.applyAccordion = function () {
+                const on = document.getElementById('acc-enabled').checked;
+                if (on) accTree.setAttribute('accordion-expand', 'true');
+                else accTree.removeAttribute('accordion-expand');
+            };
         });
     </script>
 </body>

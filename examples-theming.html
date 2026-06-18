@@ -303,6 +303,53 @@
             <p class="subtitle">Customize appearance with CSS custom properties. Dark mode, neon, corporate, and more</p>
         </header>
 
+        <!-- NEW (rc03): theme prop + built-in dark mode -->
+        <div class="card">
+            <h2>Built-in Dark Mode (rc03)</h2>
+            <p>Three signals flip the tree's surface between light and dark, applied in order of precedence (highest first):</p>
+            <ol style="margin: 0 0 1rem 1.5rem; padding: 0; font-size: 0.9rem;">
+                <li><code>theme="dark"</code> / <code>theme="light"</code> attribute on the <code>&lt;web-treeview&gt;</code> &mdash; per-instance override, beats everything else.</li>
+                <li>OS preference via <code>@media (prefers-color-scheme: dark)</code> &mdash; auto-flips when the user's OS is in dark mode.</li>
+                <li>Library defaults &mdash; light, with <code>#1a1a1a</code> as the dark fallback when a signal does flip.</li>
+            </ol>
+            <p style="font-size: 0.875rem;">Each block re-declares <code>--tv-bg-color</code>, <code>--tv-text-color</code>, etc. with sensible fallbacks. To customize, set the <code>--base-*</code> tokens on an ancestor and they cascade through the Shadow DOM.</p>
+
+            <div class="controls">
+                <label>
+                    Tree A theme:
+                    <select id="rc03-theme-a" onchange="applyRc03Themes()">
+                        <option value="">(none — follows OS)</option>
+                        <option value="light">light (force)</option>
+                        <option value="dark" selected>dark (force)</option>
+                    </select>
+                </label>
+                <label>
+                    Tree B theme:
+                    <select id="rc03-theme-b" onchange="applyRc03Themes()">
+                        <option value="" selected>(none — follows OS)</option>
+                        <option value="light">light (force)</option>
+                        <option value="dark">dark (force)</option>
+                    </select>
+                </label>
+                <span style="font-size: 0.85rem; color: #64748b;">
+                    Tree B follows your OS preference. Toggle your OS dark mode to see it flip.
+                </span>
+            </div>
+
+            <div class="theme-grid" style="margin-bottom: 0;">
+                <div class="theme-card" style="padding: 0;">
+                    <div class="tree-container" style="padding: 0; border: none;">
+                        <web-treeview id="rc03-tree-a" theme="dark" expand-level="2"></web-treeview>
+                    </div>
+                </div>
+                <div class="theme-card" style="padding: 0;">
+                    <div class="tree-container" style="padding: 0; border: none;">
+                        <web-treeview id="rc03-tree-b" expand-level="2"></web-treeview>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Theme Examples -->
         <h2 style="margin-bottom: 1.5rem;">Theme Examples</h2>
 
@@ -537,6 +584,19 @@
         }
 
         customElements.whenDefined('web-treeview').then(() => {
+            // rc03 theme prop trees
+            initTree('rc03-tree-a');
+            initTree('rc03-tree-b');
+
+            window.applyRc03Themes = function () {
+                const a = document.getElementById('rc03-theme-a').value;
+                const b = document.getElementById('rc03-theme-b').value;
+                const ta = document.getElementById('rc03-tree-a');
+                const tb = document.getElementById('rc03-tree-b');
+                if (a) ta.setAttribute('theme', a); else ta.removeAttribute('theme');
+                if (b) tb.setAttribute('theme', b); else tb.removeAttribute('theme');
+            };
+
             // Theme examples
             const themeIds = [
                 'default-mode', 'dark-mode', 'neon-mode', 'audi-mode',
