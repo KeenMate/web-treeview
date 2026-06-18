@@ -351,7 +351,7 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
 }
 
 function mapToRendererConfig<T>(options: Partial<TreeViewConfig<T>>): RendererConfig<T> {
-  return {
+  const cfg: RendererConfig<T> = {
     renderNodeCallback: options.renderNodeCallback,
     renderEmptyStateCallback: options.renderEmptyStateCallback,
     renderEmptyZoneCallback: options.renderEmptyZoneCallback,
@@ -361,4 +361,6 @@ function mapToRendererConfig<T>(options: Partial<TreeViewConfig<T>>): RendererCo
     renderContextMenuCallback: options.renderContextMenuCallback,
     renderContextMenuItemCallback: options.renderContextMenuItemCallback,
   };
+  if ('theme' in options) cfg.theme = options.theme ?? null;
+  return cfg;
 }

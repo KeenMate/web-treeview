@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 Catch-up release pulling forward the features `@keenmate/svelte-treeview` shipped from `5.0.0-rc05` through `5.0.0-rc10` so the two packages expose the same surface again. Public API parity is the goal — prop names, method signatures, callback shapes, CSS class names, and event semantics mirror the Svelte side. The CSS variable prefix stays `--tv-*` (matching `--ms-*` / `--drp-*` in the sibling KeenMate components).
 
 ### Added
+- **`theme` prop / attribute** (`'dark' | 'light' | null`): Per-instance theme override forwarded to the root `.ltree-container` as `data-theme="..."`. The new `_dark-mode.css` partial flips the `--tv-*` color tokens against four signals — OS preference (`@media (prefers-color-scheme: dark)`), framework theme classes (`[data-theme="dark"]`, `[data-bs-theme="dark"]`, `.dark`), per-instance `data-theme` on the container, and symmetric `light` variants so a single tree can force light on a dark page. Default behaviour with `theme=null|undefined` is to inherit from the page. Mirrors `@keenmate/svelte-treeview` rc10's `theme` prop.
 
 ### Changed
 

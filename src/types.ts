@@ -96,6 +96,11 @@ export interface TreeViewConfig<T = any> {
   virtualContainerHeight?: string | null;
 
   // Visual
+  /** Per-instance theme override. Forwarded to the root `.ltree-container`
+   *  as `data-theme="dark"|"light"`, which the stylesheet uses to flip the
+   *  tree's colors independently of the surrounding page. Leave undefined to
+   *  inherit from the page (OS preference, framework classes, etc.). */
+  theme?: 'dark' | 'light' | null;
   bodyClass?: string | null;
   selectedNodeClass?: string | null;
   dragOverNodeClass?: string | null;

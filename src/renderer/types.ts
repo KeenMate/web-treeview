@@ -17,6 +17,9 @@ export interface TreeViewRenderer<T = any> {
 }
 
 export interface RendererConfig<T> {
+  /** Per-instance theme. Renderer forwards as `data-theme` on the `.ltree-container`.
+   *  See `_dark-mode.css` for the cascade. */
+  theme?: 'dark' | 'light' | null;
   /** Custom node content renderer. Receives the node and a container element to populate. */
   renderNodeCallback?: (node: LTreeNode<T>, container: HTMLElement) => void;
   /** Informational display when the tree has no data (e.g. "No items to display"). */

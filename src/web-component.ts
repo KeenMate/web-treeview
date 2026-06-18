@@ -154,6 +154,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       'indexer-batch-size', 'indexer-timeout',
 
       // Visual / CSS classes
+      'theme',
       'body-class', 'selected-node-class', 'drag-over-node-class',
       'expand-icon-class', 'collapse-icon-class', 'leaf-icon-class', 'toggle-icon-mode',
       'scroll-highlight-timeout', 'scroll-highlight-class',
@@ -952,6 +953,10 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     if (searchText !== null) config.searchText = searchText;
 
     // Visual classes
+    const themeAttr = this.getAttribute('theme');
+    if (themeAttr === 'dark' || themeAttr === 'light') config.theme = themeAttr;
+    else config.theme = null;
+
     const bodyClass = this.getAttribute('body-class');
     if (bodyClass) config.bodyClass = bodyClass;
 

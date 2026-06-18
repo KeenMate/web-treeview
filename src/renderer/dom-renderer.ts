@@ -80,6 +80,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     // Build skeleton
     this.container.innerHTML = '';
     this.container.classList.add('ltree-container');
+    this._applyTheme(config.theme);
 
     // Header
     this.headerEl = document.createElement('div');
@@ -138,6 +139,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
   updateConfig(config: Partial<RendererConfig<T>>): void {
     Object.assign(this.config, config);
+    if ('theme' in config) this._applyTheme(config.theme);
     if (config.renderHeaderCallback && this.headerEl) {
       this.headerEl.innerHTML = '';
       config.renderHeaderCallback(this.headerEl);
@@ -169,10 +171,24 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (this.container) {
       this.container.innerHTML = '';
       this.container.classList.remove('ltree-container');
+      this.container.removeAttribute('data-theme');
     }
     this.container = null;
     this.controller = null;
     this.lastSnapshot = null;
+  }
+
+  // ── Theme ───────────────────────────────────────────────────────────
+
+  /** Forward the `theme` prop onto `.ltree-container` as `data-theme="..."`.
+   *  The dark-mode partial keys off this attribute for per-instance overrides. */
+  private _applyTheme(theme: 'dark' | 'light' | null | undefined): void {
+    if (!this.container) return;
+    if (theme === 'dark' || theme === 'light') {
+      this.container.setAttribute('data-theme', theme);
+    } else {
+      this.container.removeAttribute('data-theme');
+    }
   }
 
   // ── Event delegation ────────────────────────────────────────────────
