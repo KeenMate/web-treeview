@@ -107,7 +107,10 @@ export interface TreeViewConfig<T = any> {
    *  inherit from the page (OS preference, framework classes, etc.). */
   theme?: 'dark' | 'light' | null;
   bodyClass?: string | null;
-  selectedNodeClass?: string | null;
+  /** CSS class applied to every node in the highlight set (Ctrl/Shift+click). */
+  highlightedNodeClass?: string | null;
+  /** CSS class applied to the single focused node. */
+  focusedNodeClass?: string | null;
   dragOverNodeClass?: string | null;
   expandIconClass?: string | null;
   collapseIconClass?: string | null;
@@ -123,7 +126,14 @@ export interface TreeViewConfig<T = any> {
 
   // Bindable properties
   searchText?: string | null;
-  selectedNode?: LTreeNode<T> | null;
+  /** Single focused node (click, arrow keys). Distinct from the multi-select
+   *  highlight set. */
+  focusedNode?: LTreeNode<T> | null;
+  /** Multi-select highlight set (Ctrl/Shift+click). */
+  highlightedPaths?: Set<string>;
+  /** Checkbox / data-state selection set. When `showCheckboxes` is false,
+   *  the controller mirrors `highlightedPaths` into this set. */
+  selectedPaths?: Set<string>;
 
   // Loading
   isLoading?: boolean | null;
@@ -146,9 +156,20 @@ export interface TreeViewConfig<T = any> {
   contextMenuXOffset?: number | null;
   contextMenuYOffset?: number | null;
 
-  // Multi-select
+  // Selection model (rc06+: focusedNode / highlightedPaths / selectedPaths)
+  /** `'single'` (default) — Ctrl/Shift+click degrade to plain click.
+   *  `'multi'` — Ctrl+click toggles, Shift+click range-extends. */
+  selectionMode?: 'single' | 'multi';
+  /** Render a checkbox per selectable node. Default `false`. */
+  showCheckboxes?: boolean;
+  /** When `true`, plain clicks on a selectable node toggle its checkbox
+   *  instead of focusing/highlighting. Requires `showCheckboxes=true`. */
+  clickTogglesCheckbox?: boolean;
   rangeSelectionMode?: RangeSelectionMode;
+  /** Fires on changes to the checkbox / data-state selection set. */
   onSelectionChange?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
+  /** Fires on changes to the highlight set (Ctrl/Shift+click, arrow keys). */
+  onHighlightChange?: (highlightedPaths: Set<string>, highlightedNodes: LTreeNode<T>[]) => void;
 
   // Debug
   shouldDisplayDebugInformation?: boolean | null;
@@ -238,14 +259,28 @@ export interface TreeViewMethods<T = any> {
   replaceBranch(parentPath: string, data: T[]): { success: boolean; removed: number; added: number; error?: string };
   deleteBranch(path: string, keepParent?: boolean): { success: boolean; count: number; error?: string };
 
-  // Multi-select
+  // Highlight set (Ctrl/Shift+click multi-select)
+  highlightNode(
+    path: string,
+    mode?: 'replace' | 'toggle' | 'range',
+    options?: { silent?: boolean }
+  ): void;
+  highlightNodes(paths: string[], options?: { silent?: boolean }): void;
+  clearHighlight(options?: { silent?: boolean }): void;
+  getHighlightedNodes(): LTreeNode<T>[];
+  getHighlightedPaths(): Set<string>;
+  isNodeHighlighted(path: string): boolean;
+  selectAll(): void;
+  /** @deprecated Use `highlightNode()` instead. */
   selectNode(path: string, modifiers?: SelectionModifiers): void;
+  /** @deprecated Use `highlightNodes()` instead. */
   selectNodes(paths: string[]): void;
-  deselectAll(): void;
+
+  // Selection set (checkbox / data state)
   getSelectedNodes(): LTreeNode<T>[];
   getSelectedPaths(): Set<string>;
   isNodeSelected(path: string): boolean;
-  selectAll(): void;
+  deselectAll(options?: { silent?: boolean }): void;
 
   // Navigation
   navTo(path: string): void;
@@ -279,8 +314,9 @@ export interface TreeEventMap<T = any> {
   'node-drag-over': CustomEvent<{ node: LTreeNode<T>; event: DragEvent }>;
   'node-drop': CustomEvent<{ node: LTreeNode<T>; draggedNode: LTreeNode<T>; event: DragEvent }>;
   'data-changed': CustomEvent<{ data: T[] }>;
-  'selected-node-changed': CustomEvent<{ selectedNode: LTreeNode<T> | null }>;
+  'focused-node-changed': CustomEvent<{ focusedNode: LTreeNode<T> | null }>;
   'search-text-changed': CustomEvent<{ searchText: string }>;
+  'highlight-change': CustomEvent<{ highlightedNodes: LTreeNode<T>[]; highlightedPaths: Set<string> }>;
   'selection-change': CustomEvent<{ selectedNodes: LTreeNode<T>[]; selectedPaths: Set<string> }>;
   'tree-changed': CustomEvent<void>;
 }

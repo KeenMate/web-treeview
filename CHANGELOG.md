@@ -16,6 +16,17 @@ Catch-up release pulling forward the features `@keenmate/svelte-treeview` shippe
 - **Array variants + option bags on `expandNodes` / `collapseNodes` / `expandAll` / `collapseAll`**: all four now accept `string | string[] | null` instead of a single path. `expandNodes` and `expandAll` take `{ exclusive?: boolean; noEmit?: boolean }`; `collapseNodes` and `collapseAll` take `{ noEmit?: boolean }`. `exclusive` collapses anything off the union-of-spines so downstream listeners (URL sync, virtualised renderers, transition animations) don't see the intermediate fully-collapsed state. `noEmit` skips the change emission so consumers can batch several mutations and emit once at the end via `tree.refresh()`. Single emit per call regardless of array length. Mirrors `@keenmate/svelte-treeview` rc08.
 
 ### Changed
+- **Three-level selection model (`focusedNode` / `highlightedPaths` / `selectedPaths`)** — biggest behaviour change in rc03. Mirrors svelte-treeview rc06+.
+  - **`focusedNode`** (was `selectedNode`): single focused node (click, arrow keys). The web component now dispatches `focused-node-changed` (was `selected-node-changed`) with `detail.focusedNode`. The controller getter / setter is `focusedNode`.
+  - **`highlightedPaths`**: multi-select set built by Ctrl/Shift+click and arrow extensions. New methods `highlightNode(path, mode, options)` / `highlightNodes(paths, options)` / `clearHighlight(options)` / `getHighlightedNodes()` / `getHighlightedPaths()` / `isNodeHighlighted(path)`. The web component dispatches `highlight-change` with `detail.highlightedNodes` and `detail.highlightedPaths`.
+  - **`selectedPaths`** is now the checkbox / data-state selection set (was: the multi-select set). When `showCheckboxes` is false, every change to `highlightedPaths` is mirrored into `selectedPaths` so consumers reading the form-style selection still reflect what the user picked via the mouse. With checkboxes visible, the two sets stay independent.
+  - **`selectionMode` prop** (`'single' | 'multi'`, default `'single'`): in `'single'`, Ctrl/Shift+click degrade to plain click. In `'multi'`, Ctrl+click toggles, Shift+click range-extends.
+  - **`showCheckboxes`**, **`clickTogglesCheckbox`** props added (wiring; checkbox UI ports in the next commit).
+  - **`onHighlightChange`** callback added.
+  - **`{ silent: true }`** option on `highlightNode` / `highlightNodes` / `clearHighlight` / `deselectAll` skips the change callback + mirror. Useful for URL-restore flows where firing the change would re-trigger external sync.
+  - **`highlightedNodeClass`** (was `selectedNodeClass`) is the CSS class applied to every node in the highlight set. **`focusedNodeClass`** is new — applied only to the single focused node.
+  - **`node.isHighlighted`** added to `LTreeNode` (the existing `node.isSelected` now means "checked", not "selected via mouse").
+  - `selectNode` / `selectNodes` are kept as `@deprecated` aliases that forward to `highlightNode` / `highlightNodes`.
 - **`.ltree-container` paints its own background**: `background: var(--tv-bg-color)` and `color: var(--tv-text-color)` are now declared directly on `.ltree-container` (previously the surface was inherited from whatever element the consumer wrapped the tree in). Lets the tree render a visible surface without a colored wrapper, and makes the dark-mode flip self-contained. Set `--tv-bg-color: transparent` to restore the pre-rc03 layered behaviour. Mirrors svelte-treeview rc10's `--ltree-bg`.
 
 ### Fixed

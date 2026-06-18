@@ -326,9 +326,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       case 'v':
         if (ctrl) {
           event.preventDefault();
-          const selected = this.controller.selectedNode;
-          if (selected) {
-            this.controller.pasteNodes(selected.path);
+          const focused = this.controller.focusedNode;
+          if (focused) {
+            this.controller.pasteNodes(focused.path);
           }
         }
         break;
@@ -941,8 +941,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     // Selected state
     const nodeConfig = this.lastNodeConfig;
-    if (node.isSelected && nodeConfig?.selectedNodeClass) {
-      el.classList.add(nodeConfig.selectedNodeClass);
+    if (node.isHighlighted && nodeConfig?.highlightedNodeClass) {
+      el.classList.add(nodeConfig.highlightedNodeClass);
     }
 
     // Cut dimming
@@ -1015,8 +1015,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     const nodeConfig = this.lastNodeConfig;
 
     // Selected state on node element
-    if (nodeConfig?.selectedNodeClass) {
-      el.classList.toggle(nodeConfig.selectedNodeClass, !!node.isSelected);
+    if (nodeConfig?.highlightedNodeClass) {
+      el.classList.toggle(nodeConfig.highlightedNodeClass, !!node.isHighlighted);
     }
 
     // Cut dimming

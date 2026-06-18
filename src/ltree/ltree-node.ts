@@ -33,7 +33,10 @@ export interface LTreeNode<T> {
 
 	visualState: VisualState;
 	isExpanded: boolean;
+	/** Checkbox state. Independent from `isHighlighted`. Mirrors svelte-treeview rc06. */
 	isSelected: boolean;
+	/** Membership in `highlightedPaths` (Ctrl/Shift+click multi-select). Distinct from `isSelected`. */
+	isHighlighted: boolean;
 
 	isSelectable: boolean;
 
@@ -65,6 +68,7 @@ export function createLTreeNode<T>(data?: Partial<LTreeNode<T>>): LTreeNode<T> {
 		visualState: VisualState.indeterminate,
 		isExpanded: false,
 		isSelected: false,
+		isHighlighted: false,
 
 		isSelectable: true,
 

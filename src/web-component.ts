@@ -155,7 +155,9 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
       // Visual / CSS classes
       'theme',
-      'body-class', 'selected-node-class', 'drag-over-node-class',
+      'body-class', 'highlighted-node-class', 'focused-node-class', 'drag-over-node-class',
+      // Selection model
+      'selection-mode', 'show-checkboxes', 'click-toggles-checkbox',
       'expand-icon-class', 'collapse-icon-class', 'leaf-icon-class', 'toggle-icon-mode',
       'scroll-highlight-timeout', 'scroll-highlight-class',
 
@@ -839,7 +841,8 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     const ctrl = this.treeview.getController();
 
     // Dispatch tree-changed, selected-node-changed, and selection-change from controller state changes
-    let prevSelectedPath: string | null = null;
+    let prevFocusedPath: string | null = null;
+    let prevHighlightedPaths: string = '';
     let prevSelectedPaths: string = '';
     const controller = ctrl;
     controller.on('state-change', (snapshot) => {
@@ -848,17 +851,31 @@ export class WebTreeViewElement<T = any> extends BaseElement {
         composed: true
       }));
 
-      const currentPath = snapshot.selectedNode?.path ?? null;
-      if (currentPath !== prevSelectedPath) {
-        prevSelectedPath = currentPath;
-        this.dispatchEvent(new CustomEvent('selected-node-changed', {
+      const currentPath = snapshot.focusedNode?.path ?? null;
+      if (currentPath !== prevFocusedPath) {
+        prevFocusedPath = currentPath;
+        this.dispatchEvent(new CustomEvent('focused-node-changed', {
           bubbles: true,
           composed: true,
-          detail: { selectedNode: snapshot.selectedNode ?? null }
+          detail: { focusedNode: snapshot.focusedNode ?? null }
         }));
       }
 
-      // Dispatch selection-change when the set of selected paths changes
+      // Dispatch highlight-change when the highlight set changes (Ctrl/Shift+click).
+      const currentHighlightedPaths = [...snapshot.highlightedPaths].sort().join(',');
+      if (currentHighlightedPaths !== prevHighlightedPaths) {
+        prevHighlightedPaths = currentHighlightedPaths;
+        this.dispatchEvent(new CustomEvent('highlight-change', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            highlightedNodes: controller.getHighlightedNodes(),
+            highlightedPaths: new Set(snapshot.highlightedPaths)
+          }
+        }));
+      }
+
+      // Dispatch selection-change when the checkbox-style selection set changes.
       const currentSelectedPaths = [...snapshot.selectedPaths].sort().join(',');
       if (currentSelectedPaths !== prevSelectedPaths) {
         prevSelectedPaths = currentSelectedPaths;
@@ -966,8 +983,11 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     const bodyClass = this.getAttribute('body-class');
     if (bodyClass) config.bodyClass = bodyClass;
 
-    const selectedNodeClass = this.getAttribute('selected-node-class');
-    if (selectedNodeClass) config.selectedNodeClass = selectedNodeClass;
+    const highlightedNodeClass = this.getAttribute('highlighted-node-class');
+    if (highlightedNodeClass) config.highlightedNodeClass = highlightedNodeClass;
+
+    const focusedNodeClass = this.getAttribute('focused-node-class');
+    if (focusedNodeClass) config.focusedNodeClass = focusedNodeClass;
 
     const dragOverNodeClass = this.getAttribute('drag-over-node-class');
     if (dragOverNodeClass) config.dragOverNodeClass = dragOverNodeClass;
@@ -1091,6 +1111,15 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     // Multi-select
     const rangeSelectionMode = this._rangeSelectionMode ?? this.getAttribute('range-selection-mode') as RangeSelectionMode;
     if (rangeSelectionMode === 'visual' || rangeSelectionMode === 'logical') config.rangeSelectionMode = rangeSelectionMode;
+
+    const selectionModeAttr = this.getAttribute('selection-mode');
+    if (selectionModeAttr === 'single' || selectionModeAttr === 'multi') config.selectionMode = selectionModeAttr;
+
+    const showCheckboxesAttr = this.getAttribute('show-checkboxes');
+    if (showCheckboxesAttr !== null) config.showCheckboxes = showCheckboxesAttr !== 'false';
+
+    const clickTogglesCheckboxAttr = this.getAttribute('click-toggles-checkbox');
+    if (clickTogglesCheckboxAttr !== null) config.clickTogglesCheckbox = clickTogglesCheckboxAttr !== 'false';
     if (this._onSelectionChange) config.onSelectionChange = this._onSelectionChange;
 
     // Event handlers

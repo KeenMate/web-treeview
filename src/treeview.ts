@@ -189,18 +189,54 @@ export class WebTreeView<T = any> {
     return this.controller.getNodeByPath(path);
   }
 
-  // ── Multi-select (proxy to controller) ──────────────────────────────
+  // ── Highlight set (Ctrl/Shift+click multi-select) ───────────────────
 
+  highlightNode(
+    path: string,
+    mode: 'replace' | 'toggle' | 'range' = 'replace',
+    options?: { silent?: boolean }
+  ): void {
+    this.controller.highlightNode(path, mode, options);
+  }
+
+  highlightNodes(paths: string[], options?: { silent?: boolean }): void {
+    this.controller.highlightNodes(paths, options);
+  }
+
+  clearHighlight(options?: { silent?: boolean }): void {
+    this.controller.clearHighlight(options);
+  }
+
+  getHighlightedNodes(): LTreeNode<T>[] {
+    return this.controller.getHighlightedNodes();
+  }
+
+  getHighlightedPaths(): Set<string> {
+    return this.controller.getHighlightedPaths();
+  }
+
+  isNodeHighlighted(path: string): boolean {
+    return this.controller.isNodeHighlighted(path);
+  }
+
+  selectAll(): void {
+    this.controller.selectAll();
+  }
+
+  /** @deprecated Use `highlightNode()` instead. */
   selectNode(path: string, modifiers?: SelectionModifiers): void {
     this.controller.selectNode(path, modifiers);
   }
 
+  /** @deprecated Use `highlightNodes()` instead. */
   selectNodes(paths: string[]): void {
     this.controller.selectNodes(paths);
   }
 
-  deselectAll(): void {
-    this.controller.deselectAll();
+  // ── Selection set (checkbox / data state) ───────────────────────────
+
+  deselectAll(options?: { silent?: boolean }): void {
+    this.controller.deselectAll(options);
   }
 
   getSelectedNodes(): LTreeNode<T>[] {
@@ -213,10 +249,6 @@ export class WebTreeView<T = any> {
 
   isNodeSelected(path: string): boolean {
     return this.controller.isNodeSelected(path);
-  }
-
-  selectAll(): void {
-    this.controller.selectAll();
   }
 
   // ── Navigation (proxy to controller) ──────────────────────────────
@@ -310,7 +342,9 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     sortCallback: options.sortCallback,
 
     data: options.data || [],
-    selectedNode: options.selectedNode,
+    focusedNode: options.focusedNode,
+    highlightedPaths: options.highlightedPaths,
+    selectedPaths: options.selectedPaths,
 
     expandLevel: options.expandLevel,
     accordionExpand: options.accordionExpand,
@@ -351,7 +385,8 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     hasContextMenuRenderer: !!(options.contextMenuCallback || options.renderContextMenuCallback),
 
     bodyClass: options.bodyClass,
-    selectedNodeClass: options.selectedNodeClass,
+    highlightedNodeClass: options.highlightedNodeClass,
+    focusedNodeClass: options.focusedNodeClass,
     dragOverNodeClass: options.dragOverNodeClass,
     expandIconClass: options.expandIconClass,
     collapseIconClass: options.collapseIconClass,
@@ -370,7 +405,11 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     onRenderComplete: options.onRenderComplete,
 
     rangeSelectionMode: options.rangeSelectionMode,
+    selectionMode: options.selectionMode,
+    showCheckboxes: options.showCheckboxes,
+    clickTogglesCheckbox: options.clickTogglesCheckbox,
     onSelectionChange: options.onSelectionChange,
+    onHighlightChange: options.onHighlightChange,
   } as TreeControllerConfig<T>;
 }
 

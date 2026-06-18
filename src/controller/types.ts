@@ -49,7 +49,8 @@ export interface NodeConfig {
   collapseIconClass: string;
   leafIconClass: string;
   toggleIconMode: ToggleIconMode;
-  selectedNodeClass: string | null | undefined;
+  highlightedNodeClass: string | null | undefined;
+  focusedNodeClass: string | null | undefined;
   dragOverNodeClass: string | null | undefined;
   dragDropMode: DragDropMode;
   dropZoneMode: 'floating' | 'glow';
@@ -58,6 +59,7 @@ export interface NodeConfig {
   dropZoneMaxWidth: number;
   allowCopy: boolean;
   iconMember: string | null | undefined;
+  showCheckboxes: boolean;
 }
 
 // ─── Controller props ─────────────────────────────────────────────────────
@@ -99,7 +101,9 @@ export interface TreeControllerConfig<T> {
 
   // DATA
   data: T[];
-  selectedNode?: LTreeNode<T> | null | undefined;
+  focusedNode?: LTreeNode<T> | null | undefined;
+  highlightedPaths?: Set<string>;
+  selectedPaths?: Set<string>;
 
   // BEHAVIOUR
   expandLevel?: number | null | undefined;
@@ -145,9 +149,13 @@ export interface TreeControllerConfig<T> {
   allowCopy?: boolean;
   autoHandleCopy?: boolean;
 
-  // MULTI-SELECT
+  // SELECTION MODEL (rc06+: focusedNode / highlightedPaths / selectedPaths)
   rangeSelectionMode?: RangeSelectionMode;
+  selectionMode?: 'single' | 'multi';
+  showCheckboxes?: boolean;
+  clickTogglesCheckbox?: boolean;
   onSelectionChange?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
+  onHighlightChange?: (highlightedPaths: Set<string>, highlightedNodes: LTreeNode<T>[]) => void;
 
   // EVENTS
   onNodeClicked?: (node: LTreeNode<T>) => void;
@@ -185,7 +193,8 @@ export interface TreeControllerConfig<T> {
 
   // VISUALS
   bodyClass?: string | null | undefined;
-  selectedNodeClass?: string | null | undefined;
+  highlightedNodeClass?: string | null | undefined;
+  focusedNodeClass?: string | null | undefined;
   dragOverNodeClass?: string | null | undefined;
   expandIconClass?: string | null | undefined;
   collapseIconClass?: string | null | undefined;
@@ -224,7 +233,8 @@ export interface TreeControllerSnapshot<T> {
   useFlatRendering: boolean;
   flatIndentSize: string;
   shouldDisplayDebugInformation: boolean;
-  selectedNode: LTreeNode<T> | null | undefined;
+  focusedNode: LTreeNode<T> | null | undefined;
+  highlightedPaths: Set<string>;
   selectedPaths: Set<string>;
   cutPaths: Set<string>;
 
