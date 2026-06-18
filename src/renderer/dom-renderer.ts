@@ -1356,6 +1356,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       if (item.id) btn.setAttribute('data-item-id', item.id);
       if (item.shortcut) btn.setAttribute('data-shortcut', item.shortcut);
       if (item.isDisabled) btn.classList.add('ltree-context-menu-item-disabled');
+      if (item.children?.length) btn.classList.add('ltree-context-menu-has-children');
       if (item.className) btn.classList.add(item.className);
 
       // Custom item rendering: callback gets first shot, default fills in if empty

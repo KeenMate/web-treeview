@@ -124,6 +124,10 @@ export class WebTreeView<T = any> {
     return this.controller;
   }
 
+  getInsertResult() {
+    return this.controller.insertResult;
+  }
+
   getConfig(): Partial<TreeViewConfig<T>> {
     // Return snapshot of current config from controller
     return {};
