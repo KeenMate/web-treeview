@@ -16,7 +16,7 @@ const PAGE = '/test/silent-highlight.html';
 
 async function goto(page: Page) {
   await page.goto(PAGE);
-  await expect(page.locator('.ltree-node').first()).toBeVisible();
+  await expect(page.locator('.wtv-node').first()).toBeVisible();
 }
 
 async function counter(page: Page, name: 'click' | 'highlight' | 'selection'): Promise<number> {
@@ -61,10 +61,10 @@ test.describe('highlightNode', () => {
     expect(await highlightSize(page)).toBe(1);
     await expect(page.getByTestId('highlight-paths')).toHaveText('1.2');
 
-    // web-treeview applies the highlightedNodeClass to .ltree-node (the row
-    // container), not the inner .ltree-node-content like the Svelte build.
+    // highlightedNodeClass lands on the inner .wtv-node-content so styling
+    // affects only the visible row, not the children indentation area.
     await expect(
-      page.locator('.ltree-node[data-tree-path="1.2"]').first()
+      page.locator('.wtv-node[data-tree-path="1.2"] > .wtv-node-row > .wtv-node-content').first()
     ).toHaveClass(/test-highlighted/);
   });
 
@@ -142,7 +142,7 @@ test.describe('deselectAll', () => {
   test('loud after checkbox check: fires selection-change; clears state', async ({ page }) => {
     await goto(page);
 
-    const checkbox = page.locator('.ltree-node[data-tree-path="1.2"] input.ltree-checkbox').first();
+    const checkbox = page.locator('.wtv-node[data-tree-path="1.2"] input.wtv-checkbox').first();
     await checkbox.click();
     expect(await selectionSize(page)).toBeGreaterThan(0);
 
@@ -156,7 +156,7 @@ test.describe('deselectAll', () => {
   test('silent after checkbox check: skips selection-change; clears state', async ({ page }) => {
     await goto(page);
 
-    const checkbox = page.locator('.ltree-node[data-tree-path="1.2"] input.ltree-checkbox').first();
+    const checkbox = page.locator('.wtv-node[data-tree-path="1.2"] input.wtv-checkbox').first();
     await checkbox.click();
     expect(await selectionSize(page)).toBeGreaterThan(0);
 
@@ -179,7 +179,7 @@ test.describe('URL-restore scenario', () => {
     expect(await counter(page, 'highlight')).toBe(0);
     expect(await counter(page, 'click')).toBe(0);
 
-    await page.locator('.ltree-node[data-tree-path="2"] .ltree-node-content').first().click();
+    await page.locator('.wtv-node[data-tree-path="2"] .wtv-node-content').first().click();
     expect(await counter(page, 'click')).toBe(1);
     expect(await counter(page, 'highlight')).toBe(1);
   });

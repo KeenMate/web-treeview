@@ -79,12 +79,12 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     // Build skeleton
     this.container.innerHTML = '';
-    this.container.classList.add('ltree-container');
+    this.container.classList.add('wtv-container');
     this._applyTheme(config.theme);
 
     // Header
     this.headerEl = document.createElement('div');
-    this.headerEl.className = 'ltree-header';
+    this.headerEl.className = 'wtv-header';
     this.container.appendChild(this.headerEl);
     if (config.renderHeaderCallback) {
       config.renderHeaderCallback(this.headerEl);
@@ -92,18 +92,18 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     // Debug info
     this.debugEl = document.createElement('div');
-    this.debugEl.className = 'ltree-debug-info';
+    this.debugEl.className = 'wtv-debug-info';
     this.debugEl.style.display = 'none';
     this.container.appendChild(this.debugEl);
 
     // Tree body
     this.bodyEl = document.createElement('div');
-    this.bodyEl.className = 'ltree-tree';
+    this.bodyEl.className = 'wtv-tree';
     this.container.appendChild(this.bodyEl);
 
     // Footer
     this.footerEl = document.createElement('div');
-    this.footerEl.className = 'ltree-footer';
+    this.footerEl.className = 'wtv-footer';
     this.container.appendChild(this.footerEl);
     if (config.renderFooterCallback) {
       config.renderFooterCallback(this.footerEl);
@@ -111,14 +111,14 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     // Loading overlay
     this.loadingEl = document.createElement('div');
-    this.loadingEl.className = 'ltree-loading-overlay';
+    this.loadingEl.className = 'wtv-loading-overlay';
     this.loadingEl.style.display = 'none';
-    this.loadingEl.innerHTML = '<div class="ltree-loading-spinner"></div>';
+    this.loadingEl.innerHTML = '<div class="wtv-loading-spinner"></div>';
     this.container.appendChild(this.loadingEl);
 
     // Context menu
     this.contextMenuEl = document.createElement('div');
-    this.contextMenuEl.className = 'ltree-context-menu';
+    this.contextMenuEl.className = 'wtv-context-menu';
     this.contextMenuEl.style.display = 'none';
     this.container.appendChild(this.contextMenuEl);
 
@@ -170,7 +170,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this._vsMeasured = false;
     if (this.container) {
       this.container.innerHTML = '';
-      this.container.classList.remove('ltree-container');
+      this.container.classList.remove('wtv-container');
       this.container.removeAttribute('data-theme');
     }
     this.container = null;
@@ -180,7 +180,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
   // ── Theme ───────────────────────────────────────────────────────────
 
-  /** Forward the `theme` prop onto `.ltree-container` as `data-theme="..."`.
+  /** Forward the `theme` prop onto `.wtv-container` as `data-theme="..."`.
    *  The dark-mode partial keys off this attribute for per-instance overrides. */
   private _applyTheme(theme: 'dark' | 'light' | null | undefined): void {
     if (!this.container) return;
@@ -204,10 +204,10 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     };
 
     // Checkbox click
-    const checkbox = target.closest('.ltree-checkbox') as HTMLInputElement;
+    const checkbox = target.closest('.wtv-checkbox') as HTMLInputElement;
     if (checkbox) {
       event.stopPropagation();
-      const nodeEl = checkbox.closest('.ltree-node') as HTMLElement;
+      const nodeEl = checkbox.closest('.wtv-node') as HTMLElement;
       const path = nodeEl?.getAttribute('data-tree-path');
       if (path) {
         const node = this.controller.getNodeByPath(path);
@@ -219,9 +219,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
 
     // Toggle icon click
-    const toggleIcon = target.closest('.ltree-toggle-icon') as HTMLElement;
+    const toggleIcon = target.closest('.wtv-toggle-icon') as HTMLElement;
     if (toggleIcon) {
-      const nodeEl = toggleIcon.closest('.ltree-node') as HTMLElement;
+      const nodeEl = toggleIcon.closest('.wtv-node') as HTMLElement;
       const path = nodeEl?.getAttribute('data-tree-path');
       if (path) {
         const node = this.controller.getNodeByPath(path);
@@ -236,8 +236,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
 
     // Node content click (or indent zone click)
-    const contentEl = target.closest('.ltree-node-content') as HTMLElement;
-    const nodeEl = (contentEl || target).closest('.ltree-node') as HTMLElement;
+    const contentEl = target.closest('.wtv-node-content') as HTMLElement;
+    const nodeEl = (contentEl || target).closest('.wtv-node') as HTMLElement;
     const path = nodeEl?.getAttribute('data-tree-path');
     if (path) {
       const node = this.controller.getNodeByPath(path);
@@ -285,7 +285,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (behavior !== 'select') return;
 
     const target = event.target as HTMLElement;
-    const nodeEl = target.closest('.ltree-node') as HTMLElement;
+    const nodeEl = target.closest('.wtv-node') as HTMLElement;
     const path = nodeEl?.getAttribute('data-tree-path');
     if (path) {
       const node = this.controller.getNodeByPath(path);
@@ -373,8 +373,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _onBodyContextMenu = (event: MouseEvent) => {
     if (!this.controller) return;
     const target = event.target as HTMLElement;
-    const contentEl = target.closest('.ltree-node-content') as HTMLElement;
-    const nodeEl = (contentEl || target).closest('.ltree-node') as HTMLElement;
+    const contentEl = target.closest('.wtv-node-content') as HTMLElement;
+    const nodeEl = (contentEl || target).closest('.wtv-node') as HTMLElement;
     const path = nodeEl?.getAttribute('data-tree-path');
     if (path) {
       const node = this.controller.getNodeByPath(path);
@@ -387,7 +387,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _onBodyDragStart = (event: DragEvent) => {
     if (!this.controller) return;
     const target = event.target as HTMLElement;
-    const nodeEl = target.closest('.ltree-node') as HTMLElement;
+    const nodeEl = target.closest('.wtv-node') as HTMLElement;
     const path = nodeEl?.getAttribute('data-tree-path');
     if (path) {
       const node = this.controller.getNodeByPath(path);
@@ -408,22 +408,22 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
 
     // Drop zone handling — allow drop and highlight active zone
-    const zoneEl = target.closest('.ltree-drop-zone') as HTMLElement;
+    const zoneEl = target.closest('.wtv-drop-zone') as HTMLElement;
     if (zoneEl) {
       event.preventDefault();
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
       const parent = zoneEl.parentElement as HTMLElement;
       if (parent) {
         // Toggle active class on hovered zone
-        for (const sibling of parent.querySelectorAll('.ltree-drop-zone')) {
-          sibling.classList.toggle('ltree-drop-zone-active', sibling === zoneEl);
+        for (const sibling of parent.querySelectorAll('.wtv-drop-zone')) {
+          sibling.classList.toggle('wtv-drop-zone-active', sibling === zoneEl);
         }
         // Refresh position for scroll tracking
         const path = parent.getAttribute('data-tree-path');
         if (path) {
           const key = this._findKeyByPath(path);
           const hoveredEl = this.nodeElements.get(key);
-          const row = hoveredEl?.querySelector('.ltree-node-row') as HTMLElement;
+          const row = hoveredEl?.querySelector('.wtv-node-row') as HTMLElement;
           if (row) {
             const rect = row.getBoundingClientRect();
             parent.style.top = `${rect.top}px`;
@@ -436,9 +436,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       return;
     }
 
-    const contentEl = target.closest('.ltree-node-content') as HTMLElement;
+    const contentEl = target.closest('.wtv-node-content') as HTMLElement;
     if (contentEl) {
-      const nodeEl = contentEl.closest('.ltree-node') as HTMLElement;
+      const nodeEl = contentEl.closest('.wtv-node') as HTMLElement;
       const path = nodeEl?.getAttribute('data-tree-path');
       if (path) {
         const node = this.controller.getNodeByPath(path);
@@ -449,12 +449,12 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
 
     // Empty tree or active drop placeholder dragover
-    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-empty-zone') as HTMLElement;
+    const emptyOrPlaceholder = target.closest('.wtv-empty-state, .wtv-empty-zone') as HTMLElement;
     if (emptyOrPlaceholder) {
       console.log('[DomRenderer] dragover on empty/placeholder element', emptyOrPlaceholder.className);
       this.controller.handleEmptyTreeDragOver(event);
     } else {
-      const bodyHit = target.closest('.ltree-tree');
+      const bodyHit = target.closest('.wtv-tree');
       if (bodyHit && !contentEl && !zoneEl) {
         console.log('[DomRenderer] dragover on tree body, but no node/zone/empty found. target:', target.tagName, target.className);
       }
@@ -472,10 +472,10 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       treeId: this.controller.treeId
     });
     // Don't clear hover when cursor moves to a floating drop zone
-    if (related?.closest?.('.ltree-drop-zones')) return;
-    const contentEl = target.closest('.ltree-node-content') as HTMLElement;
+    if (related?.closest?.('.wtv-drop-zones')) return;
+    const contentEl = target.closest('.wtv-node-content') as HTMLElement;
     if (contentEl) {
-      const nodeEl = contentEl.closest('.ltree-node') as HTMLElement;
+      const nodeEl = contentEl.closest('.wtv-node') as HTMLElement;
       const path = nodeEl?.getAttribute('data-tree-path');
       if (path) {
         const node = this.controller.getNodeByPath(path);
@@ -485,7 +485,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       }
     }
 
-    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-empty-zone') as HTMLElement;
+    const emptyOrPlaceholder = target.closest('.wtv-empty-state, .wtv-empty-zone') as HTMLElement;
     if (emptyOrPlaceholder) {
       this.controller.handleEmptyTreeDragLeave(event);
     }
@@ -495,10 +495,10 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (!this.controller) return;
     const target = event.target as HTMLElement;
 
-    // Check for drop zone (zones are appended to bodyEl, not inside .ltree-node)
-    const zoneEl = target.closest('.ltree-drop-zone') as HTMLElement;
+    // Check for drop zone (zones are appended to bodyEl, not inside .wtv-node)
+    const zoneEl = target.closest('.wtv-drop-zone') as HTMLElement;
     if (zoneEl) {
-      const zonesContainer = zoneEl.closest('.ltree-drop-zones') as HTMLElement;
+      const zonesContainer = zoneEl.closest('.wtv-drop-zones') as HTMLElement;
       const path = zonesContainer?.getAttribute('data-tree-path');
       const position = zoneEl.getAttribute('data-drop-position') as DropPosition;
       if (path && position) {
@@ -510,17 +510,17 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       }
     }
 
-    // Check for empty tree drop (matches both .ltree-empty-state and active .ltree-empty-zone)
-    const emptyOrPlaceholder = target.closest('.ltree-empty-state, .ltree-empty-zone') as HTMLElement;
+    // Check for empty tree drop (matches both .wtv-empty-state and active .wtv-empty-zone)
+    const emptyOrPlaceholder = target.closest('.wtv-empty-state, .wtv-empty-zone') as HTMLElement;
     if (emptyOrPlaceholder) {
       this.controller.handleEmptyTreeDrop(event);
       return;
     }
 
     // Regular node drop
-    const contentEl = target.closest('.ltree-node-content') as HTMLElement;
+    const contentEl = target.closest('.wtv-node-content') as HTMLElement;
     if (contentEl) {
-      const nodeEl = contentEl.closest('.ltree-node') as HTMLElement;
+      const nodeEl = contentEl.closest('.wtv-node') as HTMLElement;
       const path = nodeEl?.getAttribute('data-tree-path');
       if (path) {
         const node = this.controller.getNodeByPath(path);
@@ -556,7 +556,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _onBodyTouchStart = (event: TouchEvent) => {
     if (!this.controller) return;
     const target = event.target as HTMLElement;
-    const nodeEl = target.closest('.ltree-node') as HTMLElement;
+    const nodeEl = target.closest('.wtv-node') as HTMLElement;
     const path = nodeEl?.getAttribute('data-tree-path');
     if (path) {
       const node = this.controller.getNodeByPath(path);
@@ -667,16 +667,16 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     if (snapshot.virtualScroll && !this.vsSpacerEl) {
       // Enable virtual scroll: add class, create spacer + content wrapper
-      this.bodyEl.classList.add('ltree-virtual-scroll');
+      this.bodyEl.classList.add('wtv-virtual-scroll');
       this.bodyEl.style.height = snapshot.virtualContainerHeight;
 
       this.vsSpacerEl = document.createElement('div');
-      this.vsSpacerEl.className = 'ltree-vs-spacer';
+      this.vsSpacerEl.className = 'wtv-vs-spacer';
       this.vsSpacerEl.style.position = 'relative';
       this.vsSpacerEl.style.width = '100%';
 
       this.vsContentEl = document.createElement('div');
-      this.vsContentEl.className = 'ltree-vs-content';
+      this.vsContentEl.className = 'wtv-vs-content';
       this.vsContentEl.style.willChange = 'transform';
 
       // Move existing children into vsContentEl
@@ -696,7 +696,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     } else if (!snapshot.virtualScroll && this.vsSpacerEl) {
       // Disable virtual scroll: tear down structure
       this.bodyEl.removeEventListener('scroll', this._onVirtualScroll);
-      this.bodyEl.classList.remove('ltree-virtual-scroll');
+      this.bodyEl.classList.remove('wtv-virtual-scroll');
       this.bodyEl.style.height = '';
 
       // Move children back from vsContentEl to bodyEl
@@ -735,7 +735,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     const renderTarget = this.vsContentEl ?? this.bodyEl;
     if (!renderTarget) return;
 
-    const firstNode = renderTarget.querySelector('.ltree-node') as HTMLElement;
+    const firstNode = renderTarget.querySelector('.wtv-node') as HTMLElement;
     if (firstNode) {
       const height = firstNode.getBoundingClientRect().height;
       if (height > 0) {
@@ -828,9 +828,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
 
     // Remove empty state if it exists
-    const emptyState = target.querySelector('.ltree-empty-state');
+    const emptyState = target.querySelector('.wtv-empty-state');
     if (emptyState) emptyState.remove();
-    const emptyZone = target.querySelector('.ltree-empty-zone');
+    const emptyZone = target.querySelector('.wtv-empty-zone');
     if (emptyZone) emptyZone.remove();
 
     // Build/update nodes
@@ -899,18 +899,18 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
     if (snapshot.isDragInProgress && snapshot.isDropPlaceholderActive) {
       target.style.minHeight = '';
-      let zone = target.querySelector('.ltree-empty-zone');
+      let zone = target.querySelector('.wtv-empty-zone');
       if (!zone) {
-        const emptyState = target.querySelector('.ltree-empty-state');
+        const emptyState = target.querySelector('.wtv-empty-state');
         if (emptyState) emptyState.remove();
 
         zone = document.createElement('div');
-        zone.className = 'ltree-empty-zone';
+        zone.className = 'wtv-empty-zone';
         if (this.config.renderEmptyZoneCallback) {
           this.config.renderEmptyZoneCallback(zone as HTMLElement);
         } else {
           const content = document.createElement('div');
-          content.className = 'ltree-empty-zone-content';
+          content.className = 'wtv-empty-zone-content';
           content.textContent = 'Drop here';
           zone.appendChild(content);
         }
@@ -919,22 +919,22 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     } else if (snapshot.isLoading) {
       // Loading active — don't show empty state underneath the overlay
       // Set min-height so the absolute loading overlay has room to display
-      target.style.minHeight = 'var(--tv-tree-min-height)';
-      const zone = target.querySelector('.ltree-empty-zone');
+      target.style.minHeight = 'var(--wtv-tree-min-height)';
+      const zone = target.querySelector('.wtv-empty-zone');
       if (zone) zone.remove();
-      const emptyState = target.querySelector('.ltree-empty-state');
+      const emptyState = target.querySelector('.wtv-empty-state');
       if (emptyState) emptyState.remove();
     } else {
       target.style.minHeight = '';
-      const zone = target.querySelector('.ltree-empty-zone');
+      const zone = target.querySelector('.wtv-empty-zone');
       if (zone) zone.remove();
 
       // Reuse existing empty state to avoid DOM removal during active drags
       // (removing and recreating the element kills browser drag tracking)
-      let emptyState = target.querySelector('.ltree-empty-state');
+      let emptyState = target.querySelector('.wtv-empty-state');
       if (!emptyState) {
         emptyState = document.createElement('div');
-        emptyState.className = 'ltree-empty-state';
+        emptyState.className = 'wtv-empty-state';
         target.appendChild(emptyState);
       }
       if (this.config.renderEmptyStateCallback) {
@@ -947,7 +947,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
   private _createNodeElement(node: LTreeNode<T>, snapshot: TreeControllerSnapshot<T>): HTMLElement {
     const el = document.createElement('div');
-    el.className = 'ltree-node';
+    el.className = 'wtv-node';
     el.setAttribute('data-tree-path', node.path);
     el.setAttribute('data-rev', String(node._rev));
     el.setAttribute('data-expanded', String(!!node.isExpanded));
@@ -964,51 +964,44 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     // Draggable — only when drag-drop is enabled
     if (this.controller?.dragDropMode !== 'none' && this.controller?.getNodeIsDraggable(node)) {
       el.setAttribute('draggable', 'true');
-      el.classList.add('ltree-draggable');
+      el.classList.add('wtv-draggable');
     }
 
-    // Selected state
     const nodeConfig = this.lastNodeConfig;
-    if (node.isHighlighted && nodeConfig?.highlightedNodeClass) {
-      el.classList.add(nodeConfig.highlightedNodeClass);
-    }
-    if (snapshot.focusedNode?.path === node.path && nodeConfig?.focusedNodeClass) {
-      el.classList.add(nodeConfig.focusedNodeClass);
-    }
 
-    // Cut dimming
+    // Cut dimming (whole-node fade)
     if (snapshot.cutPaths.has(node.path)) {
-      el.classList.add('ltree-cut');
+      el.classList.add('wtv-cut');
     }
 
     // Node row
     const row = document.createElement('div');
-    row.className = 'ltree-node-row';
+    row.className = 'wtv-node-row';
 
     // Toggle icon
     const toggle = document.createElement('span');
-    toggle.className = 'ltree-toggle-icon';
+    toggle.className = 'wtv-toggle-icon';
 
     if (node.hasChildren) {
       const isSwap = nodeConfig?.toggleIconMode === 'swap';
       if (isSwap) {
         addClasses(toggle, node.isExpanded
-          ? (nodeConfig?.collapseIconClass || 'ltree-icon-collapse')
-          : (nodeConfig?.expandIconClass || 'ltree-icon-expand'));
+          ? (nodeConfig?.collapseIconClass || 'wtv-icon-collapse')
+          : (nodeConfig?.expandIconClass || 'wtv-icon-expand'));
       } else {
-        addClasses(toggle, nodeConfig?.expandIconClass || 'ltree-icon-expand');
+        addClasses(toggle, nodeConfig?.expandIconClass || 'wtv-icon-expand');
         if (node.isExpanded) {
           toggle.classList.add('expanded');
         }
       }
-      toggle.classList.add('ltree-clickable');
+      toggle.classList.add('wtv-clickable');
     } else {
       // Leaf node: use per-node icon if available, otherwise fall back to leafIconClass
       const nodeIcon = this.controller?.hasIconSupport ? this.controller.getNodeIcon(node) : null;
       if (nodeIcon) {
         addClasses(toggle, nodeIcon);
       } else {
-        addClasses(toggle, nodeConfig?.leafIconClass || 'ltree-icon-leaf');
+        addClasses(toggle, nodeConfig?.leafIconClass || 'wtv-icon-leaf');
       }
     }
 
@@ -1019,7 +1012,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (nodeConfig?.showCheckboxes && node.isSelectable) {
       const cb = document.createElement('input');
       cb.type = 'checkbox';
-      cb.className = 'ltree-checkbox';
+      cb.className = 'wtv-checkbox';
       cb.checked = !!node.isSelected;
       cb.indeterminate = node.visualState === 'indeterminate';
       row.appendChild(cb);
@@ -1027,10 +1020,25 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     // Node content
     const content = document.createElement('div');
-    content.className = 'ltree-node-content';
+    content.className = 'wtv-node-content';
+
+    // Highlight / focus state — applied to the row content so the styling
+    // affects only the visible row, not the children indentation area below.
+    if (node.isHighlighted) {
+      content.classList.add('wtv-highlighted');
+      if (nodeConfig?.highlightedNodeClass) {
+        content.classList.add(nodeConfig.highlightedNodeClass);
+      }
+    }
+    if (snapshot.focusedNode?.path === node.path) {
+      content.classList.add('wtv-focused');
+      if (nodeConfig?.focusedNodeClass) {
+        content.classList.add(nodeConfig.focusedNodeClass);
+      }
+    }
 
     if (nodeConfig?.clickBehavior !== 'expand' && node.hasChildren) {
-      content.classList.add('ltree-clickable');
+      content.classList.add('wtv-clickable');
     }
 
     // Custom or default content
@@ -1038,7 +1046,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       this.config.renderNodeCallback(node, content);
     } else {
       const label = document.createElement('span');
-      label.className = 'ltree-node-label';
+      label.className = 'wtv-node-label';
       label.textContent = this.controller?.tree?.getNodeDisplayValue(node) || String(node.id);
       content.appendChild(label);
     }
@@ -1056,45 +1064,50 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
     const nodeConfig = this.lastNodeConfig;
 
-    // Selected state on node element
-    if (nodeConfig?.highlightedNodeClass) {
-      el.classList.toggle(nodeConfig.highlightedNodeClass, !!node.isHighlighted);
-    }
+    // Cut dimming (whole-node fade)
+    el.classList.toggle('wtv-cut', snapshot.cutPaths.has(node.path));
 
-    // Cut dimming
-    el.classList.toggle('ltree-cut', snapshot.cutPaths.has(node.path));
-
-    // Focused-node class
-    if (nodeConfig?.focusedNodeClass) {
-      el.classList.toggle(nodeConfig.focusedNodeClass, snapshot.focusedNode?.path === node.path);
+    // Highlight / focus state — applied to the row content so the styling
+    // affects only the visible row, not the children indentation area below.
+    const contentEl = el.querySelector(':scope > .wtv-node-row > .wtv-node-content') as HTMLElement | null;
+    if (contentEl) {
+      contentEl.classList.toggle('wtv-highlighted', !!node.isHighlighted);
+      if (nodeConfig?.highlightedNodeClass) {
+        contentEl.classList.toggle(nodeConfig.highlightedNodeClass, !!node.isHighlighted);
+      }
+      const isFocused = snapshot.focusedNode?.path === node.path;
+      contentEl.classList.toggle('wtv-focused', isFocused);
+      if (nodeConfig?.focusedNodeClass) {
+        contentEl.classList.toggle(nodeConfig.focusedNodeClass, isFocused);
+      }
     }
 
     // Sync checkbox checked / indeterminate
     if (nodeConfig?.showCheckboxes && node.isSelectable) {
-      let cb = el.querySelector('.ltree-checkbox') as HTMLInputElement | null;
+      let cb = el.querySelector('.wtv-checkbox') as HTMLInputElement | null;
       if (!cb) {
         // Showed checkboxes was just toggled on — insert one.
         cb = document.createElement('input');
         cb.type = 'checkbox';
-        cb.className = 'ltree-checkbox';
-        const toggle = el.querySelector('.ltree-toggle-icon');
+        cb.className = 'wtv-checkbox';
+        const toggle = el.querySelector('.wtv-toggle-icon');
         toggle?.after(cb);
       }
       cb.checked = !!node.isSelected;
       cb.indeterminate = node.visualState === 'indeterminate';
     } else {
-      const cb = el.querySelector('.ltree-checkbox');
+      const cb = el.querySelector('.wtv-checkbox');
       cb?.remove();
     }
 
     // Update toggle icon
-    const toggle = el.querySelector('.ltree-toggle-icon') as HTMLElement;
+    const toggle = el.querySelector('.wtv-toggle-icon') as HTMLElement;
     if (toggle && node.hasChildren) {
       const isExpanded = node.isExpanded;
 
       if (nodeConfig?.toggleIconMode === 'swap') {
-        const expandCls = nodeConfig?.expandIconClass || 'ltree-icon-expand';
-        const collapseCls = nodeConfig?.collapseIconClass || 'ltree-icon-collapse';
+        const expandCls = nodeConfig?.expandIconClass || 'wtv-icon-expand';
+        const collapseCls = nodeConfig?.collapseIconClass || 'wtv-icon-collapse';
         // Remove old classes first, then add new (avoids shared token conflict e.g. "fa-solid")
         removeClasses(toggle, isExpanded ? expandCls : collapseCls);
         addClasses(toggle, isExpanded ? collapseCls : expandCls);
@@ -1105,20 +1118,22 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
 
     // Update content
-    const content = el.querySelector('.ltree-node-content') as HTMLElement;
+    const content = el.querySelector('.wtv-node-content') as HTMLElement;
     if (content) {
-      // Reset classes
-      content.className = 'ltree-node-content';
-      if (nodeConfig?.clickBehavior !== 'expand' && node.hasChildren) {
-        content.classList.add('ltree-clickable');
-      }
+      // Sync wtv-clickable based on current clickBehavior + hasChildren.
+      // Other classes on the content element (wtv-highlighted, wtv-focused,
+      // highlightedNodeClass, focusedNodeClass) are managed earlier in this
+      // function and must not be wiped here.
+      const clickable =
+        nodeConfig?.clickBehavior !== 'expand' && node.hasChildren;
+      content.classList.toggle('wtv-clickable', clickable);
 
       // Re-render content if using template
       if (this.config.renderNodeCallback) {
         content.innerHTML = '';
         this.config.renderNodeCallback(node, content);
       } else {
-        const label = content.querySelector('.ltree-node-label') as HTMLElement;
+        const label = content.querySelector('.wtv-node-label') as HTMLElement;
         if (label) {
           label.textContent = this.controller?.tree?.getNodeDisplayValue(node) || String(node.id);
         }
@@ -1128,10 +1143,10 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     // Update draggable — only when drag-drop is enabled
     if (this.controller?.dragDropMode !== 'none' && this.controller?.getNodeIsDraggable(node)) {
       el.setAttribute('draggable', 'true');
-      el.classList.add('ltree-draggable');
+      el.classList.add('wtv-draggable');
     } else {
       el.removeAttribute('draggable');
-      el.classList.remove('ltree-draggable');
+      el.classList.remove('wtv-draggable');
     }
   }
 
@@ -1141,16 +1156,16 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     // Dragged node
     for (const [, el] of this.nodeElements) {
       const path = el.getAttribute('data-tree-path');
-      const content = el.querySelector('.ltree-node-content') as HTMLElement;
+      const content = el.querySelector('.wtv-node-content') as HTMLElement;
       if (!content) continue;
 
       // Clear previous drag classes
-      el.classList.remove('ltree-dragged');
-      content.classList.remove('ltree-glow-before', 'ltree-glow-after', 'ltree-glow-child', 'ltree-drop-copy');
+      el.classList.remove('wtv-dragged');
+      content.classList.remove('wtv-glow-before', 'wtv-glow-after', 'wtv-glow-child', 'wtv-drop-copy');
 
       // Dragged node style
       if (path === snapshot.draggedNodePath) {
-        el.classList.add('ltree-dragged');
+        el.classList.add('wtv-dragged');
       }
 
       // Glow mode indicators on hovered node
@@ -1160,9 +1175,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         snapshot.activeDropPosition &&
         this.lastNodeConfig?.dropZoneMode === 'glow'
       ) {
-        content.classList.add(`ltree-glow-${snapshot.activeDropPosition}`);
+        content.classList.add(`wtv-glow-${snapshot.activeDropPosition}`);
         if (snapshot.currentDropOperation === 'copy') {
-          content.classList.add('ltree-drop-copy');
+          content.classList.add('wtv-drop-copy');
         }
       }
     }
@@ -1178,14 +1193,14 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       snapshot.isDragInProgress &&
       !!snapshot.hoveredNodeForDropPath;
 
-    const existing = this.bodyEl.querySelector('.ltree-drop-zones') as HTMLElement | null;
+    const existing = this.bodyEl.querySelector('.wtv-drop-zones') as HTMLElement | null;
     const existingPath = existing?.getAttribute('data-tree-path') ?? null;
 
     // If zones already exist for the same hovered path, just update position — don't recreate
     if (shouldShow && existing && existingPath === snapshot.hoveredNodeForDropPath) {
       const key = this._findKeyByPath(snapshot.hoveredNodeForDropPath!);
       const hoveredEl = this.nodeElements.get(key);
-      const row = hoveredEl?.querySelector('.ltree-node-row') as HTMLElement;
+      const row = hoveredEl?.querySelector('.wtv-node-row') as HTMLElement;
       if (row) {
         const rect = row.getBoundingClientRect();
         existing.style.top = `${rect.top}px`;
@@ -1209,7 +1224,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     const node = this.controller.getNodeByPath(snapshot.hoveredNodeForDropPath!);
     if (!node) return;
 
-    const row = hoveredEl.querySelector('.ltree-node-row') as HTMLElement;
+    const row = hoveredEl.querySelector('.wtv-node-row') as HTMLElement;
     if (!row) return;
 
     const rect = row.getBoundingClientRect();
@@ -1220,7 +1235,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     const maxWidth = this.lastNodeConfig?.dropZoneMaxWidth ?? 120;
 
     const zones = document.createElement('div');
-    zones.className = `ltree-drop-zones ltree-drop-zones-${layout}`;
+    zones.className = `wtv-drop-zones wtv-drop-zones-${layout}`;
     zones.setAttribute('data-tree-path', snapshot.hoveredNodeForDropPath!);
     zones.style.position = 'fixed';
     zones.style.top = `${rect.top}px`;
@@ -1234,7 +1249,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     const positions: DropPosition[] = allowedPositions || ['before', 'after', 'child'];
     for (const pos of positions) {
       const zone = document.createElement('div');
-      zone.className = `ltree-drop-zone ltree-drop-${pos}`;
+      zone.className = `wtv-drop-zone wtv-drop-${pos}`;
       zone.setAttribute('data-drop-position', pos);
       zone.textContent = pos.charAt(0).toUpperCase() + pos.slice(1);
       zones.appendChild(zone);
@@ -1337,9 +1352,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       // Divider entry
       if ('divider' in entry && entry.divider) {
         const divider = document.createElement('div');
-        divider.className = 'ltree-context-menu-divider';
+        divider.className = 'wtv-context-menu-divider';
         if (entry.label) {
-          divider.classList.add('ltree-context-menu-divider-named');
+          divider.classList.add('wtv-context-menu-divider-named');
           divider.textContent = entry.label;
         }
         container.appendChild(divider);
@@ -1352,11 +1367,11 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       if (item.isVisible === false) continue;
 
       const btn = document.createElement('button');
-      btn.className = 'ltree-context-menu-item';
+      btn.className = 'wtv-context-menu-item';
       if (item.id) btn.setAttribute('data-item-id', item.id);
       if (item.shortcut) btn.setAttribute('data-shortcut', item.shortcut);
-      if (item.isDisabled) btn.classList.add('ltree-context-menu-item-disabled');
-      if (item.children?.length) btn.classList.add('ltree-context-menu-has-children');
+      if (item.isDisabled) btn.classList.add('wtv-context-menu-item-disabled');
+      if (item.children?.length) btn.classList.add('wtv-context-menu-has-children');
       if (item.className) btn.classList.add(item.className);
 
       // Custom item rendering: callback gets first shot, default fills in if empty
@@ -1367,26 +1382,26 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       if (!btn.hasChildNodes()) {
         if (hasAnyIcon) {
           const icon = document.createElement('span');
-          icon.className = 'ltree-context-menu-icon';
+          icon.className = 'wtv-context-menu-icon';
           if (item.icon) icon.textContent = item.icon;
           btn.appendChild(icon);
         }
 
         const labelSpan = document.createElement('span');
-        labelSpan.className = 'ltree-context-menu-label';
+        labelSpan.className = 'wtv-context-menu-label';
         labelSpan.textContent = item.label;
         btn.appendChild(labelSpan);
 
         if (item.shortcut) {
           const shortcutSpan = document.createElement('span');
-          shortcutSpan.className = 'ltree-context-menu-shortcut';
+          shortcutSpan.className = 'wtv-context-menu-shortcut';
           shortcutSpan.textContent = item.shortcut;
           btn.appendChild(shortcutSpan);
         }
 
         if (item.children?.length) {
           const arrow = document.createElement('span');
-          arrow.className = 'ltree-context-menu-arrow';
+          arrow.className = 'wtv-context-menu-arrow';
           arrow.textContent = '\u25B8'; // ▸
           btn.appendChild(arrow);
         }
@@ -1407,7 +1422,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           cancelHide();
           if (submenuEl) return;
           submenuEl = document.createElement('div');
-          submenuEl.className = 'ltree-context-menu ltree-context-submenu';
+          submenuEl.className = 'wtv-context-menu wtv-context-submenu';
           submenuEl.style.display = 'block';
           submenuEl.style.position = 'fixed';
           this._renderContextMenuItems(item.children!, submenuEl, contextNode, cancelHide);
@@ -1461,10 +1476,10 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this._ctxKeydownHandler = (e: KeyboardEvent) => {
       if (!this.container) return;
       const key = e.key.toLowerCase();
-      const menuItems = this.container.querySelectorAll('.ltree-context-menu-item[data-shortcut]') as NodeListOf<HTMLElement>;
+      const menuItems = this.container.querySelectorAll('.wtv-context-menu-item[data-shortcut]') as NodeListOf<HTMLElement>;
       for (const el of menuItems) {
         const shortcut = el.dataset.shortcut!;
-        const disabled = el.classList.contains('ltree-context-menu-item-disabled');
+        const disabled = el.classList.contains('wtv-context-menu-item-disabled');
         if (disabled) continue;
         if (shortcut.toLowerCase() === key || shortcut === e.key) {
           e.preventDefault();
@@ -1500,7 +1515,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.debugEl.innerHTML = `
       <details>
         <summary>Tree Debug Info</summary>
-        <div class="ltree-debug-stats">
+        <div class="wtv-debug-stats">
           <span>Nodes: ${stats.nodeCount}</span>
           <span>Visible: ${snapshot.flatNodesToRender.length}</span>
           <span>Max Level: ${stats.maxLevel}</span>

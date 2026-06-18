@@ -6,7 +6,7 @@
    - Overridable from outside Shadow DOM
    - Self-documenting in compiled CSS
 
-   Priority chain: --tv-* (direct override) → --base-* (theme value) → hardcoded default
+   Priority chain: --wtv-* (direct override) → --base-* (theme value) → hardcoded default
 
    Usage from outside Shadow DOM (set on :root or any ancestor):
      :root {
@@ -16,8 +16,8 @@
 
    Or override component-specific variables directly:
      web-treeview {
-       --tv-accent-color: #10b981;
-       --tv-indent-size: 24px;
+       --wtv-accent-color: #10b981;
+       --wtv-indent-size: 24px;
      }
 
    Or inject styles into Shadow DOM via customStylesCallback:
@@ -56,46 +56,46 @@
      Internal 10px-based unit for clean math. Override to scale the component.
      Default 10px produces same visual output as standard 16px rem.
 
-     IMPORTANT: For web components, set --tv-rem on the <web-treeview>
+     IMPORTANT: For web components, set --wtv-rem on the <web-treeview>
      element itself or on :root. Setting on wrapper divs won't work due to
      shadow DOM encapsulation. */
-  --tv-rem: var(--base-rem, 10px);
+  --wtv-rem: var(--base-rem, 10px);
 
   /* ==========================================================================
      FONT FAMILY (set at :host so all shadow DOM content inherits)
      ========================================================================== */
-  font-family: var(--tv-font-family, var(--base-font-family, inherit));
+  font-family: var(--wtv-font-family, var(--base-font-family, inherit));
 
   /* ==========================================================================
      COLORS & THEME
      ========================================================================== */
 
   /* Core Colors */
-  --tv-accent-color: var(--base-accent-color, #3b82f6);
-  --tv-accent-color-hover: var(--base-accent-color-hover, #2563eb);
-  --tv-text-color: var(--base-text-color-1, #1e293b);
-  --tv-text-color-2: var(--base-text-color-3, #64748b);
-  --tv-text-color-on-accent: var(--base-text-color-on-accent, #ffffff);
-  --tv-bg-color: var(--base-main-bg, #ffffff);
-  --tv-border-color: var(--base-border-color, #e2e8f0);
-  --tv-success-color: var(--base-success-color, #198754);
-  --tv-danger-color: var(--base-danger-color, #dc3545);
-  --tv-light-bg: var(--base-elevated-bg, #f8f9fa);
+  --wtv-accent-color: var(--base-accent-color, #3b82f6);
+  --wtv-accent-color-hover: var(--base-accent-color-hover, #2563eb);
+  --wtv-text-color: var(--base-text-color-1, #1e293b);
+  --wtv-text-color-2: var(--base-text-color-3, #64748b);
+  --wtv-text-color-on-accent: var(--base-text-color-on-accent, #ffffff);
+  --wtv-bg-color: var(--base-main-bg, #ffffff);
+  --wtv-border-color: var(--base-border-color, #e2e8f0);
+  --wtv-success-color: var(--base-success-color, #198754);
+  --wtv-danger-color: var(--base-danger-color, #dc3545);
+  --wtv-light-bg: var(--base-elevated-bg, #f8f9fa);
 
   /* Hover / Active / Selected */
-  --tv-hover-bg: var(--base-hover-bg, #f1f5f9);
-  --tv-active-bg: var(--base-active-bg, #e2e8f0);
-  --tv-selected-bg: var(--base-accent-color-light, #eff6ff);
-  --tv-selected-border-color: var(--tv-accent-color);
+  --wtv-hover-bg: var(--base-hover-bg, #f1f5f9);
+  --wtv-active-bg: var(--base-active-bg, #e2e8f0);
+  --wtv-selected-bg: var(--base-accent-color-light, #eff6ff);
+  --wtv-selected-border-color: var(--wtv-accent-color);
 
   /* Node state aliases (DRP semantic naming) */
-  --tv-node-bg-hover: var(--tv-hover-bg);
-  --tv-node-bg-active: var(--tv-active-bg);
+  --wtv-node-bg-hover: var(--wtv-hover-bg);
+  --wtv-node-bg-active: var(--wtv-active-bg);
 
   /* Full border shorthand (DRP pattern) */
-  --tv-border-width-base: 1px;
-  --tv-border: var(--tv-border-width-base) solid var(--tv-border-color);
-  --tv-selected-border: 2px solid var(--tv-selected-border-color);
+  --wtv-border-width-base: 1px;
+  --wtv-border: var(--wtv-border-width-base) solid var(--wtv-border-color);
+  --wtv-selected-border: 2px solid var(--wtv-selected-border-color);
 
   /* ==========================================================================
      TYPOGRAPHY SCALE (with theme-designer integration)
@@ -103,153 +103,153 @@
      Theme-designer outputs unitless multipliers (e.g., --base-font-size-sm: 1.4)
      Component computes: calc(1.4 * 10px) = 14px */
 
-  /* Font Sizes (unitless multipliers × --tv-rem) */
-  --tv-font-size-xs: calc(var(--base-font-size-xs, 1.2) * var(--tv-rem));     /* 12px */
-  --tv-font-size-sm: calc(var(--base-font-size-sm, 1.4) * var(--tv-rem));     /* 14px */
-  --tv-font-size-base: calc(var(--base-font-size-base, 1.6) * var(--tv-rem)); /* 16px */
-  --tv-font-size: var(--tv-font-size-sm);
+  /* Font Sizes (unitless multipliers × --wtv-rem) */
+  --wtv-font-size-xs: calc(var(--base-font-size-xs, 1.2) * var(--wtv-rem));     /* 12px */
+  --wtv-font-size-sm: calc(var(--base-font-size-sm, 1.4) * var(--wtv-rem));     /* 14px */
+  --wtv-font-size-base: calc(var(--base-font-size-base, 1.6) * var(--wtv-rem)); /* 16px */
+  --wtv-font-size: var(--wtv-font-size-sm);
 
   /* Font Weights */
-  --tv-font-weight-medium: var(--base-font-weight-medium, 500);
-  --tv-font-weight-semibold: var(--base-font-weight-semibold, 600);
+  --wtv-font-weight-medium: var(--base-font-weight-medium, 500);
+  --wtv-font-weight-semibold: var(--base-font-weight-semibold, 600);
 
   /* ==========================================================================
-     BORDER RADIUS (unitless multipliers × --tv-rem)
+     BORDER RADIUS (unitless multipliers × --wtv-rem)
      ========================================================================== */
-  --tv-border-radius-sm: calc(var(--base-border-radius-sm, 0.4) * var(--tv-rem));  /* 4px */
-  --tv-border-radius-md: calc(var(--base-border-radius-md, 0.6) * var(--tv-rem));  /* 6px */
-  --tv-border-radius-lg: calc(var(--base-border-radius-lg, 0.8) * var(--tv-rem));  /* 8px */
+  --wtv-border-radius-sm: calc(var(--base-border-radius-sm, 0.4) * var(--wtv-rem));  /* 4px */
+  --wtv-border-radius-md: calc(var(--base-border-radius-md, 0.6) * var(--wtv-rem));  /* 6px */
+  --wtv-border-radius-lg: calc(var(--base-border-radius-lg, 0.8) * var(--wtv-rem));  /* 8px */
 
   /* ==========================================================================
      SPACING SCALE
      ========================================================================== */
-  --tv-spacing-xs: calc(0.2 * var(--tv-rem));   /* 2px */
-  --tv-spacing-sm: calc(0.4 * var(--tv-rem));   /* 4px */
-  --tv-spacing-md: calc(0.8 * var(--tv-rem));   /* 8px */
-  --tv-spacing-lg: calc(1.2 * var(--tv-rem));   /* 12px */
-  --tv-spacing-xl: calc(1.6 * var(--tv-rem));   /* 16px */
+  --wtv-spacing-xs: calc(0.2 * var(--wtv-rem));   /* 2px */
+  --wtv-spacing-sm: calc(0.4 * var(--wtv-rem));   /* 4px */
+  --wtv-spacing-md: calc(0.8 * var(--wtv-rem));   /* 8px */
+  --wtv-spacing-lg: calc(1.2 * var(--wtv-rem));   /* 12px */
+  --wtv-spacing-xl: calc(1.6 * var(--wtv-rem));   /* 16px */
 
   /* ==========================================================================
      TRANSITIONS & ANIMATIONS
      ========================================================================== */
-  --tv-transition-speed: 150ms;
-  --tv-transition-normal: 200ms;
-  --tv-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --wtv-transition-speed: 150ms;
+  --wtv-transition-normal: 200ms;
+  --wtv-easing: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ==========================================================================
      TREE-SPECIFIC LAYOUT
      ========================================================================== */
-  --tv-column-width: calc(var(--tv-rem) * 2.4); /* 24px — unified column for toggle, icon, indent step */
-  --tv-indent-size: var(--tv-column-width);
-  --tv-node-padding: var(--tv-spacing-sm) var(--tv-spacing-md);
-  --tv-node-height: calc(var(--tv-rem) * 3.2);  /* 32px */
-  --tv-icon-size: calc(var(--tv-rem) * 1.6);    /* 16px */
+  --wtv-column-width: calc(var(--wtv-rem) * 2.4); /* 24px — unified column for toggle, icon, indent step */
+  --wtv-indent-size: var(--wtv-column-width);
+  --wtv-node-padding: var(--wtv-spacing-sm) var(--wtv-spacing-md);
+  --wtv-node-height: calc(var(--wtv-rem) * 3.2);  /* 32px */
+  --wtv-icon-size: calc(var(--wtv-rem) * 1.6);    /* 16px */
 
   /* Node transition */
-  --tv-node-transition: background var(--tv-transition-speed), box-shadow var(--tv-transition-speed) ease;
+  --wtv-node-transition: background var(--wtv-transition-speed), box-shadow var(--wtv-transition-speed) ease;
 
   /* Toggle Icon */
-  --tv-toggle-size: var(--tv-column-width);
-  --tv-toggle-color: var(--tv-text-color-2);
+  --wtv-toggle-size: var(--wtv-column-width);
+  --wtv-toggle-color: var(--wtv-text-color-2);
 
   /* ==========================================================================
      DRAG & DROP GLOW INDICATORS
      ========================================================================== */
-  --tv-glow-before-color: rgba(134, 179, 152, 0.8);
-  --tv-glow-after-color: rgba(242, 182, 158, 0.8);
-  --tv-glow-child-color: rgba(167, 155, 198, 0.8);
-  --tv-glow-before-bg: rgba(134, 179, 152, 0.25);
-  --tv-glow-after-bg: rgba(242, 182, 158, 0.25);
-  --tv-glow-child-bg: rgba(167, 155, 198, 0.25);
+  --wtv-glow-before-color: rgba(134, 179, 152, 0.8);
+  --wtv-glow-after-color: rgba(242, 182, 158, 0.8);
+  --wtv-glow-child-color: rgba(167, 155, 198, 0.8);
+  --wtv-glow-before-bg: rgba(134, 179, 152, 0.25);
+  --wtv-glow-after-bg: rgba(242, 182, 158, 0.25);
+  --wtv-glow-child-bg: rgba(167, 155, 198, 0.25);
 
   /* Drop zone active states */
-  --tv-glow-before-bg-active: rgba(134, 179, 152, 0.85);
-  --tv-glow-after-bg-active: rgba(242, 182, 158, 0.85);
-  --tv-glow-child-bg-active: rgba(167, 155, 198, 0.85);
-  --tv-glow-before-color-active: rgb(32, 54, 40);
-  --tv-glow-after-color-active: rgb(80, 45, 30);
-  --tv-glow-child-color-active: rgb(45, 38, 62);
-  --tv-glow-before-shadow: 0 2px 12px rgba(134, 179, 152, 0.4);
-  --tv-glow-after-shadow: 0 2px 12px rgba(242, 182, 158, 0.4);
-  --tv-glow-child-shadow: 0 2px 12px rgba(167, 155, 198, 0.4);
-  --tv-glow-before-text: rgba(62, 89, 72, 0.7);
-  --tv-glow-after-text: rgba(120, 70, 50, 0.7);
-  --tv-glow-child-text: rgba(72, 62, 98, 0.7);
+  --wtv-glow-before-bg-active: rgba(134, 179, 152, 0.85);
+  --wtv-glow-after-bg-active: rgba(242, 182, 158, 0.85);
+  --wtv-glow-child-bg-active: rgba(167, 155, 198, 0.85);
+  --wtv-glow-before-color-active: rgb(32, 54, 40);
+  --wtv-glow-after-color-active: rgb(80, 45, 30);
+  --wtv-glow-child-color-active: rgb(45, 38, 62);
+  --wtv-glow-before-shadow: 0 2px 12px rgba(134, 179, 152, 0.4);
+  --wtv-glow-after-shadow: 0 2px 12px rgba(242, 182, 158, 0.4);
+  --wtv-glow-child-shadow: 0 2px 12px rgba(167, 155, 198, 0.4);
+  --wtv-glow-before-text: rgba(62, 89, 72, 0.7);
+  --wtv-glow-after-text: rgba(120, 70, 50, 0.7);
+  --wtv-glow-child-text: rgba(72, 62, 98, 0.7);
 
   /* Drag-over states */
-  --tv-drag-over-bg: color-mix(in srgb, var(--tv-accent-color) 10%, transparent);
-  --tv-drag-over-border: 2px dashed var(--tv-accent-color);
-  --tv-drag-over-glow-shadow: 0 0 8px color-mix(in srgb, var(--tv-accent-color) 40%, transparent);
+  --wtv-drag-over-bg: color-mix(in srgb, var(--wtv-accent-color) 10%, transparent);
+  --wtv-drag-over-border: 2px dashed var(--wtv-accent-color);
+  --wtv-drag-over-glow-shadow: 0 0 8px color-mix(in srgb, var(--wtv-accent-color) 40%, transparent);
 
   /* Drop validation */
-  --tv-drop-valid-bg: color-mix(in srgb, var(--tv-success-color) 10%, transparent);
-  --tv-drop-valid-border-color: var(--tv-success-color);
-  --tv-drop-invalid-bg: color-mix(in srgb, var(--tv-danger-color) 10%, transparent);
-  --tv-drop-invalid-border-color: var(--tv-danger-color);
+  --wtv-drop-valid-bg: color-mix(in srgb, var(--wtv-success-color) 10%, transparent);
+  --wtv-drop-valid-border-color: var(--wtv-success-color);
+  --wtv-drop-invalid-bg: color-mix(in srgb, var(--wtv-danger-color) 10%, transparent);
+  --wtv-drop-invalid-border-color: var(--wtv-danger-color);
 
   /* Dragover highlight */
-  --tv-dragover-highlight-bg: color-mix(in srgb, var(--tv-success-color) 15%, transparent);
-  --tv-dragover-highlight-border: 2px dashed var(--tv-success-color);
+  --wtv-dragover-highlight-bg: color-mix(in srgb, var(--wtv-success-color) 15%, transparent);
+  --wtv-dragover-highlight-border: 2px dashed var(--wtv-success-color);
 
   /* Touch ghost */
-  --tv-touch-ghost-bg: color-mix(in srgb, var(--tv-accent-color) 90%, transparent);
-  --tv-touch-ghost-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --wtv-touch-ghost-bg: color-mix(in srgb, var(--wtv-accent-color) 90%, transparent);
+  --wtv-touch-ghost-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 
   /* Scroll highlight */
-  --tv-scroll-highlight-bg: color-mix(in srgb, var(--tv-accent-color) 30%, transparent);
-  --tv-scroll-highlight-shadow: 0 0 8px color-mix(in srgb, var(--tv-accent-color) 40%, transparent);
+  --wtv-scroll-highlight-bg: color-mix(in srgb, var(--wtv-accent-color) 30%, transparent);
+  --wtv-scroll-highlight-shadow: 0 0 8px color-mix(in srgb, var(--wtv-accent-color) 40%, transparent);
 
   /* ==========================================================================
      CONTEXT MENU
      Each variable defaults to a higher-order component variable so the menu
      can be themed independently without affecting the tree itself.
      ========================================================================== */
-  --tv-context-menu-bg: var(--tv-bg-color);
-  --tv-context-menu-bg-hover: var(--tv-hover-bg);
-  --tv-context-menu-text-color: var(--tv-text-color);
-  --tv-context-menu-border: 1px solid var(--tv-border-color);
-  --tv-context-menu-border-radius: var(--tv-border-radius-lg);
-  --tv-context-menu-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
-  --tv-context-menu-min-width: calc(var(--tv-rem) * 15);  /* ~150px */
-  --tv-context-menu-padding: var(--tv-spacing-sm) 0;
-  --tv-context-menu-font-size: var(--tv-font-size-sm);
-  --tv-context-menu-item-padding: var(--tv-spacing-md) var(--tv-spacing-xl);
-  --tv-context-menu-item-gap: var(--tv-spacing-md);
-  --tv-context-menu-icon-width: var(--tv-icon-size);
-  --tv-context-menu-icon-font-size: var(--tv-font-size-xs);
-  --tv-context-menu-arrow-font-size: var(--tv-font-size-xs);
-  --tv-context-menu-danger-color: var(--tv-danger-color);
-  --tv-context-menu-danger-bg-hover: color-mix(in srgb, var(--tv-danger-color) 10%, transparent);
-  --tv-context-menu-divider-color: var(--tv-border-color);
-  --tv-context-menu-divider-margin: var(--tv-spacing-sm) 0;
-  --tv-context-menu-disabled-opacity: 0.5;
+  --wtv-context-menu-bg: var(--wtv-bg-color);
+  --wtv-context-menu-bg-hover: var(--wtv-hover-bg);
+  --wtv-context-menu-text-color: var(--wtv-text-color);
+  --wtv-context-menu-border: 1px solid var(--wtv-border-color);
+  --wtv-context-menu-border-radius: var(--wtv-border-radius-lg);
+  --wtv-context-menu-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+  --wtv-context-menu-min-width: calc(var(--wtv-rem) * 15);  /* ~150px */
+  --wtv-context-menu-padding: var(--wtv-spacing-sm) 0;
+  --wtv-context-menu-font-size: var(--wtv-font-size-sm);
+  --wtv-context-menu-item-padding: var(--wtv-spacing-md) var(--wtv-spacing-xl);
+  --wtv-context-menu-item-gap: var(--wtv-spacing-md);
+  --wtv-context-menu-icon-width: var(--wtv-icon-size);
+  --wtv-context-menu-icon-font-size: var(--wtv-font-size-xs);
+  --wtv-context-menu-arrow-font-size: var(--wtv-font-size-xs);
+  --wtv-context-menu-danger-color: var(--wtv-danger-color);
+  --wtv-context-menu-danger-bg-hover: color-mix(in srgb, var(--wtv-danger-color) 10%, transparent);
+  --wtv-context-menu-divider-color: var(--wtv-border-color);
+  --wtv-context-menu-divider-margin: var(--wtv-spacing-sm) 0;
+  --wtv-context-menu-disabled-opacity: 0.5;
 
   /* ==========================================================================
      LOADING OVERLAY
      ========================================================================== */
-  --tv-spinner-size: calc(var(--tv-rem) * 3.2);  /* 32px */
-  --tv-spinner-track: var(--tv-border-color);
-  --tv-spinner-color: var(--tv-accent-color);
-  --tv-loading-bg: rgba(255, 255, 255, 0.8);
+  --wtv-spinner-size: calc(var(--wtv-rem) * 3.2);  /* 32px */
+  --wtv-spinner-track: var(--wtv-border-color);
+  --wtv-spinner-color: var(--wtv-accent-color);
+  --wtv-loading-bg: rgba(255, 255, 255, 0.8);
 
   /* ==========================================================================
      DROP PLACEHOLDER (empty tree)
      ========================================================================== */
-  --tv-tree-min-height: calc(6 * var(--tv-rem));                   /* 60px — min height for empty/loading states */
-  --tv-empty-zone-border: 2px dashed var(--tv-accent-color);
-  --tv-empty-zone-bg: color-mix(in srgb, var(--tv-accent-color) 10%, transparent);
-  --tv-empty-zone-radius: var(--tv-border-radius-lg);
+  --wtv-tree-min-height: calc(6 * var(--wtv-rem));                   /* 60px — min height for empty/loading states */
+  --wtv-empty-zone-border: 2px dashed var(--wtv-accent-color);
+  --wtv-empty-zone-bg: color-mix(in srgb, var(--wtv-accent-color) 10%, transparent);
+  --wtv-empty-zone-radius: var(--wtv-border-radius-lg);
 
   /* ==========================================================================
      Z-INDEX LAYERS
      ========================================================================== */
-  --tv-z-index-dropdown: 1000;
-  --tv-z-index-ghost: 10000;
-  --tv-z-index-overlay: 10;
+  --wtv-z-index-dropdown: 1000;
+  --wtv-z-index-ghost: 10000;
+  --wtv-z-index-overlay: 10;
 
   /* ==========================================================================
      MISC
      ========================================================================== */
-  --tv-dragged-opacity: 0.5;
-  --tv-cut-opacity: 0.4;
+  --wtv-dragged-opacity: 0.5;
+  --wtv-cut-opacity: 0.4;
 }

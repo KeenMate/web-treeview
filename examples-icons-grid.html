@@ -66,15 +66,15 @@
         <header>
             <a href="index.html" class="back-link">&larr; Back to Examples</a>
             <h1>Column Grid, Per-Node Icons &amp; Alignment</h1>
-            <p class="subtitle">Unified <code style="color:#fff;background:rgba(255,255,255,.2)">--tv-column-width</code> for toggle, icon column, and indent step. Per-node icons via <code style="color:#fff;background:rgba(255,255,255,.2)">iconMember</code> / <code style="color:#fff;background:rgba(255,255,255,.2)">iconCallback</code>.</p>
+            <p class="subtitle">Unified <code style="color:#fff;background:rgba(255,255,255,.2)">--wtv-column-width</code> for toggle, icon column, and indent step. Per-node icons via <code style="color:#fff;background:rgba(255,255,255,.2)">iconMember</code> / <code style="color:#fff;background:rgba(255,255,255,.2)">iconCallback</code>.</p>
         </header>
 
         <!-- Global column-width control -->
         <div class="card">
-            <h2>Global <code>--tv-column-width</code></h2>
+            <h2>Global <code>--wtv-column-width</code></h2>
             <p>This slider adjusts the unified column width for <strong>all trees</strong> on this page. Toggle, icon, and indent step all share this value.</p>
             <div class="var-demo">
-                <label for="col-slider">--tv-column-width</label>
+                <label for="col-slider">--wtv-column-width</label>
                 <input type="range" id="col-slider" min="16" max="48" value="24" step="1">
                 <span class="val" id="col-val">24px</span>
             </div>
@@ -151,7 +151,7 @@ element.iconMember = 'icon';
         <!-- 5: renderNodeCallback still works -->
         <div class="card">
             <h2>5. Icons + Custom <code>renderNodeCallback</code></h2>
-            <p>The icon column sits between toggle and content, so <code>renderNodeCallback</code> still renders inside <code>.ltree-node-content</code> unaffected.</p>
+            <p>The icon column sits between toggle and content, so <code>renderNodeCallback</code> still renders inside <code>.wtv-node-content</code> unaffected.</p>
 
             <div class="tree-container">
                 <web-treeview id="tree5" expand-level="2"></web-treeview>
@@ -205,8 +205,8 @@ element.iconMember = 'icon';
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>--tv-column-width</code></td>
-                        <td><code>calc(var(--tv-rem) * 2.4)</code> (24px)</td>
+                        <td><code>--wtv-column-width</code></td>
+                        <td><code>calc(var(--wtv-rem) * 2.4)</code> (24px)</td>
                         <td>Unified column width for toggle, icon, and indent step</td>
                     </tr>
                 </tbody>
@@ -336,7 +336,7 @@ element.iconMember = 'icon';
                 slider.value = stored;
                 valSpan.textContent = stored + 'px';
                 for (const tv of document.querySelectorAll('web-treeview')) {
-                    tv.style.setProperty('--tv-column-width', stored + 'px');
+                    tv.style.setProperty('--wtv-column-width', stored + 'px');
                 }
             }
             slider.addEventListener('input', () => {
@@ -344,7 +344,7 @@ element.iconMember = 'icon';
                 valSpan.textContent = px + 'px';
                 localStorage.setItem('tv-demo-column-width', px);
                 for (const tv of document.querySelectorAll('web-treeview')) {
-                    tv.style.setProperty('--tv-column-width', px + 'px');
+                    tv.style.setProperty('--wtv-column-width', px + 'px');
                 }
             });
 

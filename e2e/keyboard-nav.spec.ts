@@ -37,16 +37,16 @@ import { test, expect, Page, Locator } from '@playwright/test';
 const PAGE = '/test/keyboard-nav.html';
 
 function nodeByPath(scope: Locator | Page, path: string): Locator {
-  return scope.locator(`.ltree-node[data-tree-path="${path}"]`).first();
+  return scope.locator(`.wtv-node[data-tree-path="${path}"]`).first();
 }
 
 function nodeContent(node: Locator): Locator {
-  return node.locator('> .ltree-node-row .ltree-node-content').first();
+  return node.locator('> .wtv-node-row .wtv-node-content').first();
 }
 
 async function gotoFixture(page: Page) {
   await page.goto(PAGE);
-  await expect(page.locator('.ltree-node').first()).toBeVisible();
+  await expect(page.locator('.wtv-node').first()).toBeVisible();
 }
 
 async function clickToFocus(page: Page, path: string) {
@@ -55,7 +55,7 @@ async function clickToFocus(page: Page, path: string) {
 }
 
 function visibleCount(page: Page): Promise<number> {
-  return page.locator('.ltree-node[data-tree-path]').count();
+  return page.locator('.wtv-node[data-tree-path]').count();
 }
 
 test.beforeEach(async ({ page }) => {

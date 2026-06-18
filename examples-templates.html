@@ -108,7 +108,7 @@
             <p>Use <code>renderNodeCallback</code> to render custom HTML for each tree node. This example shows file icons and sizes.</p>
 
             <div class="tree-container" id="tree1-container">
-                <web-treeview id="tree1" toggle-icon-mode="swap" expand-icon-class="ltree-icon-expand-plus" collapse-icon-class="ltree-icon-collapse-minus"></web-treeview>
+                <web-treeview id="tree1" toggle-icon-mode="swap" expand-icon-class="wtv-icon-expand-plus" collapse-icon-class="wtv-icon-collapse-minus"></web-treeview>
             </div>
 
             <div class="code-block">
@@ -131,7 +131,7 @@
             <p>Add dynamic badges to nodes indicating their status (new, modified, deleted).</p>
 
             <div class="tree-container" id="tree2-container">
-                <web-treeview id="tree2" expand-icon-class="ltree-icon-expand-arrow"></web-treeview>
+                <web-treeview id="tree2" expand-icon-class="wtv-icon-expand-arrow"></web-treeview>
             </div>
         </div>
 
@@ -142,37 +142,37 @@
 
             <div class="controls" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; align-items: end;">
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-min-width</code>
+                    <code>--wtv-context-menu-min-width</code>
                     <input type="range" id="ctx-min-width" min="8" max="30" step="0.5" value="15">
                     <span id="ctx-min-width-val" style="font-size: 0.75rem; color: #64748b;">15rem</span>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-font-size</code>
+                    <code>--wtv-context-menu-font-size</code>
                     <input type="range" id="ctx-font-size" min="10" max="24" step="1" value="14">
                     <span id="ctx-font-size-val" style="font-size: 0.75rem; color: #64748b;">14px</span>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-icon-width</code>
+                    <code>--wtv-context-menu-icon-width</code>
                     <input type="range" id="ctx-icon-size" min="12" max="32" step="1" value="16">
                     <span id="ctx-icon-size-val" style="font-size: 0.75rem; color: #64748b;">16px</span>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-border-radius</code>
+                    <code>--wtv-context-menu-border-radius</code>
                     <input type="range" id="ctx-radius" min="0" max="16" step="1" value="4">
                     <span id="ctx-radius-val" style="font-size: 0.75rem; color: #64748b;">4px</span>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-item-gap</code>
+                    <code>--wtv-context-menu-item-gap</code>
                     <input type="range" id="ctx-gap" min="0" max="16" step="1" value="8">
                     <span id="ctx-gap-val" style="font-size: 0.75rem; color: #64748b;">8px</span>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-disabled-opacity</code>
+                    <code>--wtv-context-menu-disabled-opacity</code>
                     <input type="range" id="ctx-disabled-opacity" min="0" max="1" step="0.05" value="0.5">
                     <span id="ctx-disabled-opacity-val" style="font-size: 0.75rem; color: #64748b;">0.5</span>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-shadow</code>
+                    <code>--wtv-context-menu-shadow</code>
                     <select id="ctx-shadow" style="padding: 4px;">
                         <option value="0 2px 10px rgba(0,0,0,0.1)">Light</option>
                         <option value="0 4px 20px rgba(0,0,0,0.2)">Medium</option>
@@ -181,7 +181,7 @@
                     </select>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-item-padding</code>
+                    <code>--wtv-context-menu-item-padding</code>
                     <select id="ctx-padding" style="padding: 4px;">
                         <option value="2px 8px">Tight</option>
                         <option value="4px 12px">Compact</option>
@@ -191,7 +191,7 @@
                     </select>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-padding</code>
+                    <code>--wtv-context-menu-padding</code>
                     <select id="ctx-menu-padding" style="padding: 4px;">
                         <option value="0">None</option>
                         <option value="4px 0" selected>Default</option>
@@ -199,7 +199,7 @@
                     </select>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-border</code>
+                    <code>--wtv-context-menu-border</code>
                     <select id="ctx-border" style="padding: 4px;">
                         <option value="1px solid #e2e8f0" selected>Default</option>
                         <option value="2px solid #94a3b8">Thick</option>
@@ -208,23 +208,23 @@
                     </select>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-bg</code>
+                    <code>--wtv-context-menu-bg</code>
                     <input type="color" id="ctx-bg" value="#ffffff">
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-bg-hover</code>
+                    <code>--wtv-context-menu-bg-hover</code>
                     <input type="color" id="ctx-bg-hover" value="#f1f5f9">
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-text-color</code>
+                    <code>--wtv-context-menu-text-color</code>
                     <input type="color" id="ctx-text" value="#1e293b">
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-danger-color</code>
+                    <code>--wtv-context-menu-danger-color</code>
                     <input type="color" id="ctx-danger" value="#dc3545">
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-divider-color</code>
+                    <code>--wtv-context-menu-divider-color</code>
                     <input type="color" id="ctx-divider" value="#e2e8f0">
                 </label>
                 <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem;">
@@ -234,7 +234,7 @@
             </div>
 
             <div class="tree-container" id="tree3-container">
-                <web-treeview id="tree3" expand-icon-class="ltree-icon-expand-alt"></web-treeview>
+                <web-treeview id="tree3" expand-icon-class="wtv-icon-expand-alt"></web-treeview>
             </div>
 
             <div class="output">
@@ -250,12 +250,12 @@
 
             <div class="controls" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; align-items: end;">
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-min-width</code>
+                    <code>--wtv-context-menu-min-width</code>
                     <input type="range" id="ctx3b-min-width" min="8" max="30" step="0.5" value="22">
                     <span id="ctx3b-min-width-val" style="font-size: 0.75rem; color: #64748b;">22rem</span>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-item-padding</code>
+                    <code>--wtv-context-menu-item-padding</code>
                     <select id="ctx3b-padding" style="padding: 4px;">
                         <option value="2px 8px">Tight</option>
                         <option value="4px 12px">Compact</option>
@@ -265,34 +265,34 @@
                     </select>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-item-gap</code>
+                    <code>--wtv-context-menu-item-gap</code>
                     <input type="range" id="ctx3b-gap" min="0" max="16" step="1" value="8">
                     <span id="ctx3b-gap-val" style="font-size: 0.75rem; color: #64748b;">8px</span>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-font-size</code>
+                    <code>--wtv-context-menu-font-size</code>
                     <input type="range" id="ctx3b-font-size" min="10" max="24" step="1" value="14">
                     <span id="ctx3b-font-size-val" style="font-size: 0.75rem; color: #64748b;">14px</span>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-bg</code>
+                    <code>--wtv-context-menu-bg</code>
                     <input type="color" id="ctx3b-bg" value="#ffffff">
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-bg-hover</code>
+                    <code>--wtv-context-menu-bg-hover</code>
                     <input type="color" id="ctx3b-bg-hover" value="#f1f5f9">
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-text-color</code>
+                    <code>--wtv-context-menu-text-color</code>
                     <input type="color" id="ctx3b-text" value="#1e293b">
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-border-radius</code>
+                    <code>--wtv-context-menu-border-radius</code>
                     <input type="range" id="ctx3b-radius" min="0" max="16" step="1" value="4">
                     <span id="ctx3b-radius-val" style="font-size: 0.75rem; color: #64748b;">4px</span>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-shadow</code>
+                    <code>--wtv-context-menu-shadow</code>
                     <select id="ctx3b-shadow" style="padding: 4px;">
                         <option value="0 2px 10px rgba(0,0,0,0.1)">Light</option>
                         <option value="0 4px 20px rgba(0,0,0,0.2)">Medium</option>
@@ -301,7 +301,7 @@
                     </select>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-padding</code>
+                    <code>--wtv-context-menu-padding</code>
                     <select id="ctx3b-menu-padding" style="padding: 4px;">
                         <option value="0">None</option>
                         <option value="4px 0" selected>Default</option>
@@ -309,7 +309,7 @@
                     </select>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-border</code>
+                    <code>--wtv-context-menu-border</code>
                     <select id="ctx3b-border" style="padding: 4px;">
                         <option value="1px solid #e2e8f0" selected>Default</option>
                         <option value="2px solid #94a3b8">Thick</option>
@@ -318,11 +318,11 @@
                     </select>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-danger-color</code>
+                    <code>--wtv-context-menu-danger-color</code>
                     <input type="color" id="ctx3b-danger" value="#dc3545">
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
-                    <code>--tv-context-menu-divider-color</code>
+                    <code>--wtv-context-menu-divider-color</code>
                     <input type="color" id="ctx3b-divider" value="#e2e8f0">
                 </label>
                 <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem;">
@@ -337,7 +337,7 @@
             </div>
 
             <div class="tree-container" id="tree3b-container">
-                <web-treeview id="tree3b" expand-icon-class="ltree-icon-expand-alt" style="--tv-context-menu-min-width: 22rem;"></web-treeview>
+                <web-treeview id="tree3b" expand-icon-class="wtv-icon-expand-alt" style="--wtv-context-menu-min-width: 22rem;"></web-treeview>
             </div>
 
             <div class="output">
@@ -362,8 +362,8 @@ tree.renderContextMenuItemCallback = (item, node, container) => {
     }
     if (item.id === 'invoices') {
         container.innerHTML = `
-            &lt;span class="ltree-context-menu-icon"&gt;🧾&lt;/span&gt;
-            &lt;span class="ltree-context-menu-label"&gt;Invoices&lt;/span&gt;
+            &lt;span class="wtv-context-menu-icon"&gt;🧾&lt;/span&gt;
+            &lt;span class="wtv-context-menu-label"&gt;Invoices&lt;/span&gt;
             &lt;span class="count-chip"&gt;${node.data.invoiceCount}&lt;/span&gt;`;
         return;
     }
@@ -394,7 +394,7 @@ tree.renderContextMenuItemCallback = (item, node, container) => {
             <p>Add custom header and footer content around the tree using <code>renderHeaderCallback</code> and <code>renderFooterCallback</code>.</p>
 
             <div class="tree-container" id="tree5-container">
-                <web-treeview id="tree5" toggle-icon-mode="swap" expand-icon-class="ltree-icon-expand-alt" collapse-icon-class="ltree-icon-collapse-alt"></web-treeview>
+                <web-treeview id="tree5" toggle-icon-mode="swap" expand-icon-class="wtv-icon-expand-alt" collapse-icon-class="wtv-icon-collapse-alt"></web-treeview>
             </div>
         </div>
 
@@ -442,7 +442,7 @@ tree.renderContextMenuItemCallback = (item, node, container) => {
                             toggle-icon-mode="swap"
                             expand-icon-class="fa-solid fa-caret-right"
                             collapse-icon-class="fa-solid fa-caret-down"
-                            leaf-icon-class="ltree-icon-leaf-none">
+                            leaf-icon-class="wtv-icon-leaf-none">
                         </web-treeview>
                     </div>
                 </div>
@@ -621,17 +621,17 @@ tree.customStylesCallback = () =>
                 { id: 'delete', icon: '\uD83D\uDDD1\uFE0F', label: 'Delete', className: 'danger', onclick: () => logAction('delete', node) },
             ];
 
-            // Context menu config controls — all use scoped --tv-context-menu-* variables
+            // Context menu config controls — all use scoped --wtv-context-menu-* variables
             const setVar = (name, value) => tree3.style.setProperty(name, value);
 
             // Range sliders
             const rangeControls = [
-                ['ctx-min-width',        '--tv-context-menu-min-width',        'rem'],
-                ['ctx-font-size',        '--tv-context-menu-font-size',        'px'],
-                ['ctx-icon-size',        '--tv-context-menu-icon-width',        'px'],
-                ['ctx-radius',           '--tv-context-menu-border-radius',    'px'],
-                ['ctx-gap',              '--tv-context-menu-item-gap',         'px'],
-                ['ctx-disabled-opacity', '--tv-context-menu-disabled-opacity', ''],
+                ['ctx-min-width',        '--wtv-context-menu-min-width',        'rem'],
+                ['ctx-font-size',        '--wtv-context-menu-font-size',        'px'],
+                ['ctx-icon-size',        '--wtv-context-menu-icon-width',        'px'],
+                ['ctx-radius',           '--wtv-context-menu-border-radius',    'px'],
+                ['ctx-gap',              '--wtv-context-menu-item-gap',         'px'],
+                ['ctx-disabled-opacity', '--wtv-context-menu-disabled-opacity', ''],
             ];
             for (const [id, varName, unit] of rangeControls) {
                 document.getElementById(id).addEventListener('input', (e) => {
@@ -643,10 +643,10 @@ tree.customStylesCallback = () =>
 
             // Select dropdowns
             const selectControls = [
-                ['ctx-shadow',       '--tv-context-menu-shadow'],
-                ['ctx-padding',      '--tv-context-menu-item-padding'],
-                ['ctx-menu-padding', '--tv-context-menu-padding'],
-                ['ctx-border',       '--tv-context-menu-border'],
+                ['ctx-shadow',       '--wtv-context-menu-shadow'],
+                ['ctx-padding',      '--wtv-context-menu-item-padding'],
+                ['ctx-menu-padding', '--wtv-context-menu-padding'],
+                ['ctx-border',       '--wtv-context-menu-border'],
             ];
             for (const [id, varName] of selectControls) {
                 document.getElementById(id).addEventListener('change', (e) => {
@@ -656,11 +656,11 @@ tree.customStylesCallback = () =>
 
             // Color pickers
             const colorControls = [
-                ['ctx-bg',      '--tv-context-menu-bg'],
-                ['ctx-bg-hover','--tv-context-menu-bg-hover'],
-                ['ctx-text',    '--tv-context-menu-text-color'],
-                ['ctx-danger',  '--tv-context-menu-danger-color'],
-                ['ctx-divider', '--tv-context-menu-divider-color'],
+                ['ctx-bg',      '--wtv-context-menu-bg'],
+                ['ctx-bg-hover','--wtv-context-menu-bg-hover'],
+                ['ctx-text',    '--wtv-context-menu-text-color'],
+                ['ctx-danger',  '--wtv-context-menu-danger-color'],
+                ['ctx-divider', '--wtv-context-menu-divider-color'],
             ];
             for (const [id, varName] of colorControls) {
                 document.getElementById(id).addEventListener('input', (e) => {
@@ -735,8 +735,8 @@ tree.customStylesCallback = () =>
                     const count = d.invoiceCount;
                     const chipColor = count > 5 ? '#dc3545' : count > 0 ? '#f59e0b' : '#6b7280';
                     container.innerHTML = `
-                        <span class="ltree-context-menu-icon">🧾</span>
-                        <span class="ltree-context-menu-label">Invoices</span>
+                        <span class="wtv-context-menu-icon">🧾</span>
+                        <span class="wtv-context-menu-label">Invoices</span>
                         <span style="background: ${chipColor}; color: white; font-size: 0.7em; font-weight: 600; padding: 1px 6px; border-radius: 10px; min-width: 18px; text-align: center;">${count}</span>
                     `;
                     return;
@@ -753,10 +753,10 @@ tree.customStylesCallback = () =>
             const setVar3b = (name, value) => tree3b.style.setProperty(name, value);
 
             const rangeControls3b = [
-                ['ctx3b-min-width',  '--tv-context-menu-min-width',     'rem'],
-                ['ctx3b-gap',        '--tv-context-menu-item-gap',      'px'],
-                ['ctx3b-font-size',  '--tv-context-menu-font-size',     'px'],
-                ['ctx3b-radius',     '--tv-context-menu-border-radius', 'px'],
+                ['ctx3b-min-width',  '--wtv-context-menu-min-width',     'rem'],
+                ['ctx3b-gap',        '--wtv-context-menu-item-gap',      'px'],
+                ['ctx3b-font-size',  '--wtv-context-menu-font-size',     'px'],
+                ['ctx3b-radius',     '--wtv-context-menu-border-radius', 'px'],
             ];
             for (const [id, varName, unit] of rangeControls3b) {
                 document.getElementById(id).addEventListener('input', (e) => {
@@ -773,10 +773,10 @@ tree.customStylesCallback = () =>
             });
 
             const selectControls3b = [
-                ['ctx3b-padding',      '--tv-context-menu-item-padding'],
-                ['ctx3b-shadow',       '--tv-context-menu-shadow'],
-                ['ctx3b-menu-padding', '--tv-context-menu-padding'],
-                ['ctx3b-border',       '--tv-context-menu-border'],
+                ['ctx3b-padding',      '--wtv-context-menu-item-padding'],
+                ['ctx3b-shadow',       '--wtv-context-menu-shadow'],
+                ['ctx3b-menu-padding', '--wtv-context-menu-padding'],
+                ['ctx3b-border',       '--wtv-context-menu-border'],
             ];
             for (const [id, varName] of selectControls3b) {
                 document.getElementById(id).addEventListener('change', (e) => {
@@ -785,11 +785,11 @@ tree.customStylesCallback = () =>
             }
 
             const colorControls3b = [
-                ['ctx3b-bg',      '--tv-context-menu-bg'],
-                ['ctx3b-bg-hover','--tv-context-menu-bg-hover'],
-                ['ctx3b-text',    '--tv-context-menu-text-color'],
-                ['ctx3b-danger',  '--tv-context-menu-danger-color'],
-                ['ctx3b-divider', '--tv-context-menu-divider-color'],
+                ['ctx3b-bg',      '--wtv-context-menu-bg'],
+                ['ctx3b-bg-hover','--wtv-context-menu-bg-hover'],
+                ['ctx3b-text',    '--wtv-context-menu-text-color'],
+                ['ctx3b-danger',  '--wtv-context-menu-danger-color'],
+                ['ctx3b-divider', '--wtv-context-menu-divider-color'],
             ];
             for (const [id, varName] of colorControls3b) {
                 document.getElementById(id).addEventListener('input', (e) => {

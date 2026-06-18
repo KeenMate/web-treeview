@@ -14,27 +14,27 @@ import { test, expect } from '@playwright/test';
 
 test('exclusive expand of A2 collapses previously-expanded A3 in the UI', async ({ page }) => {
   await page.goto('/test/exclusive-expand.html');
-  await expect(page.locator('.ltree-node').first()).toBeVisible();
+  await expect(page.locator('.wtv-node').first()).toBeVisible();
 
-  const a3 = page.locator('.ltree-node[data-tree-path="3"]').first();
-  const a3Toggle = a3.locator('> .ltree-node-row .ltree-toggle-icon').first();
+  const a3 = page.locator('.wtv-node[data-tree-path="3"]').first();
+  const a3Toggle = a3.locator('> .wtv-node-row .wtv-toggle-icon').first();
   await expect(a3Toggle).not.toHaveClass(/(?:^|\s)expanded(?:\s|$)/);
-  await expect(page.locator('.ltree-node[data-tree-path="3.1"]')).toHaveCount(0);
+  await expect(page.locator('.wtv-node[data-tree-path="3.1"]')).toHaveCount(0);
 
   await a3Toggle.click();
   await expect(a3Toggle).toHaveClass(/(?:^|\s)expanded(?:\s|$)/);
-  await expect(page.locator('.ltree-node[data-tree-path="3.1"]').first()).toBeVisible();
-  await expect(page.locator('.ltree-node[data-tree-path="3.2"]').first()).toBeVisible();
+  await expect(page.locator('.wtv-node[data-tree-path="3.1"]').first()).toBeVisible();
+  await expect(page.locator('.wtv-node[data-tree-path="3.2"]').first()).toBeVisible();
 
   await page.getByTestId('exclusive-expand-a2').click();
 
-  const a2 = page.locator('.ltree-node[data-tree-path="2"]').first();
-  const a2Toggle = a2.locator('> .ltree-node-row .ltree-toggle-icon').first();
+  const a2 = page.locator('.wtv-node[data-tree-path="2"]').first();
+  const a2Toggle = a2.locator('> .wtv-node-row .wtv-toggle-icon').first();
   await expect(a2Toggle).toHaveClass(/(?:^|\s)expanded(?:\s|$)/);
-  await expect(page.locator('.ltree-node[data-tree-path="2.1"]').first()).toBeVisible();
+  await expect(page.locator('.wtv-node[data-tree-path="2.1"]').first()).toBeVisible();
 
   // Critical: A3's toggle UI must reflect the data change.
   await expect(a3Toggle).not.toHaveClass(/(?:^|\s)expanded(?:\s|$)/);
-  await expect(page.locator('.ltree-node[data-tree-path="3.1"]')).toHaveCount(0);
-  await expect(page.locator('.ltree-node[data-tree-path="3.2"]')).toHaveCount(0);
+  await expect(page.locator('.wtv-node[data-tree-path="3.1"]')).toHaveCount(0);
+  await expect(page.locator('.wtv-node[data-tree-path="3.2"]')).toHaveCount(0);
 });

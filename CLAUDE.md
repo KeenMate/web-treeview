@@ -47,7 +47,7 @@ src/
 ├── ltree/
 │   ├── types.ts          # Ltree interface, bulk ops, context menu types
 │   ├── ltree.ts          # createLTree factory (core tree engine)
-│   ├── ltree-node.ts     # LTreeNode class
+│   ├── wtv-node.ts     # LTreeNode class
 │   ├── flex.ts           # FlexSearch integration
 │   └── indexer.ts        # Async search indexing
 ├── renderer/
@@ -72,11 +72,11 @@ src/
 - **Engine → Events**: Tree interactions dispatch `CustomEvent`s on the host element
 
 ### CSS Custom Properties
-All CSS variables use the `--tv-` prefix and fall back to `--base-*` variables from the design system:
+All CSS variables use the `--wtv-` prefix and fall back to `--base-*` variables from the design system:
 ```css
---tv-accent-color: var(--base-accent-color, #3b82f6);
---tv-text-color: var(--base-text-color-1, #1e293b);
---tv-indent-size: calc(var(--tv-rem) * 2);
+--wtv-accent-color: var(--base-accent-color, #3b82f6);
+--wtv-text-color: var(--base-text-color-1, #1e293b);
+--wtv-indent-size: calc(var(--wtv-rem) * 2);
 ```
 
 ### Build Output

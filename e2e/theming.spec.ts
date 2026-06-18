@@ -2,13 +2,13 @@ import { test, expect, Page, Locator } from '@playwright/test';
 
 /**
  * E2E coverage for /test/theming.html — verifies that dark-mode signals
- * affect the .ltree-container inside the web-component's Shadow DOM.
+ * affect the .wtv-container inside the web-component's Shadow DOM.
  *
  * Three independent paths exercised:
  *
  *   A. Library defaults (no brand theme)
- *      Light: --tv-bg-color falls back to var(--base-main-bg, #ffffff)  → rgb(255, 255, 255)
- *      Dark:  --tv-bg-color falls back to var(--base-main-bg, #1a1a1a)  → rgb(26, 26, 26)
+ *      Light: --wtv-bg-color falls back to var(--base-main-bg, #ffffff)  → rgb(255, 255, 255)
+ *      Dark:  --wtv-bg-color falls back to var(--base-main-bg, #1a1a1a)  → rgb(26, 26, 26)
  *      Triggered by per-instance theme="dark"/"light" prop (mirrored to
  *      data-theme on the container by _applyTheme).
  *
@@ -16,12 +16,12 @@ import { test, expect, Page, Locator } from '@playwright/test';
  *      Light: --base-main-bg = #dc2626 → rgb(220, 38, 38)
  *      Dark:  --base-main-bg = #16a34a → rgb(22, 163, 74)
  *      CSS custom properties inherit through Shadow DOM, so the wrapper's
- *      --base-main-bg reaches the inner .ltree-container. light-dark() resolves
+ *      --base-main-bg reaches the inner .wtv-container. light-dark() resolves
  *      against the inherited color-scheme.
  *
  *   C. OS prefers-color-scheme: dark
  *      Triggers the @media :host rule inside the shadow stylesheet, which
- *      re-declares --tv-bg-color with the dark fallback (#1a1a1a).
+ *      re-declares --wtv-bg-color with the dark fallback (#1a1a1a).
  *
  * Ancestor signals ([data-theme], [data-bs-theme], .dark on the page) do NOT
  * pierce Shadow DOM — the web-component would need to mirror them onto its
@@ -40,7 +40,7 @@ function scenarioCard(page: Page, scenario: string): Locator {
 }
 
 function ltreeContainer(card: Locator): Locator {
-  return card.locator('.ltree-container').first();
+  return card.locator('.wtv-container').first();
 }
 
 async function backgroundColor(loc: Locator): Promise<string> {
@@ -51,7 +51,7 @@ test.describe('Theming — library defaults + per-instance prop', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(PAGE);
     await page.locator('h1').first().waitFor();
-    await expect(page.locator('.ltree-container').first()).toBeAttached();
+    await expect(page.locator('.wtv-container').first()).toBeAttached();
   });
 
   test('1. No signal → tree surface is library light default', async ({ page }) => {
@@ -76,7 +76,7 @@ test.describe('Theming — brand theme with light-dark() inherits through Shadow
   test.beforeEach(async ({ page }) => {
     await page.goto(PAGE);
     await page.locator('h1').first().waitFor();
-    await expect(page.locator('.ltree-container').first()).toBeAttached();
+    await expect(page.locator('.wtv-container').first()).toBeAttached();
   });
 
   test('4. Brand theme, normal color-scheme → RED (light branch of light-dark)', async ({ page }) => {
@@ -117,7 +117,7 @@ test.describe('Theming — library default reacts to OS preference via :host @me
 // ── Ancestor signals: gap in current web-component ──────────────────────────
 // The svelte build also covers [data-theme="dark"], [data-bs-theme="dark"] and
 // .dark on an ancestor. Those require the web-component to mirror the ancestor
-// signal onto its host (so the inner .ltree-container[data-theme="dark"] rule
+// signal onto its host (so the inner .wtv-container[data-theme="dark"] rule
 // can fire). Not implemented yet — tracked as a follow-up.
 test.skip('8. Ancestor [data-theme="dark"] — needs host mirror (TODO)', () => {});
 test.skip('9. Ancestor [data-bs-theme="dark"] — needs host mirror (TODO)', () => {});

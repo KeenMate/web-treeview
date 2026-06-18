@@ -20,7 +20,7 @@ A lightweight, framework-agnostic treeview web component built with vanilla Type
 - **Multi-level context menus** — Viewport-aware positioning via Floating UI, keyboard shortcuts, named dividers, custom item rendering
 - **Bulk operations** — `insertBranch`, `replaceBranch`, `deleteBranch` for efficient batch mutations
 - **Full-text search** — FlexSearch-powered indexing with filter and highlight modes
-- **90+ CSS variables** — Complete theming via `--base-*` design system tokens and `--tv-*` component tokens, compatible with `@keenmate/theme-designer`
+- **90+ CSS variables** — Complete theming via `--base-*` design system tokens and `--wtv-*` component tokens, compatible with `@keenmate/theme-designer`
 - **Pluggable renderers** — `TreeViewRenderer<T>` interface for building custom renderers (Canvas, WebGL, framework-specific)
 
 ### Rendering Modes
@@ -42,7 +42,7 @@ A lightweight, framework-agnostic treeview web component built with vanilla Type
 
 - **LTree Path Model** — Materialized path hierarchy (`1`, `1.1`, `1.1.2`) with configurable separator
 - **Multi-Select** — Ctrl+click toggle, Shift+click range, `selectAll()`, visual/logical range modes, `onSelectionChange` callback
-- **Clipboard** — Copy/cut/paste with cross-tree support, cut nodes dimmed with `--tv-cut-opacity`
+- **Clipboard** — Copy/cut/paste with cross-tree support, cut nodes dimmed with `--wtv-cut-opacity`
 - **Keyboard Navigation** — Arrow keys, Home/End, Enter/Space, Ctrl+A/C/X/V, Escape
 - **Bulk Operations** — `insertBranch`, `replaceBranch`, `deleteBranch` for efficient batch tree mutations
 - **Full-Width Hitbox** — Entire node row is clickable including indent zone, with uniform hover highlight
@@ -375,7 +375,7 @@ When the tree body has focus (click any node first), keyboard navigation is acti
 
 ## Per-Node Icons
 
-Each node row is laid out as `[toggle/icon column] [content]`. The toggle/icon column has a fixed width (`--tv-column-width`, default 24px) shared by toggle arrows, leaf icons, and per-node icons. The indent step also equals `--tv-column-width`, so labels at every depth align vertically.
+Each node row is laid out as `[toggle/icon column] [content]`. The toggle/icon column has a fixed width (`--wtv-column-width`, default 24px) shared by toggle arrows, leaf icons, and per-node icons. The indent step also equals `--wtv-column-width`, so labels at every depth align vertically.
 
 ### Via data field (`iconMember`)
 
@@ -485,7 +485,7 @@ tree.contextMenuYOffset = -30; // Shift menu 30px up
 
 ## Theming
 
-All CSS values flow from `--base-*` design system tokens through `--tv-*` component tokens. Override at any level:
+All CSS values flow from `--base-*` design system tokens through `--wtv-*` component tokens. Override at any level:
 
 ```css
 /* Design system level — affects ALL components sharing the design system */
@@ -499,12 +499,12 @@ All CSS values flow from `--base-*` design system tokens through `--tv-*` compon
 
 /* Component level — affects only this treeview instance */
 web-treeview {
-  --tv-accent-color: #8b5cf6;   /* Overrides --base-accent-color */
-  --tv-selected-bg: #ede9fe;
-  --tv-indent-size: 1.5rem;
-  --tv-node-height: 2rem;
-  --tv-border-radius-sm: 4px;
-  --tv-font-size: 0.875rem;
+  --wtv-accent-color: #8b5cf6;   /* Overrides --base-accent-color */
+  --wtv-selected-bg: #ede9fe;
+  --wtv-indent-size: 1.5rem;
+  --wtv-node-height: 2rem;
+  --wtv-border-radius-sm: 4px;
+  --wtv-font-size: 0.875rem;
 }
 ```
 
@@ -516,171 +516,171 @@ See `examples-theming.html` for 8 complete theme examples (dark mode, neon, corp
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-accent-color` | `--base-accent-color` \| `#3b82f6` | Primary accent color |
-| `--tv-accent-color-hover` | `--base-accent-color-hover` \| `#2563eb` | Accent hover state |
-| `--tv-text-color` | `--base-text-color-1` \| `#1e293b` | Primary text color |
-| `--tv-text-color-2` | `--base-text-color-3` \| `#64748b` | Secondary/muted text |
-| `--tv-text-color-on-accent` | `--base-text-color-on-accent` \| `#ffffff` | Text on accent backgrounds |
-| `--tv-bg-color` | `--base-main-bg` \| `#ffffff` | Main background |
-| `--tv-border-color` | `--base-border-color` \| `#e2e8f0` | Default border color |
-| `--tv-success-color` | `--base-success-color` \| `#198754` | Success/valid color |
-| `--tv-danger-color` | `--base-danger-color` \| `#dc3545` | Danger/invalid color |
-| `--tv-light-bg` | `--base-elevated-bg` \| `#f8f9fa` | Elevated surface background |
+| `--wtv-accent-color` | `--base-accent-color` \| `#3b82f6` | Primary accent color |
+| `--wtv-accent-color-hover` | `--base-accent-color-hover` \| `#2563eb` | Accent hover state |
+| `--wtv-text-color` | `--base-text-color-1` \| `#1e293b` | Primary text color |
+| `--wtv-text-color-2` | `--base-text-color-3` \| `#64748b` | Secondary/muted text |
+| `--wtv-text-color-on-accent` | `--base-text-color-on-accent` \| `#ffffff` | Text on accent backgrounds |
+| `--wtv-bg-color` | `--base-main-bg` \| `#ffffff` | Main background |
+| `--wtv-border-color` | `--base-border-color` \| `#e2e8f0` | Default border color |
+| `--wtv-success-color` | `--base-success-color` \| `#198754` | Success/valid color |
+| `--wtv-danger-color` | `--base-danger-color` \| `#dc3545` | Danger/invalid color |
+| `--wtv-light-bg` | `--base-elevated-bg` \| `#f8f9fa` | Elevated surface background |
 
 #### Node States
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-hover-bg` | `--base-hover-bg` \| `#f1f5f9` | Base hover background |
-| `--tv-active-bg` | `--base-active-bg` \| `#e2e8f0` | Base active/pressed background |
-| `--tv-selected-bg` | `--base-accent-color-light` \| `#eff6ff` | Selected node background |
-| `--tv-selected-border-color` | `= --tv-accent-color` | Selected node border color |
-| `--tv-selected-border` | `2px solid --tv-selected-border-color` | Selected node border shorthand |
-| `--tv-node-bg-hover` | `= --tv-hover-bg` | Node hover background |
-| `--tv-node-bg-active` | `= --tv-active-bg` | Node active/pressed background |
-| `--tv-node-transition` | `background 150ms, box-shadow 150ms ease` | Node content transition (set `none` to disable) |
+| `--wtv-hover-bg` | `--base-hover-bg` \| `#f1f5f9` | Base hover background |
+| `--wtv-active-bg` | `--base-active-bg` \| `#e2e8f0` | Base active/pressed background |
+| `--wtv-selected-bg` | `--base-accent-color-light` \| `#eff6ff` | Selected node background |
+| `--wtv-selected-border-color` | `= --wtv-accent-color` | Selected node border color |
+| `--wtv-selected-border` | `2px solid --wtv-selected-border-color` | Selected node border shorthand |
+| `--wtv-node-bg-hover` | `= --wtv-hover-bg` | Node hover background |
+| `--wtv-node-bg-active` | `= --wtv-active-bg` | Node active/pressed background |
+| `--wtv-node-transition` | `background 150ms, box-shadow 150ms ease` | Node content transition (set `none` to disable) |
 
 #### Border
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-border-width-base` | `1px` | Base border width |
-| `--tv-border` | `1px solid --tv-border-color` | Full border shorthand |
+| `--wtv-border-width-base` | `1px` | Base border width |
+| `--wtv-border` | `1px solid --wtv-border-color` | Full border shorthand |
 
 #### Typography
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-font-size-xs` | `calc(1.2 * --tv-rem)` | 12px |
-| `--tv-font-size-sm` | `calc(1.4 * --tv-rem)` | 14px |
-| `--tv-font-size-base` | `calc(1.6 * --tv-rem)` | 16px |
-| `--tv-font-size` | `= --tv-font-size-sm` | Default font size |
-| `--tv-font-weight-medium` | `500` | Medium weight |
-| `--tv-font-weight-semibold` | `600` | Semibold weight |
+| `--wtv-font-size-xs` | `calc(1.2 * --wtv-rem)` | 12px |
+| `--wtv-font-size-sm` | `calc(1.4 * --wtv-rem)` | 14px |
+| `--wtv-font-size-base` | `calc(1.6 * --wtv-rem)` | 16px |
+| `--wtv-font-size` | `= --wtv-font-size-sm` | Default font size |
+| `--wtv-font-weight-medium` | `500` | Medium weight |
+| `--wtv-font-weight-semibold` | `600` | Semibold weight |
 
 #### Spacing & Layout
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-rem` | `--base-rem` \| `10px` | Base unit for proportional scaling |
-| `--tv-spacing-xs` | `2px` | Extra small spacing |
-| `--tv-spacing-sm` | `4px` | Small spacing |
-| `--tv-spacing-md` | `8px` | Medium spacing |
-| `--tv-spacing-lg` | `12px` | Large spacing |
-| `--tv-spacing-xl` | `16px` | Extra large spacing |
-| `--tv-column-width` | `calc(--tv-rem * 2.4)` | Unified column width (24px) for toggle, icon, and indent step |
-| `--tv-indent-size` | `= --tv-column-width` | Tree indent per level (equals column width) |
-| `--tv-node-padding` | `4px 8px` | Node content padding |
-| `--tv-node-height` | `calc(--tv-rem * 3.2)` | Node row height (32px) |
-| `--tv-icon-size` | `calc(--tv-rem * 1.6)` | Node icon size (16px) |
-| `--tv-toggle-size` | `= --tv-column-width` | Toggle icon column size |
-| `--tv-toggle-color` | `= --tv-text-color-2` | Toggle icon color |
+| `--wtv-rem` | `--base-rem` \| `10px` | Base unit for proportional scaling |
+| `--wtv-spacing-xs` | `2px` | Extra small spacing |
+| `--wtv-spacing-sm` | `4px` | Small spacing |
+| `--wtv-spacing-md` | `8px` | Medium spacing |
+| `--wtv-spacing-lg` | `12px` | Large spacing |
+| `--wtv-spacing-xl` | `16px` | Extra large spacing |
+| `--wtv-column-width` | `calc(--wtv-rem * 2.4)` | Unified column width (24px) for toggle, icon, and indent step |
+| `--wtv-indent-size` | `= --wtv-column-width` | Tree indent per level (equals column width) |
+| `--wtv-node-padding` | `4px 8px` | Node content padding |
+| `--wtv-node-height` | `calc(--wtv-rem * 3.2)` | Node row height (32px) |
+| `--wtv-icon-size` | `calc(--wtv-rem * 1.6)` | Node icon size (16px) |
+| `--wtv-toggle-size` | `= --wtv-column-width` | Toggle icon column size |
+| `--wtv-toggle-color` | `= --wtv-text-color-2` | Toggle icon color |
 
 #### Border Radius
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-border-radius-sm` | `calc(0.4 * --tv-rem)` | 4px |
-| `--tv-border-radius-md` | `calc(0.6 * --tv-rem)` | 6px |
-| `--tv-border-radius-lg` | `calc(0.8 * --tv-rem)` | 8px |
+| `--wtv-border-radius-sm` | `calc(0.4 * --wtv-rem)` | 4px |
+| `--wtv-border-radius-md` | `calc(0.6 * --wtv-rem)` | 6px |
+| `--wtv-border-radius-lg` | `calc(0.8 * --wtv-rem)` | 8px |
 
 #### Transitions
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-transition-speed` | `150ms` | Fast transition duration |
-| `--tv-transition-normal` | `200ms` | Normal transition duration |
-| `--tv-easing` | `cubic-bezier(0.4, 0, 0.2, 1)` | Default easing curve |
+| `--wtv-transition-speed` | `150ms` | Fast transition duration |
+| `--wtv-transition-normal` | `200ms` | Normal transition duration |
+| `--wtv-easing` | `cubic-bezier(0.4, 0, 0.2, 1)` | Default easing curve |
 
 #### Drag & Drop — Glow Indicators
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-glow-above-color` | `rgba(134,179,152,0.8)` | Above glow border color |
-| `--tv-glow-below-color` | `rgba(242,182,158,0.8)` | Below glow border color |
-| `--tv-glow-child-color` | `rgba(167,155,198,0.8)` | Child glow border color |
-| `--tv-glow-above-bg` | `rgba(134,179,152,0.25)` | Above zone background |
-| `--tv-glow-below-bg` | `rgba(242,182,158,0.25)` | Below zone background |
-| `--tv-glow-child-bg` | `rgba(167,155,198,0.25)` | Child zone background |
-| `--tv-glow-above-text` | `rgba(62,89,72,0.7)` | Above zone text color |
-| `--tv-glow-below-text` | `rgba(120,70,50,0.7)` | Below zone text color |
-| `--tv-glow-child-text` | `rgba(72,62,98,0.7)` | Child zone text color |
-| `--tv-glow-above-bg-active` | `rgba(134,179,152,0.85)` | Above zone active background |
-| `--tv-glow-below-bg-active` | `rgba(242,182,158,0.85)` | Below zone active background |
-| `--tv-glow-child-bg-active` | `rgba(167,155,198,0.85)` | Child zone active background |
-| `--tv-glow-above-color-active` | `rgb(32,54,40)` | Above zone active text |
-| `--tv-glow-below-color-active` | `rgb(80,45,30)` | Below zone active text |
-| `--tv-glow-child-color-active` | `rgb(45,38,62)` | Child zone active text |
-| `--tv-glow-above-shadow` | `0 2px 12px rgba(134,179,152,0.4)` | Above zone active shadow |
-| `--tv-glow-below-shadow` | `0 2px 12px rgba(242,182,158,0.4)` | Below zone active shadow |
-| `--tv-glow-child-shadow` | `0 2px 12px rgba(167,155,198,0.4)` | Child zone active shadow |
+| `--wtv-glow-above-color` | `rgba(134,179,152,0.8)` | Above glow border color |
+| `--wtv-glow-below-color` | `rgba(242,182,158,0.8)` | Below glow border color |
+| `--wtv-glow-child-color` | `rgba(167,155,198,0.8)` | Child glow border color |
+| `--wtv-glow-above-bg` | `rgba(134,179,152,0.25)` | Above zone background |
+| `--wtv-glow-below-bg` | `rgba(242,182,158,0.25)` | Below zone background |
+| `--wtv-glow-child-bg` | `rgba(167,155,198,0.25)` | Child zone background |
+| `--wtv-glow-above-text` | `rgba(62,89,72,0.7)` | Above zone text color |
+| `--wtv-glow-below-text` | `rgba(120,70,50,0.7)` | Below zone text color |
+| `--wtv-glow-child-text` | `rgba(72,62,98,0.7)` | Child zone text color |
+| `--wtv-glow-above-bg-active` | `rgba(134,179,152,0.85)` | Above zone active background |
+| `--wtv-glow-below-bg-active` | `rgba(242,182,158,0.85)` | Below zone active background |
+| `--wtv-glow-child-bg-active` | `rgba(167,155,198,0.85)` | Child zone active background |
+| `--wtv-glow-above-color-active` | `rgb(32,54,40)` | Above zone active text |
+| `--wtv-glow-below-color-active` | `rgb(80,45,30)` | Below zone active text |
+| `--wtv-glow-child-color-active` | `rgb(45,38,62)` | Child zone active text |
+| `--wtv-glow-above-shadow` | `0 2px 12px rgba(134,179,152,0.4)` | Above zone active shadow |
+| `--wtv-glow-below-shadow` | `0 2px 12px rgba(242,182,158,0.4)` | Below zone active shadow |
+| `--wtv-glow-child-shadow` | `0 2px 12px rgba(167,155,198,0.4)` | Child zone active shadow |
 
 #### Drag & Drop — State Colors
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-drag-over-bg` | `accent 10%` | Drag-over node background |
-| `--tv-drag-over-border` | `2px dashed accent` | Drag-over node border |
-| `--tv-drag-over-glow-shadow` | `0 0 8px accent 40%` | Drag-over glow shadow |
-| `--tv-drop-valid-bg` | `success 10%` | Valid drop background |
-| `--tv-drop-valid-border-color` | `= --tv-success-color` | Valid drop border color |
-| `--tv-drop-invalid-bg` | `danger 10%` | Invalid drop background |
-| `--tv-drop-invalid-border-color` | `= --tv-danger-color` | Invalid drop border color |
-| `--tv-dragover-highlight-bg` | `success 15%` | Dragover highlight background |
-| `--tv-dragover-highlight-border` | `2px dashed success` | Dragover highlight border |
-| `--tv-touch-ghost-bg` | `accent 90%` | Touch drag ghost background |
-| `--tv-touch-ghost-shadow` | `0 4px 12px rgba(0,0,0,0.3)` | Touch ghost shadow |
-| `--tv-scroll-highlight-bg` | `accent 30%` | Scroll-to-node highlight |
-| `--tv-scroll-highlight-shadow` | `0 0 8px accent 40%` | Scroll highlight shadow |
-| `--tv-dragged-opacity` | `0.5` | Dragged node opacity |
-| `--tv-cut-opacity` | `0.4` | Cut node opacity (clipboard) |
-| `--tv-empty-zone-border` | `2px dashed accent` | Empty zone border (during drag) |
-| `--tv-empty-zone-bg` | `accent 10%` | Empty zone background |
-| `--tv-empty-zone-radius` | `= --tv-border-radius-lg` | Empty zone border radius |
+| `--wtv-drag-over-bg` | `accent 10%` | Drag-over node background |
+| `--wtv-drag-over-border` | `2px dashed accent` | Drag-over node border |
+| `--wtv-drag-over-glow-shadow` | `0 0 8px accent 40%` | Drag-over glow shadow |
+| `--wtv-drop-valid-bg` | `success 10%` | Valid drop background |
+| `--wtv-drop-valid-border-color` | `= --wtv-success-color` | Valid drop border color |
+| `--wtv-drop-invalid-bg` | `danger 10%` | Invalid drop background |
+| `--wtv-drop-invalid-border-color` | `= --wtv-danger-color` | Invalid drop border color |
+| `--wtv-dragover-highlight-bg` | `success 15%` | Dragover highlight background |
+| `--wtv-dragover-highlight-border` | `2px dashed success` | Dragover highlight border |
+| `--wtv-touch-ghost-bg` | `accent 90%` | Touch drag ghost background |
+| `--wtv-touch-ghost-shadow` | `0 4px 12px rgba(0,0,0,0.3)` | Touch ghost shadow |
+| `--wtv-scroll-highlight-bg` | `accent 30%` | Scroll-to-node highlight |
+| `--wtv-scroll-highlight-shadow` | `0 0 8px accent 40%` | Scroll highlight shadow |
+| `--wtv-dragged-opacity` | `0.5` | Dragged node opacity |
+| `--wtv-cut-opacity` | `0.4` | Cut node opacity (clipboard) |
+| `--wtv-empty-zone-border` | `2px dashed accent` | Empty zone border (during drag) |
+| `--wtv-empty-zone-bg` | `accent 10%` | Empty zone background |
+| `--wtv-empty-zone-radius` | `= --wtv-border-radius-lg` | Empty zone border radius |
 
 #### Context Menu
 
-Each variable defaults to the corresponding higher-order `--tv-*` variable, so the menu inherits the tree's theme by default but can be styled independently.
+Each variable defaults to the corresponding higher-order `--wtv-*` variable, so the menu inherits the tree's theme by default but can be styled independently.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-context-menu-bg` | `= --tv-bg-color` | Menu background |
-| `--tv-context-menu-bg-hover` | `= --tv-hover-bg` | Item hover background |
-| `--tv-context-menu-text-color` | `= --tv-text-color` | Menu text color |
-| `--tv-context-menu-border` | `1px solid --tv-border-color` | Menu border |
-| `--tv-context-menu-border-radius` | `= --tv-border-radius-sm` | Menu border radius |
-| `--tv-context-menu-shadow` | `0 2px 10px rgba(0,0,0,0.1)` | Menu shadow |
-| `--tv-context-menu-min-width` | `calc(--tv-rem * 15)` | Menu min width |
-| `--tv-context-menu-padding` | `--tv-spacing-sm 0` | Menu padding |
-| `--tv-context-menu-font-size` | `= --tv-font-size-sm` | Menu font size |
-| `--tv-context-menu-item-padding` | `--tv-spacing-md --tv-spacing-xl` | Item padding |
-| `--tv-context-menu-item-gap` | `= --tv-spacing-md` | Gap between icon, label, shortcut |
-| `--tv-context-menu-icon-width` | `= --tv-icon-size` | Item icon column width |
-| `--tv-context-menu-icon-font-size` | `= --tv-font-size-xs` | Item icon font size |
-| `--tv-context-menu-arrow-font-size` | `= --tv-font-size-xs` | Submenu arrow font size |
-| `--tv-context-menu-danger-color` | `= --tv-danger-color` | Danger item text color |
-| `--tv-context-menu-danger-bg-hover` | `danger 10%` | Danger item hover background |
-| `--tv-context-menu-divider-color` | `= --tv-border-color` | Divider line color |
-| `--tv-context-menu-divider-margin` | `--tv-spacing-sm 0` | Divider margin |
-| `--tv-context-menu-disabled-opacity` | `0.5` | Disabled item opacity |
+| `--wtv-context-menu-bg` | `= --wtv-bg-color` | Menu background |
+| `--wtv-context-menu-bg-hover` | `= --wtv-hover-bg` | Item hover background |
+| `--wtv-context-menu-text-color` | `= --wtv-text-color` | Menu text color |
+| `--wtv-context-menu-border` | `1px solid --wtv-border-color` | Menu border |
+| `--wtv-context-menu-border-radius` | `= --wtv-border-radius-sm` | Menu border radius |
+| `--wtv-context-menu-shadow` | `0 2px 10px rgba(0,0,0,0.1)` | Menu shadow |
+| `--wtv-context-menu-min-width` | `calc(--wtv-rem * 15)` | Menu min width |
+| `--wtv-context-menu-padding` | `--wtv-spacing-sm 0` | Menu padding |
+| `--wtv-context-menu-font-size` | `= --wtv-font-size-sm` | Menu font size |
+| `--wtv-context-menu-item-padding` | `--wtv-spacing-md --wtv-spacing-xl` | Item padding |
+| `--wtv-context-menu-item-gap` | `= --wtv-spacing-md` | Gap between icon, label, shortcut |
+| `--wtv-context-menu-icon-width` | `= --wtv-icon-size` | Item icon column width |
+| `--wtv-context-menu-icon-font-size` | `= --wtv-font-size-xs` | Item icon font size |
+| `--wtv-context-menu-arrow-font-size` | `= --wtv-font-size-xs` | Submenu arrow font size |
+| `--wtv-context-menu-danger-color` | `= --wtv-danger-color` | Danger item text color |
+| `--wtv-context-menu-danger-bg-hover` | `danger 10%` | Danger item hover background |
+| `--wtv-context-menu-divider-color` | `= --wtv-border-color` | Divider line color |
+| `--wtv-context-menu-divider-margin` | `--wtv-spacing-sm 0` | Divider margin |
+| `--wtv-context-menu-disabled-opacity` | `0.5` | Disabled item opacity |
 
 #### Loading
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-tree-min-height` | `calc(6 * --tv-rem)` | Min height for empty/loading states (60px) |
-| `--tv-spinner-size` | `32px` | Spinner size |
-| `--tv-spinner-track` | `= --tv-border-color` | Spinner track color |
-| `--tv-spinner-color` | `= --tv-accent-color` | Spinner accent color |
-| `--tv-loading-bg` | `rgba(255,255,255,0.8)` | Loading overlay background |
+| `--wtv-tree-min-height` | `calc(6 * --wtv-rem)` | Min height for empty/loading states (60px) |
+| `--wtv-spinner-size` | `32px` | Spinner size |
+| `--wtv-spinner-track` | `= --wtv-border-color` | Spinner track color |
+| `--wtv-spinner-color` | `= --wtv-accent-color` | Spinner accent color |
+| `--wtv-loading-bg` | `rgba(255,255,255,0.8)` | Loading overlay background |
 
 #### Z-Index
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `--tv-z-index-dropdown` | `1000` | Context menu, drop zones |
-| `--tv-z-index-ghost` | `10000` | Touch drag ghost |
-| `--tv-z-index-overlay` | `10` | Loading overlay |
+| `--wtv-z-index-dropdown` | `1000` | Context menu, drop zones |
+| `--wtv-z-index-ghost` | `10000` | Touch drag ghost |
+| `--wtv-z-index-overlay` | `10` | Loading overlay |
 
 ## Pluggable Renderers
 

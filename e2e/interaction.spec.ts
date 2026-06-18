@@ -18,7 +18,7 @@ import { test, expect, Page, Locator } from '@playwright/test';
  * tree uses expandLevel=3 (everything visible).
  *
  * Note on checkbox DOM: web-treeview renders the checkbox as a bare
- * <input type="checkbox" class="ltree-checkbox">, NOT a wrapping <label> like
+ * <input type="checkbox" class="wtv-checkbox">, NOT a wrapping <label> like
  * the Svelte build. Both the label selector and input selector below point to
  * the same input element.
  */
@@ -44,15 +44,15 @@ function keyboardNavCard(page: Page): Locator {
 }
 
 function nodeInCard(card: Locator, path: string): Locator {
-  return card.locator(`.ltree-node[data-tree-path="${path}"]`).first();
+  return card.locator(`.wtv-node[data-tree-path="${path}"]`).first();
 }
 
 function nodeContent(node: Locator): Locator {
-  return node.locator('> .ltree-node-row .ltree-node-content').first();
+  return node.locator('> .wtv-node-row .wtv-node-content').first();
 }
 
 function checkboxOf(node: Locator): Locator {
-  return node.locator('> .ltree-node-row input.ltree-checkbox').first();
+  return node.locator('> .wtv-node-row input.wtv-checkbox').first();
 }
 
 function outputValue(card: Locator, label: string): Locator {
@@ -66,7 +66,7 @@ function outputValue(card: Locator, label: string): Locator {
 
 async function gotoInteraction(page: Page) {
   await page.goto(PAGE);
-  await expect(page.locator('.ltree-node').first()).toBeVisible();
+  await expect(page.locator('.wtv-node').first()).toBeVisible();
 }
 
 // ── Click Behavior tree ─────────────────────────────────────────────────────

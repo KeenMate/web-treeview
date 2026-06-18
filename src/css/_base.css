@@ -1,7 +1,7 @@
 :host {
   display: block;
-  color: var(--tv-text-color);
-  font-size: var(--tv-font-size);
+  color: var(--wtv-text-color);
+  font-size: var(--wtv-font-size);
 }
 
 :host([hidden]) {
