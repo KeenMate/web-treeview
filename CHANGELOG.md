@@ -13,6 +13,7 @@ Catch-up release pulling forward the features `@keenmate/svelte-treeview` shippe
 - **`theme` prop / attribute** (`'dark' | 'light' | null`): Per-instance theme override forwarded to the root `.ltree-container` as `data-theme="..."`. The new `_dark-mode.css` partial flips the `--tv-*` color tokens against four signals — OS preference (`@media (prefers-color-scheme: dark)`), framework theme classes (`[data-theme="dark"]`, `[data-bs-theme="dark"]`, `.dark`), per-instance `data-theme` on the container, and symmetric `light` variants so a single tree can force light on a dark page. Default behaviour with `theme=null|undefined` is to inherit from the page. Mirrors `@keenmate/svelte-treeview` rc10's `theme` prop.
 
 ### Changed
+- **`.ltree-container` paints its own background**: `background: var(--tv-bg-color)` and `color: var(--tv-text-color)` are now declared directly on `.ltree-container` (previously the surface was inherited from whatever element the consumer wrapped the tree in). Lets the tree render a visible surface without a colored wrapper, and makes the dark-mode flip self-contained. Set `--tv-bg-color: transparent` to restore the pre-rc03 layered behaviour. Mirrors svelte-treeview rc10's `--ltree-bg`.
 
 ### Fixed
 

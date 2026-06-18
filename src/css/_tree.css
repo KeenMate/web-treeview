@@ -697,6 +697,12 @@
 
 .ltree-container {
   position: relative;
+  /* Paint the tree's own surface so consumers don't have to wrap it in a
+     colored container for a visible background. Set --tv-bg-color: transparent
+     to restore the pre-rc03 layered behaviour. Mirrors svelte-treeview rc10's
+     --ltree-bg. */
+  background: var(--tv-bg-color);
+  color: var(--tv-text-color);
 }
 
 /* ── Loading overlay ──────────────────────────────────────────────── */
