@@ -3,65 +3,27 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/npm/v/@keenmate/web-treeview.svg)](https://www.npmjs.com/package/@keenmate/web-treeview)
 
-A lightweight, framework-agnostic treeview web component built with vanilla TypeScript. Works in any framework or plain HTML — just drop in `<web-treeview>` and go.
+A lightweight, framework-agnostic treeview web component built with vanilla TypeScript. Drop `<web-treeview>` into any framework or plain HTML.
 
-## v2.0: Framework-Agnostic Treeview
+## What is it
 
-> [!IMPORTANT]
-> **`web-treeview` is built on the same core as [`@keenmate/svelte-treeview`](https://github.com/KeenMate/svelte-treeview) but is completely independent of it.** It shares the same LTree data engine, naming conventions, and architectural principles — ported to vanilla TypeScript with zero framework dependencies. If you know svelte-treeview, you already know the API.
+`@keenmate/web-treeview` is a custom element that renders a hierarchical data list with full keyboard navigation, drag-and-drop, multi-select, search, context menus, and pluggable rendering. Works in any framework or plain HTML — assign `data`, and the tree renders.
 
-**What's in v2:**
-- **Web Component** — Standard `<web-treeview>` custom element with Shadow DOM, works in React, Vue, Angular, or plain HTML
-- **Two rendering modes** — Flat rendering (default) for most trees, virtual scroll for 100k+ nodes
-- **Multi-select** — Ctrl+click toggle, Shift+click range select, `selectAll()`, visual or logical range modes
-- **Clipboard** — Copy/cut/paste nodes (including cross-tree) with Ctrl+C/X/V keyboard shortcuts
-- **Keyboard navigation** — Arrow keys, Home/End, Enter/Space toggle, Escape to deselect
-- **Full drag & drop** — Internal reordering, cross-tree drag, glow/floating drop zones, touch support, copy operations
-- **Multi-level context menus** — Viewport-aware positioning via Floating UI, keyboard shortcuts, named dividers, custom item rendering
-- **Bulk operations** — `insertBranch`, `replaceBranch`, `deleteBranch` for efficient batch mutations
-- **Full-text search** — FlexSearch-powered indexing with filter and highlight modes
-- **90+ CSS variables** — Complete theming via `--base-*` design system tokens and `--wtv-*` component tokens, compatible with `@keenmate/theme-designer`
-- **Pluggable renderers** — `TreeViewRenderer<T>` interface for building custom renderers (Canvas, WebGL, framework-specific)
+Built on the same LTree path-based engine as [`@keenmate/svelte-treeview`](https://github.com/KeenMate/svelte-treeview) and ported to vanilla TypeScript with zero framework dependencies. If you know svelte-treeview, you already know the API surface.
 
-### Rendering Modes
+## What's New in v2.0.0-rc05
 
-| Mode | Config | DOM Nodes | Best For |
-|------|--------|-----------|----------|
-| Flat (default) | `use-flat-rendering="true"` | All | Most trees (up to ~10K nodes) |
-| Virtual | `virtual-scroll="true"` | ~50 | Large trees (10K+) |
+This release lands the BlissFramework `/validate-web-component` punch-list and bumps the API surface to current naming conventions. Since the RC cycle is still active, breaking changes are direct renames without deprecation aliases.
 
-```html
-<!-- Virtual scroll for large trees -->
-<web-treeview virtual-scroll="true" virtual-container-height="500px"></web-treeview>
+- **Strategy B theming.** `_dark-mode.css` collapses from ~100 lines of variable redeclarations to ~50 lines of conditional `color-scheme: dark` / `color-scheme: light` flips. Every color fallback in `variables.css` now uses `light-dark(<light>, <dark>)` and the variables flip automatically based on the inherited `color-scheme`. The rc09 subtree-theming bug is fixed (`:root` co-selector dropped from `variables.css`). Hover / active / selected switched to `color-mix` chains so highlights stay visible at any base luminance. `:host([data-theme])` selectors added alongside `.wtv__container[data-theme]`.
+- **API rename per BlissFramework `naming-conventions.md`.** Callback props that were `on*` (Svelte idiom) are now `*Callback` (`nodeClickedCallback`, `nodeDropCallback`, `selectionChangeCallback`, `highlightChangeCallback`, `renderStartCallback`, etc.). Boolean Config props gained `is*` / `should*` prefixes (`isAccordionExpand`, `isCopyAllowed`, `shouldShowCheckboxes`, `shouldClickToggleCheckbox`, `isVirtualScrollEnabled`, etc.). HTML attribute names are **unchanged** (`show-checkboxes`, `allow-copy`, `accordion-expand`, `virtual-scroll` are still kebab-case as written) — only the JS surface follows the new convention. The `ATTRIBUTE_TABLE` in `src/web-component.ts` is now the single source of truth for the attribute ⇄ config wiring.
+- **CSS structure cleanup.** `@layer variables, component, overrides;` added to `main.css` so consumers can override component rules without specificity wars. The duplicate non-BEM `.web-treeview` class is gone (`.wtv__container` does the layout job). CSS files dropped their SASS-partial `_` prefix.
+- **Manifest repaired.** `component-variables.manifest.json` prefix is now `wtv` (was the stale `tv` from rc02). All 108 entries renamed; stale `glow-above` / `glow-below` → `glow-before` / `glow-after`; added missing `wtv-cut-opacity` and `wtv-font-family`.
+- **README split.** Most of the prose moved into `docs/`; this file is the landing page.
 
-<!-- Flat mode (default) with progressive batching -->
-<web-treeview progressive-render="true"></web-treeview>
-```
+See [CHANGELOG.md](./CHANGELOG.md) for the full release history.
 
-## Features
-
-- **LTree Path Model** — Materialized path hierarchy (`1`, `1.1`, `1.1.2`) with configurable separator
-- **Multi-Select** — Ctrl+click toggle, Shift+click range, `selectAll()`, visual/logical range modes, `selectionChangeCallback` callback
-- **Clipboard** — Copy/cut/paste with cross-tree support, cut nodes dimmed with `--wtv-cut-opacity`
-- **Keyboard Navigation** — Arrow keys, Home/End, Enter/Space, Ctrl+A/C/X/V, Escape
-- **Bulk Operations** — `insertBranch`, `replaceBranch`, `deleteBranch` for efficient batch tree mutations
-- **Full-Width Hitbox** — Entire node row is clickable including indent zone, with uniform hover highlight
-- **Per-Node Icons** — Via data field (`iconMember`) or dynamic callback (`iconCallback`) with aligned column grid
-- **Progressive Rendering** — `requestAnimationFrame`-batched rendering for smooth initial load of large trees
-- **Custom Render Callbacks** — Callback-based templates for nodes, empty state, loading, header, footer, context menu items
-- **Categorized Logging** — Runtime-configurable log categories for debugging
-- **TypeScript** — Fully typed API with generic `<T>` data support
-- **SSR Safe** — Compatible with server-side rendering environments
-
-## Installation
-
-```bash
-npm install @keenmate/web-treeview
-```
-
-## Quick Start
-
-### Declarative (HTML only)
+## Quick start
 
 ```html
 <script type="module" src="./node_modules/@keenmate/web-treeview/dist/web-treeview.js"></script>
@@ -81,667 +43,36 @@ npm install @keenmate/web-treeview
 </script>
 ```
 
-### With Custom Member Mappings
-
-If your data uses different property names, map them via attributes:
-
-```html
-<web-treeview
-  id="my-tree"
-  id-member="nodeId"
-  path-member="treePath"
-  display-value-member="label"
-  expand-level="1">
-</web-treeview>
-
-<script>
-  document.getElementById('my-tree').data = [
-    { nodeId: 1, treePath: '1',   label: 'Root' },
-    { nodeId: 2, treePath: '1.1', label: 'Child' },
-  ];
-</script>
+```bash
+npm install @keenmate/web-treeview
 ```
 
-### Programmatic (ES Module)
-
-```typescript
-import '@keenmate/web-treeview';
-import { WebTreeView } from '@keenmate/web-treeview';
-
-const container = document.getElementById('tree-container')!;
-const tree = new WebTreeView(container, {
-  data: myData,
-  idMember: 'id',
-  pathMember: 'path',
-  displayValueMember: 'name',
-  expandLevel: 2,
-  nodeClickedCallback: (node) => console.log('Clicked:', node),
-});
-```
-
-### Headless (LTree Core Only)
-
-Use the tree engine directly without any DOM rendering:
-
-```typescript
-import { createLTree } from '@keenmate/web-treeview';
-
-const tree = createLTree('id', 'path');
-tree.insertArray([
-  { id: 1, path: '1',   name: 'Root' },
-  { id: 2, path: '1.1', name: 'Child' },
-]);
-
-console.log(tree.tree);           // Root nodes
-console.log(tree.visibleFlatNodes); // Flat list of visible nodes
-```
-
-## API
-
-### Attributes
-
-All attributes use kebab-case. Equivalent camelCase property setters are available on the element.
-
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `id-member` | `string` | `'id'` | Property name for node ID |
-| `path-member` | `string` | `'path'` | Property name for hierarchical path |
-| `display-value-member` | `string` | `'displayValue'` | Property name for display text |
-| `parent-path-member` | `string` | — | Property name for parent path (auto-calculated if omitted) |
-| `level-member` | `string` | — | Property name for depth level (auto-calculated if omitted) |
-| `has-children-member` | `string` | — | Property name for has-children flag (auto-calculated if omitted) |
-| `is-expanded-member` | `string` | — | Property name for expanded state in data |
-| `is-selected-member` | `string` | — | Property name for selected state in data |
-| `is-draggable-member` | `string` | — | Property name for per-node draggable flag |
-| `is-drop-allowed-member` | `string` | — | Property name for per-node drop-allowed flag |
-| `is-collapsible-member` | `string` | — | Property name for per-node collapsible flag |
-| `search-value-member` | `string` | — | Property name for search text (defaults to display value) |
-| `order-member` | `string` | — | Property name for sort order |
-| `expand-level` | `number` | — | Auto-expand nodes up to this depth |
-| `tree-path-separator` | `string` | `'.'` | Separator character in paths |
-| `tree-id` | `string` | — | Unique tree identifier (for cross-tree DnD) |
-| `drag-drop-mode` | `string` | `'none'` | `'none'` \| `'cross'` \| `'both'` |
-| `drop-zone-mode` | `string` | `'glow'` | `'glow'` \| `'floating'` |
-| `drop-zone-layout` | `string` | `'around'` | `'around'` \| `'above'` \| `'below'` \| `'wave'` \| `'wave2'` |
-| `drop-zone-start` | `number\|string` | `33` | Child zone threshold (number = %, string = CSS value) |
-| `allowed-drop-positions-member` | `string` | — | Property name for per-node allowed drop positions array |
-| `allow-copy` | `boolean` | `false` | Enable copy operations (Ctrl+drag) |
-| `icon-member` | `string` | — | Property name for per-node icon CSS class(es) |
-| `align-node-icons` | `boolean` | `true` | Reserve icon column width even for nodes without icons |
-| `click-behavior` | `string` | `'expand-and-focus'` | `'select'` \| `'expand'` \| `'expand-and-focus'` — what happens on click |
-| `use-flat-rendering` | `boolean` | `true` | Flat rendering mode (single DOM list with `paddingLeft` indent) |
-| `virtual-scroll` | `boolean` | `false` | Virtual scroll mode — only renders visible rows in the viewport |
-| `virtual-row-height` | `number` | auto | Row height in px for virtual scroll (auto-measured if omitted) |
-| `virtual-overscan` | `number` | `5` | Extra rows rendered above/below viewport in virtual scroll |
-| `virtual-container-height` | `string` | `'400px'` | Container height for virtual scroll viewport |
-| `progressive-render` | `boolean` | `true` | RAF-batched progressive rendering for large trees |
-| `range-selection-mode` | `string` | `'visual'` | `'visual'` \| `'logical'` — range select mode for Shift+click |
-| `search-text` | `string` | — | Current search/filter text |
-| `should-display-debug-information` | `boolean` | `false` | Show debug overlay |
-
-### Properties (JS only)
-
-These properties are set via JavaScript, not HTML attributes:
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `data` | `T[]` | Array of data objects to display as tree |
-| `renderer` | `TreeViewRenderer<T>` | Custom renderer (replaces default DomRenderer) |
-| `nodeClickedCallback` | `(node) => void` | Click handler |
-| `nodeDragStartCallback` | `(node, event) => void` | Drag start handler |
-| `nodeDragOverCallback` | `(node, event) => void` | Drag over handler |
-| `nodeDropCallback` | `(dropNode, draggedNode, position, event, operation) => void` | Drop handler |
-| `beforeDropCallback` | `(dropNode, draggedNode, position, event, operation) => boolean \| void` | Drop validation |
-| `contextMenuCallback` | `(node, close) => ContextMenuEntry[]` | Context menu items |
-| `renderContextMenuItemCallback` | `(item, node, container) => void` | Per-item custom rendering (fill or fall through) |
-| `contextMenuXOffset` | `number` | Horizontal offset (px) for context menu position |
-| `contextMenuYOffset` | `number` | Vertical offset (px) for context menu position |
-| `iconCallback` | `(node) => string \| null` | Dynamic icon class resolution (overrides `iconMember`) |
-| `renderNodeCallback` | `(node, container) => void` | Custom node content rendering |
-| `renderEmptyStateCallback` | `(container) => void` | Informational display when tree has no data |
-| `renderEmptyZoneCallback` | `(container) => void` | Drop zone rendered in empty tree during drag |
-| `renderLoadingCallback` | `(container) => void` | Loading state rendering |
-| `renderHeaderCallback` | `(container) => void` | Tree header rendering |
-| `renderFooterCallback` | `(container) => void` | Tree footer rendering |
-| `selectionChangeCallback` | `(selectedNodes, selectedPaths) => void` | Selection change handler |
-| `sortCallback` | `(items) => items` | Custom sort function |
-| `getDisplayValueCallback` | `(node) => string` | Dynamic display value |
-| `getIsDraggableCallback` | `(node) => boolean` | Dynamic draggable check |
-| `getIsCollapsibleCallback` | `(node) => boolean` | Dynamic collapsible check |
-
-### Methods
-
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `expandAll` | `(nodePath?: string)` | Expand all nodes (or subtree) |
-| `collapseAll` | `(nodePath?: string)` | Collapse all nodes (or subtree) |
-| `expandNodes` | `(nodePath: string)` | Expand ancestors up to node |
-| `collapseNodes` | `(nodePath: string)` | Collapse a node |
-| `filterNodes` | `(searchText: string)` | Filter tree by search text |
-| `searchNodes` | `(searchText: string): LTreeNode[]` | Search without filtering |
-| `scrollToPath` | `(path: string, options?): Promise<boolean>` | Scroll to and highlight a node |
-| `closeContextMenu` | `()` | Close the context menu |
-| `selectNode` | `(path, modifiers?)` | Select a node (plain/ctrl/shift) |
-| `selectNodes` | `(paths: string[])` | Select multiple nodes by path |
-| `deselectAll` | `()` | Deselect all nodes |
-| `selectAll` | `()` | Select all visible nodes |
-| `getSelectedNodes` | `(): LTreeNode[]` | Get all selected nodes |
-| `getSelectedPaths` | `(): Set<string>` | Get all selected paths |
-| `isNodeSelected` | `(path): boolean` | Check if a node is selected |
-| `copyNodes` | `(paths?)` | Copy selected/specified nodes to clipboard |
-| `cutNodes` | `(paths?)` | Cut selected/specified nodes to clipboard |
-| `pasteNodes` | `(targetPath, transformData?, position?): PasteResult` | Paste clipboard at target |
-| `cancelCut` | `()` | Cancel cut operation |
-| `navTo` | `(path)` | Navigate to a specific node |
-| `navNext` / `navPrev` | `()` | Navigate to next/previous visible node |
-| `navInto` / `navOut` | `()` | Navigate into child / to parent |
-| `navToggle` | `()` | Toggle expand/collapse on current node |
-| `navFirst` / `navLast` | `()` | Navigate to first/last visible node |
-| `insertBranch` | `(parentPath, data[]): result` | Insert multiple children at once |
-| `replaceBranch` | `(parentPath, data[]): result` | Replace all children of a node |
-| `deleteBranch` | `(path, keepParent?): result` | Delete node and descendants |
-| `getTree` | `(): Ltree<T>` | Access the underlying LTree instance |
-| `getController` | `(): TreeController<T>` | Access the TreeController directly |
-| `update` | `(props: Partial<TreeViewConfig<T>>)` | Update multiple properties at once |
-
-### Events
-
-| Event | Detail | Description |
-|-------|--------|-------------|
-| `node-clicked` | `{ node: LTreeNode<T> }` | Node was clicked |
-| `selection-change` | `{ selectedNodes, selectedPaths }` | Selection changed (multi-select) |
-| `selected-node-changed` | `{ selectedNode }` | Last-selected node changed |
-| `tree-changed` | — | Tree state changed (expand, collapse, data) |
-
-## Drag and Drop
-
-Enable drag-and-drop with the `drag-drop-mode` attribute:
-
-```html
-<!-- Internal + cross-tree reordering -->
-<web-treeview drag-drop-mode="both"></web-treeview>
-
-<!-- Cross-tree only (no internal reordering) -->
-<web-treeview id="tree-a" drag-drop-mode="cross" tree-id="source"></web-treeview>
-<web-treeview id="tree-b" drag-drop-mode="cross" tree-id="target"></web-treeview>
-```
-
-### Restricted Drop Positions
-
-Control which drop positions (`above`, `below`, `child`) are valid per node:
-
-```javascript
-tree.data = [
-  // Trash: only accept drops as children
-  { id: 1, path: '1', name: 'Trash', allowedDropPositions: ['child'] },
-
-  // Regular folder: all positions (default)
-  { id: 2, path: '2', name: 'Projects' },
-
-  // Files: can't drop INTO them
-  { id: 3, path: '3', name: 'Readme.md', allowedDropPositions: ['above', 'below'] },
-];
-
-tree.allowedDropPositionsMember = 'allowedDropPositions';
-```
-
-### Drop Zone Start
-
-The `dropZoneStart` property controls where the "child" zone begins (as a percentage of the node width). It applies to both glow and floating modes:
-
-```javascript
-tree.dropZoneStart = '50%';  // Child zone starts at 50% (default: 33%)
-```
-
-### Drop Validation
-
-```javascript
-tree.beforeDropCallback = (dropNode, draggedNode, position, event, operation) => {
-  // Return false to cancel the drop
-  if (draggedNode.level === 0) return false;
-
-  // Return modified position/operation
-  return { position: 'child', operation: 'move' };
-};
-```
-
-## Multi-Select
-
-Multi-select works out of the box with no configuration:
-
-```javascript
-// Ctrl+click and Shift+click work automatically in the UI
-
-// Programmatic multi-select
-tree.selectNodes(['1.1', '1.2', '1.3']);
-tree.selectAll();
-tree.deselectAll();
-
-// Query selection
-const nodes = tree.getSelectedNodes();
-const paths = tree.getSelectedPaths(); // Set<string>
-
-// Listen for changes
-tree.addEventListener('selection-change', (e) => {
-  console.log('Selected:', e.detail.selectedPaths);
-});
-```
-
-### Range Selection Mode
-
-```html
-<!-- Visual mode (default): range uses visible flat nodes -->
-<web-treeview range-selection-mode="visual"></web-treeview>
-
-<!-- Logical mode: range walks the full tree structure -->
-<web-treeview range-selection-mode="logical"></web-treeview>
-```
-
-See `examples-multiselect.html` for interactive demos of multi-select, clipboard, keyboard navigation, and bulk operations.
-
-## Clipboard (Copy/Cut/Paste)
-
-```javascript
-// Copy selected nodes
-tree.copyNodes();
-
-// Cut selected nodes (dimmed in UI)
-tree.cutNodes();
-
-// Paste at a target node
-tree.pasteNodes('1.2');
-
-// Cancel cut
-tree.cancelCut();
-
-// Keyboard: Ctrl+C, Ctrl+X, Ctrl+V, Escape
-```
-
-## Keyboard Navigation
-
-When the tree body has focus (click any node first), keyboard navigation is active:
-
-| Key | Action |
-|-----|--------|
-| Arrow Down / Up | Navigate to next / previous sibling |
-| Arrow Right | Expand and move to first child |
-| Arrow Left | Move to parent node |
-| Backspace | Collapse parent and move to it |
-| Enter / Space | Toggle expand/collapse |
-| Home / End | Jump to first / last visible node |
-| Ctrl+A | Select all visible nodes |
-| Ctrl+C / X / V | Copy / cut / paste |
-| Escape | Cancel cut or deselect all |
-
-## Per-Node Icons
-
-Each node row is laid out as `[toggle/icon column] [content]`. The toggle/icon column has a fixed width (`--wtv-column-width`, default 24px) shared by toggle arrows, leaf icons, and per-node icons. The indent step also equals `--wtv-column-width`, so labels at every depth align vertically.
-
-### Via data field (`iconMember`)
-
-```html
-<web-treeview icon-member="icon" expand-level="2"></web-treeview>
-
-<script>
-  tree.data = [
-    { id: 1, path: '1',   displayValue: 'Documents', icon: 'icon-folder' },
-    { id: 2, path: '1.1', displayValue: 'report.pdf', icon: 'icon-file-pdf' },
-  ];
-</script>
-```
-
-### Via callback (`iconCallback`)
-
-```javascript
-tree.iconCallback = (node) => {
-  if (node.hasChildren) return 'icon-folder';
-  const ext = node.data.name.split('.').pop();
-  return { ts: 'icon-ts', css: 'icon-css' }[ext] || 'icon-file';
-};
-```
-
-`iconCallback` takes priority over `iconMember`. Both return CSS class name(s) applied to the toggle column element for leaf nodes. Return `null` to fall back to `leafIconClass`.
-
-## Render Callbacks
-
-```javascript
-tree.renderNodeCallback = (node, container) => {
-  container.innerHTML = `
-    <span class="icon">${node.hasChildren ? '📁' : '📄'}</span>
-    <span class="label">${node.displayValue}</span>
-    <span class="badge">${node.children?.length ?? 0}</span>
-  `;
-};
-
-tree.renderEmptyStateCallback = (container) => {
-  container.innerHTML = '<p>No items to display</p>';
-};
-```
-
-## Context Menu
-
-Right-click context menus are defined via `contextMenuCallback`:
-
-```javascript
-tree.contextMenuCallback = (node, closeMenu) => [
-  { label: 'Edit', icon: 'fa fa-edit', shortcut: 'E', onclick: () => editNode(node) },
-  { label: 'Duplicate', icon: 'fa fa-copy', onclick: () => duplicateNode(node) },
-  { divider: true, label: 'Danger zone' },
-  { label: 'Delete', className: 'danger', shortcut: 'Delete', onclick: () => deleteNode(node) },
-];
-```
-
-### ContextMenuEntry
-
-`ContextMenuEntry = ContextMenuItem | ContextMenuDivider`
-
-### ContextMenuItem
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `label` | `string` | Display text (required) |
-| `id` | `string` | Optional identifier |
-| `icon` | `string` | CSS class(es) for item icon |
-| `shortcut` | `string` | Keyboard shortcut text (displayed + active when menu is open) |
-| `isDisabled` | `boolean` | Grey out and prevent interaction |
-| `isVisible` | `boolean` | Set `false` to hide the item |
-| `className` | `string` | CSS class(es) on the item button (e.g. `'danger'` for red styling) |
-| `onclick` | `() => void \| Promise<void>` | Action handler |
-| `children` | `ContextMenuEntry[]` | Nested submenu items |
-
-### ContextMenuDivider
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `divider` | `true` | Discriminator (required) |
-| `label` | `string` | Optional label rendered as `──── label ────` |
-
-### Custom Item Rendering
-
-Use `renderContextMenuItemCallback` for node-aware or styled menu items. The callback uses a "fill or fall through" pattern — if you populate the container, your custom markup is used; if you leave it empty, the default rendering applies:
-
-```javascript
-tree.renderContextMenuItemCallback = (item, node, container) => {
-  if (item.id === 'profile') {
-    container.innerHTML = `
-      <div class="avatar">${node.data.name[0]}</div>
-      <div>
-        <strong>${node.data.name}</strong>
-        <small>${node.data.role}</small>
-      </div>
-    `;
-    return; // custom rendering used
-  }
-  // All other items: leave container empty → default rendering
-};
-```
-
-### Menu Position Offsets
-
-```javascript
-tree.contextMenuXOffset = 10;  // Shift menu 10px right
-tree.contextMenuYOffset = -30; // Shift menu 30px up
-```
-
-## Theming
-
-All CSS values flow from `--base-*` design system tokens through `--wtv-*` component tokens. Override at any level:
-
-```css
-/* Design system level — affects ALL components sharing the design system */
-:root {
-  --base-accent-color: #8b5cf6;
-  --base-text-color-1: #1e293b;
-  --base-border-color: #e2e8f0;
-  --base-hover-bg: #f1f5f9;
-  --base-rem: 10px;              /* Base unit for all sizing */
-}
-
-/* Component level — affects only this treeview instance */
-web-treeview {
-  --wtv-accent-color: #8b5cf6;   /* Overrides --base-accent-color */
-  --wtv-selected-bg: #ede9fe;
-  --wtv-indent-size: 1.5rem;
-  --wtv-node-height: 2rem;
-  --wtv-border-radius-sm: 4px;
-  --wtv-font-size: 0.875rem;
-}
-```
-
-See `examples-theming.html` for 8 complete theme examples (dark mode, neon, corporate, glassmorphism, etc.).
-
-### CSS Custom Properties Reference
-
-#### Core Colors
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-accent-color` | `--base-accent-color` \| `#3b82f6` | Primary accent color |
-| `--wtv-accent-color-hover` | `--base-accent-color-hover` \| `#2563eb` | Accent hover state |
-| `--wtv-text-color` | `--base-text-color-1` \| `#1e293b` | Primary text color |
-| `--wtv-text-color-2` | `--base-text-color-3` \| `#64748b` | Secondary/muted text |
-| `--wtv-text-color-on-accent` | `--base-text-color-on-accent` \| `#ffffff` | Text on accent backgrounds |
-| `--wtv-bg-color` | `--base-main-bg` \| `#ffffff` | Main background |
-| `--wtv-border-color` | `--base-border-color` \| `#e2e8f0` | Default border color |
-| `--wtv-success-color` | `--base-success-color` \| `#198754` | Success/valid color |
-| `--wtv-danger-color` | `--base-danger-color` \| `#dc3545` | Danger/invalid color |
-| `--wtv-light-bg` | `--base-elevated-bg` \| `#f8f9fa` | Elevated surface background |
-
-#### Node States
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-hover-bg` | `--base-hover-bg` \| `#f1f5f9` | Base hover background |
-| `--wtv-active-bg` | `--base-active-bg` \| `#e2e8f0` | Base active/pressed background |
-| `--wtv-selected-bg` | `--base-accent-color-light` \| `#eff6ff` | Selected node background |
-| `--wtv-selected-border-color` | `= --wtv-accent-color` | Selected node border color |
-| `--wtv-selected-border` | `2px solid --wtv-selected-border-color` | Selected node border shorthand |
-| `--wtv-node-bg-hover` | `= --wtv-hover-bg` | Node hover background |
-| `--wtv-node-bg-active` | `= --wtv-active-bg` | Node active/pressed background |
-| `--wtv-node-transition` | `background 150ms, box-shadow 150ms ease` | Node content transition (set `none` to disable) |
-
-#### Border
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-border-width-base` | `1px` | Base border width |
-| `--wtv-border` | `1px solid --wtv-border-color` | Full border shorthand |
-
-#### Typography
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-font-size-xs` | `calc(1.2 * --wtv-rem)` | 12px |
-| `--wtv-font-size-sm` | `calc(1.4 * --wtv-rem)` | 14px |
-| `--wtv-font-size-base` | `calc(1.6 * --wtv-rem)` | 16px |
-| `--wtv-font-size` | `= --wtv-font-size-sm` | Default font size |
-| `--wtv-font-weight-medium` | `500` | Medium weight |
-| `--wtv-font-weight-semibold` | `600` | Semibold weight |
-
-#### Spacing & Layout
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-rem` | `--base-rem` \| `10px` | Base unit for proportional scaling |
-| `--wtv-spacing-xs` | `2px` | Extra small spacing |
-| `--wtv-spacing-sm` | `4px` | Small spacing |
-| `--wtv-spacing-md` | `8px` | Medium spacing |
-| `--wtv-spacing-lg` | `12px` | Large spacing |
-| `--wtv-spacing-xl` | `16px` | Extra large spacing |
-| `--wtv-column-width` | `calc(--wtv-rem * 2.4)` | Unified column width (24px) for toggle, icon, and indent step |
-| `--wtv-indent-size` | `= --wtv-column-width` | Tree indent per level (equals column width) |
-| `--wtv-node-padding` | `4px 8px` | Node content padding |
-| `--wtv-node-height` | `calc(--wtv-rem * 3.2)` | Node row height (32px) |
-| `--wtv-icon-size` | `calc(--wtv-rem * 1.6)` | Node icon size (16px) |
-| `--wtv-toggle-size` | `= --wtv-column-width` | Toggle icon column size |
-| `--wtv-toggle-color` | `= --wtv-text-color-2` | Toggle icon color |
-
-#### Border Radius
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-border-radius-sm` | `calc(0.4 * --wtv-rem)` | 4px |
-| `--wtv-border-radius-md` | `calc(0.6 * --wtv-rem)` | 6px |
-| `--wtv-border-radius-lg` | `calc(0.8 * --wtv-rem)` | 8px |
-
-#### Transitions
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-transition-speed` | `150ms` | Fast transition duration |
-| `--wtv-transition-normal` | `200ms` | Normal transition duration |
-| `--wtv-easing` | `cubic-bezier(0.4, 0, 0.2, 1)` | Default easing curve |
-
-#### Drag & Drop — Glow Indicators
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-glow-above-color` | `rgba(134,179,152,0.8)` | Above glow border color |
-| `--wtv-glow-below-color` | `rgba(242,182,158,0.8)` | Below glow border color |
-| `--wtv-glow-child-color` | `rgba(167,155,198,0.8)` | Child glow border color |
-| `--wtv-glow-above-bg` | `rgba(134,179,152,0.25)` | Above zone background |
-| `--wtv-glow-below-bg` | `rgba(242,182,158,0.25)` | Below zone background |
-| `--wtv-glow-child-bg` | `rgba(167,155,198,0.25)` | Child zone background |
-| `--wtv-glow-above-text` | `rgba(62,89,72,0.7)` | Above zone text color |
-| `--wtv-glow-below-text` | `rgba(120,70,50,0.7)` | Below zone text color |
-| `--wtv-glow-child-text` | `rgba(72,62,98,0.7)` | Child zone text color |
-| `--wtv-glow-above-bg-active` | `rgba(134,179,152,0.85)` | Above zone active background |
-| `--wtv-glow-below-bg-active` | `rgba(242,182,158,0.85)` | Below zone active background |
-| `--wtv-glow-child-bg-active` | `rgba(167,155,198,0.85)` | Child zone active background |
-| `--wtv-glow-above-color-active` | `rgb(32,54,40)` | Above zone active text |
-| `--wtv-glow-below-color-active` | `rgb(80,45,30)` | Below zone active text |
-| `--wtv-glow-child-color-active` | `rgb(45,38,62)` | Child zone active text |
-| `--wtv-glow-above-shadow` | `0 2px 12px rgba(134,179,152,0.4)` | Above zone active shadow |
-| `--wtv-glow-below-shadow` | `0 2px 12px rgba(242,182,158,0.4)` | Below zone active shadow |
-| `--wtv-glow-child-shadow` | `0 2px 12px rgba(167,155,198,0.4)` | Child zone active shadow |
-
-#### Drag & Drop — State Colors
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-drag-over-bg` | `accent 10%` | Drag-over node background |
-| `--wtv-drag-over-border` | `2px dashed accent` | Drag-over node border |
-| `--wtv-drag-over-glow-shadow` | `0 0 8px accent 40%` | Drag-over glow shadow |
-| `--wtv-drop-valid-bg` | `success 10%` | Valid drop background |
-| `--wtv-drop-valid-border-color` | `= --wtv-success-color` | Valid drop border color |
-| `--wtv-drop-invalid-bg` | `danger 10%` | Invalid drop background |
-| `--wtv-drop-invalid-border-color` | `= --wtv-danger-color` | Invalid drop border color |
-| `--wtv-dragover-highlight-bg` | `success 15%` | Dragover highlight background |
-| `--wtv-dragover-highlight-border` | `2px dashed success` | Dragover highlight border |
-| `--wtv-touch-ghost-bg` | `accent 90%` | Touch drag ghost background |
-| `--wtv-touch-ghost-shadow` | `0 4px 12px rgba(0,0,0,0.3)` | Touch ghost shadow |
-| `--wtv-scroll-highlight-bg` | `accent 30%` | Scroll-to-node highlight |
-| `--wtv-scroll-highlight-shadow` | `0 0 8px accent 40%` | Scroll highlight shadow |
-| `--wtv-dragged-opacity` | `0.5` | Dragged node opacity |
-| `--wtv-cut-opacity` | `0.4` | Cut node opacity (clipboard) |
-| `--wtv-empty-zone-border` | `2px dashed accent` | Empty zone border (during drag) |
-| `--wtv-empty-zone-bg` | `accent 10%` | Empty zone background |
-| `--wtv-empty-zone-radius` | `= --wtv-border-radius-lg` | Empty zone border radius |
-
-#### Context Menu
-
-Each variable defaults to the corresponding higher-order `--wtv-*` variable, so the menu inherits the tree's theme by default but can be styled independently.
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-context-menu-bg` | `= --wtv-bg-color` | Menu background |
-| `--wtv-context-menu-bg-hover` | `= --wtv-hover-bg` | Item hover background |
-| `--wtv-context-menu-text-color` | `= --wtv-text-color` | Menu text color |
-| `--wtv-context-menu-border` | `1px solid --wtv-border-color` | Menu border |
-| `--wtv-context-menu-border-radius` | `= --wtv-border-radius-sm` | Menu border radius |
-| `--wtv-context-menu-shadow` | `0 2px 10px rgba(0,0,0,0.1)` | Menu shadow |
-| `--wtv-context-menu-min-width` | `calc(--wtv-rem * 15)` | Menu min width |
-| `--wtv-context-menu-padding` | `--wtv-spacing-sm 0` | Menu padding |
-| `--wtv-context-menu-font-size` | `= --wtv-font-size-sm` | Menu font size |
-| `--wtv-context-menu-item-padding` | `--wtv-spacing-md --wtv-spacing-xl` | Item padding |
-| `--wtv-context-menu-item-gap` | `= --wtv-spacing-md` | Gap between icon, label, shortcut |
-| `--wtv-context-menu-icon-width` | `= --wtv-icon-size` | Item icon column width |
-| `--wtv-context-menu-icon-font-size` | `= --wtv-font-size-xs` | Item icon font size |
-| `--wtv-context-menu-arrow-font-size` | `= --wtv-font-size-xs` | Submenu arrow font size |
-| `--wtv-context-menu-danger-color` | `= --wtv-danger-color` | Danger item text color |
-| `--wtv-context-menu-danger-bg-hover` | `danger 10%` | Danger item hover background |
-| `--wtv-context-menu-divider-color` | `= --wtv-border-color` | Divider line color |
-| `--wtv-context-menu-divider-margin` | `--wtv-spacing-sm 0` | Divider margin |
-| `--wtv-context-menu-disabled-opacity` | `0.5` | Disabled item opacity |
-
-#### Loading
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-tree-min-height` | `calc(6 * --wtv-rem)` | Min height for empty/loading states (60px) |
-| `--wtv-spinner-size` | `32px` | Spinner size |
-| `--wtv-spinner-track` | `= --wtv-border-color` | Spinner track color |
-| `--wtv-spinner-color` | `= --wtv-accent-color` | Spinner accent color |
-| `--wtv-loading-bg` | `rgba(255,255,255,0.8)` | Loading overlay background |
-
-#### Z-Index
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--wtv-z-index-dropdown` | `1000` | Context menu, drop zones |
-| `--wtv-z-index-ghost` | `10000` | Touch drag ghost |
-| `--wtv-z-index-overlay` | `10` | Loading overlay |
-
-## Pluggable Renderers
-
-The default `DomRenderer` handles flat DOM rendering with event delegation. You can replace it with a framework-specific renderer:
-
-```typescript
-import { WebTreeView } from '@keenmate/web-treeview';
-import type { TreeViewRenderer } from '@keenmate/web-treeview';
-
-const customRenderer: TreeViewRenderer<MyData> = {
-  mount(container, controller, config) { /* ... */ },
-  updateConfig(config) { /* ... */ },
-  destroy() { /* ... */ },
-};
-
-const tree = new WebTreeView(element, options, customRenderer);
-
-// Or swap at runtime:
-tree.setRenderer(customRenderer);
-```
-
-## Logging
-
-All logging is disabled by default. Enable at runtime for debugging:
-
-```javascript
-import {
-  enableLogging, disableLogging,
-  setLogLevel, setCategoryLevel
-} from '@keenmate/web-treeview';
-
-// Enable all logging
-enableLogging();
-
-// Or specific categories
-disableLogging();
-setCategoryLevel('TREEVIEW:DATA', 'debug');
-setCategoryLevel('TREEVIEW:UI', 'debug');
-
-// Performance timing
-import { enablePerfLogging, setPerfThreshold } from '@keenmate/web-treeview';
-enablePerfLogging();
-setPerfThreshold(5); // Only log operations > 5ms
-```
-
-**Categories:** `TREEVIEW:INIT`, `TREEVIEW:DATA`, `TREEVIEW:INDEX`, `TREEVIEW:UI`, `TREEVIEW:DRAG`, `TREEVIEW:RENDER`
-
-## Architecture
-
-```
-WebTreeViewElement (web component)
-  └── WebTreeView (facade)
-        ├── TreeController (state, logic, DnD)
-        │     └── LTree (path-based tree engine)
-        └── TreeViewRenderer (pluggable rendering)
-              └── DomRenderer (default, flat DOM + event delegation)
-```
-
-- **TreeController** manages all state and emits snapshots via `EventEmitter`
-- **TreeViewRenderer** subscribes to snapshots and renders the DOM
-- **LTree** is the pure data engine — can be used headless without any DOM
+See [docs/usage.md](./docs/usage.md) for the full API and [docs/examples.md](./docs/examples.md) for end-to-end recipes.
+
+## Features
+
+- **Two rendering modes** — flat (default, up to ~10k nodes) and virtual scroll (~50 DOM nodes for trees of 100k+).
+- **LTree path model** — materialized path hierarchy (`'1'`, `'1.1'`, `'1.2.3'`) with configurable separator.
+- **Three-level selection** — single focus (arrow keys), multi-highlight set (Ctrl / Shift+click), checkbox / data state.
+- **Full drag and drop** — internal reorder, cross-tree drag, glow / floating drop zones, touch support, copy operations.
+- **Multi-level context menus** — viewport-aware positioning via Floating UI, keyboard shortcuts, named dividers, custom item rendering.
+- **Bulk operations** — `insertBranch`, `replaceBranch`, `deleteBranch` for efficient batch mutations.
+- **Clipboard** — `copyNodes` / `cutNodes` / `pasteNodes`, cross-tree paste, cut nodes dimmed via `--wtv-cut-opacity`.
+- **Full-text search** — FlexSearch-powered indexing with filter and highlight modes.
+- **Theming** — ~110 CSS variables, Strategy B dark mode (auto-flip via `color-scheme` + `light-dark()`), `--base-*` design-system tokens, `@layer` cascade contract.
+- **Pluggable renderers** — `TreeViewRenderer<T>` interface for building custom (Canvas, WebGL, framework-specific) renderers.
+- **TypeScript** — fully typed API with generic `<T>` data support.
+- **SSR safe** — compatible with server-side rendering environments.
+
+## Demos & docs
+
+- [Usage / API reference](./docs/usage.md) — every attribute, property, method, event.
+- [Theming contract](./docs/theming.md) — CSS variables, Strategy B dark mode, `@layer` cascade.
+- [Examples / cookbook](./docs/examples.md) — drag-drop, multi-select, clipboard, render callbacks, context menus.
+- [Accessibility](./docs/accessibility.md) — keyboard navigation, focus model, ARIA status.
+- [Release history](./CHANGELOG.md)
+
+Live HTML demos sit at the repo root: `examples-basic.html`, `examples-drag-drop.html`, `examples-multiselect.html`, `examples-templates.html`, `examples-theming.html`, `examples-performance.html`, `examples-icons-grid.html`, `examples-api.html`, `examples-logging.html`. `npm run dev` serves them on port 21111.
 
 ## Development
 
@@ -750,7 +81,16 @@ npm install
 npm run dev          # Dev server on port 21111
 npm run build        # Production build
 npm run package      # Build + npm pack
+npm run test:e2e     # Playwright e2e (Chromium)
 ```
+
+## About
+
+Authored and maintained by [KeenMate](https://keenmate.com/). The component ships standalone with sensible light/dark defaults; when mounted inside [Pure Admin](https://pureadmin.io/) — or any host that publishes the `--base-*` taxonomy via [`@keenmate/theme-designer`](https://www.npmjs.com/package/@keenmate/theme-designer) — it adopts the host's colors, typography, and sizing automatically. There is no runtime dependency on Pure Admin; the integration is opt-in via CSS variables.
+
+## Built with BlissFramework
+
+Follows the [BlissFramework component guidelines](https://blissframework.dev/) for structure, theming, color-scheme, and accessibility. The `VALIDATION-NOTES.md` register documents the four accepted deviations against `/validate-web-component`.
 
 ## License
 
