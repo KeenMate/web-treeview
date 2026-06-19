@@ -1,103 +1,80 @@
 /* ==============================================================================
-   DARK MODE / LIGHT MODE SUPPORT
+   DARK MODE / LIGHT MODE SUPPORT (Strategy B — color-scheme flipping)
    ==============================================================================
-   Belt-and-suspenders coverage: catches OS preference, framework theme classes,
-   and per-instance data-theme overrides. Mirrors the approach used by
-   @keenmate/svelte-treeview (rc10) so both packages flip the same way.
+   Every --wtv-* color fallback in _variables.css uses `light-dark(<light>, <dark>)`,
+   which picks the active branch based on the inherited `color-scheme` value.
+   This file flips `color-scheme: dark` (or `light`) on conditional selectors so
+   the variables resolve to their dark (or light) branch automatically — no need
+   to redeclare each --wtv-* token per signal.
 
    Resolution precedence (highest specificity wins):
-     per-instance .wtv__container[data-theme]
-       → framework ancestor class
+     per-instance :host([data-theme]) / .wtv__container[data-theme]
+       → framework ancestor class (data-theme / data-bs-theme / .dark)
          → OS preference via @media
 
-   Override surface: every block re-declares the same set of --wtv-* tokens.
-   Keep these blocks in sync — if a new themeable var is added in _variables.css
-   add it everywhere here too.
+   Wins vs Strategy A (variable-redeclaration):
+     - One declaration per signal, not N variables × M signals.
+     - Consumer --base-* overrides keep flowing (no hardcoded literals
+       silently replacing them).
+     - File shrinks from ~100 lines to ~30.
 
-   This component renders into a Shadow DOM by default, but ancestor selectors
-   like `[data-theme="dark"]` outside the shadow root won't reach inside. The
-   web component therefore mirrors the document's theme signal onto the host
-   element (see web-component.ts), and the `.wtv__container[data-theme="dark"]`
-   block below covers the per-instance case. The framework-class block stays
-   for direct (non-shadow) usage of WebTreeView.
+   Reference: @keenmate/web-multiselect v1.12.0-rc01+.
    ============================================================================== */
 
 /* =============================================================================
    SIGNAL #1 — OS preference
+   =============================================================================
+   Flip `color-scheme: dark` on :host when the user prefers dark. light-dark()
+   in _variables.css then resolves to the dark branch automatically. This is
+   the standalone case (no consumer color-scheme declaration on :root) — when
+   the consumer DOES set color-scheme on :root, the inherited value flows into
+   the shadow root naturally; this @media just adds the missing OS signal.
+
+   Edge case: if the consumer FORCES light (`:root { color-scheme: light }`)
+   but OS prefers dark, this @media still flips :host to dark. Consumers who
+   want to lock the component to light in that case should use the explicit
+   SIGNAL #3 escape hatch (`<web-treeview data-theme="light">`).
    ============================================================================= */
 @media (prefers-color-scheme: dark) {
-  :host,
-  :root,
-  .wtv__container {
-    --wtv-bg-color: var(--base-main-bg, #1a1a1a);
-    --wtv-light-bg: var(--base-elevated-bg, #2b2b2b);
-    --wtv-border-color: var(--base-border-color, #3d3d3d);
-    --wtv-text-color: var(--base-text-color-1, #f5f5f5);
-    --wtv-text-color-2: var(--base-text-color-3, #a3a3a3);
-    --wtv-hover-bg: var(--base-hover-bg, color-mix(in srgb, var(--wtv-accent-color) 14%, transparent));
-    --wtv-active-bg: var(--base-active-bg, color-mix(in srgb, var(--wtv-accent-color) 22%, transparent));
-    --wtv-context-menu-bg: var(--base-dropdown-bg, var(--base-elevated-bg, #2b2b2b));
-    --wtv-context-menu-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.4);
-    --wtv-touch-ghost-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  :host {
+    color-scheme: dark;
   }
 }
 
 /* =============================================================================
    SIGNAL #2 — Framework theme classes (Bootstrap 5.3+, Tailwind, generic)
-   =============================================================================
-   Used when WebTreeView is rendered directly into light DOM (no Shadow DOM)
-   so the ancestor selector can reach the .wtv__container.
    ============================================================================= */
+:host-context([data-theme="dark"]),
+:host-context([data-bs-theme="dark"]),
+:host-context(.dark),
 [data-theme="dark"] .wtv__container,
 [data-bs-theme="dark"] .wtv__container,
 .dark .wtv__container {
-  --wtv-bg-color: var(--base-main-bg, #1a1a1a);
-  --wtv-light-bg: var(--base-elevated-bg, #2b2b2b);
-  --wtv-border-color: var(--base-border-color, #3d3d3d);
-  --wtv-text-color: var(--base-text-color-1, #f5f5f5);
-  --wtv-text-color-2: var(--base-text-color-3, #a3a3a3);
-  --wtv-hover-bg: var(--base-hover-bg, color-mix(in srgb, var(--wtv-accent-color) 14%, transparent));
-  --wtv-active-bg: var(--base-active-bg, color-mix(in srgb, var(--wtv-accent-color) 22%, transparent));
-  --wtv-context-menu-bg: var(--base-dropdown-bg, var(--base-elevated-bg, #2b2b2b));
-  --wtv-context-menu-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.4);
-  --wtv-touch-ghost-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
 }
 
-/* =============================================================================
-   SIGNAL #3 — Per-instance override via the `theme` prop / attribute
-   =============================================================================
-   Highest specificity. WebTreeViewElement forwards the `theme` attribute as
-   `data-theme` on the .wtv__container. Lets a single tree theme differently
-   from the surrounding page.
-   ============================================================================= */
-.wtv__container[data-theme="dark"] {
-  --wtv-bg-color: var(--base-main-bg, #1a1a1a);
-  --wtv-light-bg: var(--base-elevated-bg, #2b2b2b);
-  --wtv-border-color: var(--base-border-color, #3d3d3d);
-  --wtv-text-color: var(--base-text-color-1, #f5f5f5);
-  --wtv-text-color-2: var(--base-text-color-3, #a3a3a3);
-  --wtv-hover-bg: var(--base-hover-bg, color-mix(in srgb, var(--wtv-accent-color) 14%, transparent));
-  --wtv-active-bg: var(--base-active-bg, color-mix(in srgb, var(--wtv-accent-color) 22%, transparent));
-  --wtv-context-menu-bg: var(--base-dropdown-bg, var(--base-elevated-bg, #2b2b2b));
-  --wtv-context-menu-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.4);
-  --wtv-touch-ghost-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
-}
-
-/* =============================================================================
-   SYMMETRIC LIGHT OVERRIDES — force light on a dark page
-   ============================================================================= */
+:host-context([data-theme="light"]),
+:host-context([data-bs-theme="light"]),
+:host-context(.light),
 [data-theme="light"] .wtv__container,
 [data-bs-theme="light"] .wtv__container,
-.light .wtv__container,
+.light .wtv__container {
+  color-scheme: light;
+}
+
+/* =============================================================================
+   SIGNAL #3 — Per-instance override via the `theme` prop / `data-theme` attribute
+   =============================================================================
+   Highest specificity. WebTreeViewElement forwards the `theme` attribute as
+   `data-theme` on the .wtv__container. The :host([data-theme=...]) selector
+   also catches consumers who set `<web-treeview data-theme="dark">` directly.
+   ============================================================================= */
+:host([data-theme="dark"]),
+.wtv__container[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+:host([data-theme="light"]),
 .wtv__container[data-theme="light"] {
-  --wtv-bg-color: var(--base-main-bg, #ffffff);
-  --wtv-light-bg: var(--base-elevated-bg, #f8f9fa);
-  --wtv-border-color: var(--base-border-color, #e2e8f0);
-  --wtv-text-color: var(--base-text-color-1, #1e293b);
-  --wtv-text-color-2: var(--base-text-color-3, #64748b);
-  --wtv-hover-bg: var(--base-hover-bg, #f1f5f9);
-  --wtv-active-bg: var(--base-active-bg, #e2e8f0);
-  --wtv-context-menu-bg: var(--base-dropdown-bg, var(--base-elevated-bg, #ffffff));
-  --wtv-context-menu-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
-  --wtv-touch-ghost-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color-scheme: light;
 }
