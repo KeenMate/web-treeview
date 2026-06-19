@@ -108,7 +108,7 @@
             <p>Use <code>renderNodeCallback</code> to render custom HTML for each tree node. This example shows file icons and sizes.</p>
 
             <div class="tree-container" id="tree1-container">
-                <web-treeview id="tree1" toggle-icon-mode="swap" expand-icon-class="wtv-icon-expand-plus" collapse-icon-class="wtv-icon-collapse-minus"></web-treeview>
+                <web-treeview id="tree1" toggle-icon-mode="swap" expand-icon-class="wtv__toggle-icon--expand-plus" collapse-icon-class="wtv__toggle-icon--collapse-minus"></web-treeview>
             </div>
 
             <div class="code-block">
@@ -131,7 +131,7 @@
             <p>Add dynamic badges to nodes indicating their status (new, modified, deleted).</p>
 
             <div class="tree-container" id="tree2-container">
-                <web-treeview id="tree2" expand-icon-class="wtv-icon-expand-arrow"></web-treeview>
+                <web-treeview id="tree2" expand-icon-class="wtv__toggle-icon--expand-arrow"></web-treeview>
             </div>
         </div>
 
@@ -234,7 +234,7 @@
             </div>
 
             <div class="tree-container" id="tree3-container">
-                <web-treeview id="tree3" expand-icon-class="wtv-icon-expand-alt"></web-treeview>
+                <web-treeview id="tree3" expand-icon-class="wtv__toggle-icon--expand-alt"></web-treeview>
             </div>
 
             <div class="output">
@@ -337,7 +337,7 @@
             </div>
 
             <div class="tree-container" id="tree3b-container">
-                <web-treeview id="tree3b" expand-icon-class="wtv-icon-expand-alt" style="--wtv-context-menu-min-width: 22rem;"></web-treeview>
+                <web-treeview id="tree3b" expand-icon-class="wtv__toggle-icon--expand-alt" style="--wtv-context-menu-min-width: 22rem;"></web-treeview>
             </div>
 
             <div class="output">
@@ -362,8 +362,8 @@ tree.renderContextMenuItemCallback = (item, node, container) => {
     }
     if (item.id === 'invoices') {
         container.innerHTML = `
-            &lt;span class="wtv-context-menu-icon"&gt;🧾&lt;/span&gt;
-            &lt;span class="wtv-context-menu-label"&gt;Invoices&lt;/span&gt;
+            &lt;span class="wtv__context-menu-icon"&gt;🧾&lt;/span&gt;
+            &lt;span class="wtv__context-menu-label"&gt;Invoices&lt;/span&gt;
             &lt;span class="count-chip"&gt;${node.data.invoiceCount}&lt;/span&gt;`;
         return;
     }
@@ -394,7 +394,7 @@ tree.renderContextMenuItemCallback = (item, node, container) => {
             <p>Add custom header and footer content around the tree using <code>renderHeaderCallback</code> and <code>renderFooterCallback</code>.</p>
 
             <div class="tree-container" id="tree5-container">
-                <web-treeview id="tree5" toggle-icon-mode="swap" expand-icon-class="wtv-icon-expand-alt" collapse-icon-class="wtv-icon-collapse-alt"></web-treeview>
+                <web-treeview id="tree5" toggle-icon-mode="swap" expand-icon-class="wtv__toggle-icon--expand-alt" collapse-icon-class="wtv__toggle-icon--collapse-alt"></web-treeview>
             </div>
         </div>
 
@@ -442,7 +442,7 @@ tree.renderContextMenuItemCallback = (item, node, container) => {
                             toggle-icon-mode="swap"
                             expand-icon-class="fa-solid fa-caret-right"
                             collapse-icon-class="fa-solid fa-caret-down"
-                            leaf-icon-class="wtv-icon-leaf-none">
+                            leaf-icon-class="wtv__toggle-icon--leaf-none">
                         </web-treeview>
                     </div>
                 </div>
@@ -737,8 +737,8 @@ tree.customStylesCallback = () =>
                     const count = d.invoiceCount;
                     const chipColor = count > 5 ? '#dc3545' : count > 0 ? '#f59e0b' : '#6b7280';
                     container.innerHTML = `
-                        <span class="wtv-context-menu-icon">🧾</span>
-                        <span class="wtv-context-menu-label">Invoices</span>
+                        <span class="wtv__context-menu-icon">🧾</span>
+                        <span class="wtv__context-menu-label">Invoices</span>
                         <span style="background: ${chipColor}; color: white; font-size: 0.7em; font-weight: 600; padding: 1px 6px; border-radius: 10px; min-width: 18px; text-align: center;">${count}</span>
                     `;
                     return;

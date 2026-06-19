@@ -44,7 +44,7 @@ const ALL_PATHS = [
 
 async function goto(page: Page) {
   await page.goto(PAGE);
-  await expect(page.locator('.wtv-node').first()).toBeVisible();
+  await expect(page.locator('.wtv__node').first()).toBeVisible();
 }
 
 async function visiblePaths(page: Page): Promise<string[]> {

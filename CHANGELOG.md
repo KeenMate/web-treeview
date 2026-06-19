@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0-rc04] - 2026-06-19
+
+### Changed
+- **BEM class shape**: every CSS class now follows the BlissFramework `naming-conventions.md` BEM rule (`<prefix>__element--modifier`, two underscore levels max). Mechanical for elements (`.wtv-X` → `.wtv__X`, e.g. `.wtv-node` → `.wtv__node`, `.wtv-node-content` → `.wtv__node-content`, `.wtv-context-menu-item` → `.wtv__context-menu-item`). State classes are explicit modifiers — `.wtv-drag-over` → `.wtv__node-content--drag-over`, `.wtv-context-menu-item-disabled` → `.wtv__context-menu-item--disabled`, `.wtv-icon-expand` → `.wtv__toggle-icon--expand`, `.wtv-drop-zones-around` → `.wtv__drop-zones--around`. Highlight family folded into BEM modifiers too: `.wtv-highlight-bold` → `.wtv__node-content--highlight-bold` (same for border / brackets), and the always-on `.wtv-highlighted` / `.wtv-focused` markers introduced in rc03 are now `.wtv__node-content--highlighted` / `--focused`. One non-BEM utility kept: `.wtv__clickable` (was `.wtv-clickable`) — applied to both the toggle-icon span and the node-content div, so it stays as a standalone block. CSS variables (`--wtv-*`) are unchanged. `BlissFramework/guidelines` reservation table now lists `wtv` (web-treeview) and `stv` (svelte-treeview) instead of the legacy `ltree` exception. The full rename was applied by `scripts/rename-bem.mjs`, kept in-tree.
+
 ## [2.0.0-rc03] - 2026-06-18 (unpublished)
 
 Catch-up release pulling forward the features `@keenmate/svelte-treeview` shipped from `5.0.0-rc05` through `5.0.0-rc10` so the two packages expose the same surface again. Public API parity is the goal — prop names, method signatures, callback shapes, CSS class names, and event semantics mirror the Svelte side.

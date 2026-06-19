@@ -46,7 +46,7 @@ function treeInCard(card: Locator): Locator {
 }
 
 function nodeByPath(tree: Locator, path: string): Locator {
-  return tree.locator(`.wtv-node[data-tree-path="${cssAttrEscape(path)}"]`).first();
+  return tree.locator(`.wtv__node[data-tree-path="${cssAttrEscape(path)}"]`).first();
 }
 
 function cssAttrEscape(s: string): string {
@@ -55,7 +55,7 @@ function cssAttrEscape(s: string): string {
 
 async function gotoData(page: Page) {
   await page.goto(PAGE);
-  await expect(page.locator('.wtv-node').first()).toBeVisible();
+  await expect(page.locator('.wtv__node').first()).toBeVisible();
 }
 
 // ── Path-Based Data Structure ──────────────────────────────────────────────

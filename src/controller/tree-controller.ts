@@ -62,9 +62,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   nodeCallbacks!: NodeCallbacks<T>;
   private _nodeConfig: NodeConfig = {
     clickBehavior: 'expand-and-focus',
-    expandIconClass: 'wtv-icon-expand',
-    collapseIconClass: 'wtv-icon-collapse',
-    leafIconClass: 'wtv-icon-leaf',
+    expandIconClass: 'wtv__toggle-icon--expand',
+    collapseIconClass: 'wtv__toggle-icon--collapse',
+    leafIconClass: 'wtv__toggle-icon--leaf',
     toggleIconMode: 'rotate',
     highlightedNodeClass: undefined,
     focusedNodeClass: undefined,
@@ -140,9 +140,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   // Visual config
   private _clickBehavior: import('./types').ClickBehavior = 'expand-and-focus';
   private _accordionExpand: boolean = false;
-  private _expandIconClass: string = 'wtv-icon-expand';
-  private _collapseIconClass: string = 'wtv-icon-collapse';
-  private _leafIconClass: string = 'wtv-icon-leaf';
+  private _expandIconClass: string = 'wtv__toggle-icon--expand';
+  private _collapseIconClass: string = 'wtv__toggle-icon--collapse';
+  private _leafIconClass: string = 'wtv__toggle-icon--leaf';
   private _toggleIconMode: import('./types').ToggleIconMode = 'rotate';
   private _highlightedNodeClass: string | null | undefined = undefined;
   private _focusedNodeClass: string | null | undefined = undefined;
@@ -152,7 +152,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _dropZoneStart: number | string = 33;
   private _dropZoneMaxWidth: number = 120;
   private _scrollHighlightTimeout: number = 4000;
-  private _scrollHighlightClass: string | null | undefined = 'wtv-scroll-highlight';
+  private _scrollHighlightClass: string | null | undefined = 'wtv__node-content--scroll-highlight';
   private _contextMenuXOffset: number = 8;
   private _contextMenuYOffset: number = 0;
   private _hasContextMenuRenderer: boolean = false;
@@ -582,9 +582,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     this._clickBehavior = props.clickBehavior ?? 'expand-and-focus';
     this._accordionExpand = props.accordionExpand ?? false;
-    this._expandIconClass = props.expandIconClass ?? 'wtv-icon-expand';
-    this._collapseIconClass = props.collapseIconClass ?? 'wtv-icon-collapse';
-    this._leafIconClass = props.leafIconClass ?? 'wtv-icon-leaf';
+    this._expandIconClass = props.expandIconClass ?? 'wtv__toggle-icon--expand';
+    this._collapseIconClass = props.collapseIconClass ?? 'wtv__toggle-icon--collapse';
+    this._leafIconClass = props.leafIconClass ?? 'wtv__toggle-icon--leaf';
     this._toggleIconMode = props.toggleIconMode ?? 'rotate';
     this._highlightedNodeClass = props.highlightedNodeClass;
     this._focusedNodeClass = props.focusedNodeClass;
@@ -594,7 +594,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._dropZoneStart = props.dropZoneStart ?? 33;
     this._dropZoneMaxWidth = props.dropZoneMaxWidth ?? 120;
     this._scrollHighlightTimeout = props.scrollHighlightTimeout ?? 4000;
-    this._scrollHighlightClass = props.scrollHighlightClass ?? 'wtv-scroll-highlight';
+    this._scrollHighlightClass = props.scrollHighlightClass ?? 'wtv__node-content--scroll-highlight';
     this._contextMenuXOffset = props.contextMenuXOffset ?? 8;
     this._contextMenuYOffset = props.contextMenuYOffset ?? 0;
     this._hasContextMenuRenderer = props.hasContextMenuRenderer ?? false;
@@ -1984,7 +1984,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         const targetScrollTop = Math.max(0, nodeIndex * rowHeight - containerPx / 2 + rowHeight / 2);
         this._vsScrollTop = targetScrollTop;
         // Set the actual DOM scroll position
-        const scrollEl = (containerElement || this.containerElement)?.querySelector('.wtv-tree') as HTMLElement;
+        const scrollEl = (containerElement || this.containerElement)?.querySelector('.wtv__tree') as HTMLElement;
         if (scrollEl) {
           scrollEl.scrollTop = targetScrollTop;
         }
@@ -2001,7 +2001,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       const el = rootEl
         ? rootEl.querySelector(`#${CSS.escape(elementId)}`)
         : document.getElementById(elementId);
-      return (el?.querySelector('.wtv-node-content') as HTMLElement | null) ?? null;
+      return (el?.querySelector('.wtv__node-content') as HTMLElement | null) ?? null;
     };
     // Progressive flat rendering adds newly-revealed rows in rAF-deferred
     // batches (initialBatchSize, doubling each step). After expandNodes and
@@ -2130,11 +2130,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.accordionExpand !== undefined)
       this._accordionExpand = updates.accordionExpand ?? false;
     if (updates.expandIconClass !== undefined)
-      this._expandIconClass = updates.expandIconClass ?? 'wtv-icon-expand';
+      this._expandIconClass = updates.expandIconClass ?? 'wtv__toggle-icon--expand';
     if (updates.collapseIconClass !== undefined)
-      this._collapseIconClass = updates.collapseIconClass ?? 'wtv-icon-collapse';
+      this._collapseIconClass = updates.collapseIconClass ?? 'wtv__toggle-icon--collapse';
     if (updates.leafIconClass !== undefined)
-      this._leafIconClass = updates.leafIconClass ?? 'wtv-icon-leaf';
+      this._leafIconClass = updates.leafIconClass ?? 'wtv__toggle-icon--leaf';
     if (updates.toggleIconMode !== undefined)
       this._toggleIconMode = updates.toggleIconMode ?? 'rotate';
     if (updates.highlightedNodeClass !== undefined)
@@ -2161,7 +2161,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.scrollHighlightTimeout !== undefined)
       this._scrollHighlightTimeout = updates.scrollHighlightTimeout ?? 4000;
     if (updates.scrollHighlightClass !== undefined)
-      this._scrollHighlightClass = updates.scrollHighlightClass ?? 'wtv-scroll-highlight';
+      this._scrollHighlightClass = updates.scrollHighlightClass ?? 'wtv__node-content--scroll-highlight';
     if (updates.contextMenuXOffset !== undefined)
       this._contextMenuXOffset = updates.contextMenuXOffset ?? 8;
     if (updates.contextMenuYOffset !== undefined)
@@ -2327,7 +2327,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (typeof document !== 'undefined') {
       this._removeDocumentTouchListeners();
       this.removeGhostElement();
-      document.querySelectorAll('.wtv-touch-ghost').forEach(el => el.remove());
+      document.querySelectorAll('.wtv__touch-ghost').forEach(el => el.remove());
     }
     this._contextMenuCleanup?.();
     this._contextMenuCleanup = null;
@@ -2512,12 +2512,12 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       if (this._isDebugMenuActive) return;
       // When the click originates inside a Shadow DOM, `event.target` is
       // retargeted to the shadow host by the time the document listener
-      // fires, so `.closest('.wtv-context-menu')` won't find the menu even
+      // fires, so `.closest('.wtv__context-menu')` won't find the menu even
       // if the actual click landed on it. Walk the composed path instead so
       // the check sees the real chain through the shadow boundary.
       const path = event.composedPath();
       const insideMenu = path.some(
-        (n) => n instanceof Element && n.classList?.contains('wtv-context-menu')
+        (n) => n instanceof Element && n.classList?.contains('wtv__context-menu')
       );
       if (!insideMenu) {
         this.closeContextMenu();
@@ -2893,7 +2893,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (isValidDrop) {
       event.preventDefault();
       this._hoveredNodeForDrop = node;
-      const nodeElement = (event.target as Element).closest('.wtv-node-content');
+      const nodeElement = (event.target as Element).closest('.wtv__node-content');
       if (nodeElement) {
         this._activeDropPosition = this.calculateDropPosition(event, nodeElement);
       }
@@ -3081,8 +3081,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       const dropElement = document.elementFromPoint(touch.clientX, touch.clientY);
       const dropNode = this.findNodeFromElement(dropElement);
 
-      const emptyTarget = dropElement?.closest('.wtv-empty-state, .wtv-empty-zone');
-      const rootDropZone = dropElement?.closest('.wtv-root-drop-zone');
+      const emptyTarget = dropElement?.closest('.wtv__empty-state, .wtv__empty-zone');
+      const rootDropZone = dropElement?.closest('.wtv__root-drop-zone');
       if ((emptyTarget || rootDropZone) && !dropNode) {
         dragLogger.debug(`Touch drag ended: ${this._draggedNode.path} -> empty tree`);
         this._handleDrop(null, this._draggedNode, 'child', event);
@@ -3114,10 +3114,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   private createGhostElement(node: LTreeNode<any>, x: number, y: number) {
     this.removeGhostElement();
-    document.querySelectorAll('.wtv-touch-ghost').forEach(el => el.remove());
+    document.querySelectorAll('.wtv__touch-ghost').forEach(el => el.remove());
 
     const ghost = document.createElement('div');
-    ghost.className = 'wtv-touch-ghost';
+    ghost.className = 'wtv__touch-ghost';
     ghost.textContent = this.tree.getNodeDisplayValue(node);
     ghost.style.left = `${x}px`;
     ghost.style.top = `${y}px`;
@@ -3134,7 +3134,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   private findNodeFromElement(element: Element | null): LTreeNode<any> | null {
     if (!element) return null;
-    const nodeElement = element.closest('.wtv-node');
+    const nodeElement = element.closest('.wtv__node');
     if (!nodeElement) return null;
     const path = nodeElement.getAttribute('data-tree-path');
     if (!path) return null;
@@ -3146,12 +3146,12 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     if (this.touchDragState.currentDropTarget && this.touchDragState.currentDropTarget !== newTarget) {
       const prevElement = document.querySelector(
-        `[data-tree-path="${this.touchDragState.currentDropTarget.path}"] .wtv-node-content`
+        `[data-tree-path="${this.touchDragState.currentDropTarget.path}"] .wtv__node-content`
       );
-      prevElement?.classList.remove(this._dragOverNodeClass || 'wtv-dragover-highlight');
+      prevElement?.classList.remove(this._dragOverNodeClass || 'wtv__node-content--dragover-highlight');
     }
 
-    const emptyTarget = element?.closest('.wtv-empty-state, .wtv-empty-zone');
+    const emptyTarget = element?.closest('.wtv__empty-state, .wtv__empty-zone');
     if (emptyTarget && !newTarget) {
       this._isDropPlaceholderActive = true;
       this.touchDragState.currentDropTarget = null;
@@ -3163,9 +3163,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     if (newTarget && newTarget !== this._draggedNode && newTarget.isDropAllowed) {
       const targetElement = document.querySelector(
-        `[data-tree-path="${newTarget.path}"] .wtv-node-content`
+        `[data-tree-path="${newTarget.path}"] .wtv__node-content`
       );
-      targetElement?.classList.add(this._dragOverNodeClass || 'wtv-dragover-highlight');
+      targetElement?.classList.add(this._dragOverNodeClass || 'wtv__node-content--dragover-highlight');
       this.touchDragState.currentDropTarget = newTarget;
     } else {
       this.touchDragState.currentDropTarget = null;
@@ -3175,9 +3175,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private clearDropTargetHighlight() {
     if (this.touchDragState.currentDropTarget) {
       const element = document.querySelector(
-        `[data-tree-path="${this.touchDragState.currentDropTarget.path}"] .wtv-node-content`
+        `[data-tree-path="${this.touchDragState.currentDropTarget.path}"] .wtv__node-content`
       );
-      element?.classList.remove(this._dragOverNodeClass || 'wtv-dragover-highlight');
+      element?.classList.remove(this._dragOverNodeClass || 'wtv__node-content--dragover-highlight');
     }
   }
 

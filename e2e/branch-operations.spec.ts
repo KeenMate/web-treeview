@@ -19,11 +19,11 @@ const PAGE = '/test/branch-operations.html';
 
 async function gotoFixture(page: Page) {
   await page.goto(PAGE);
-  await expect(page.locator('.wtv-node').first()).toBeVisible();
+  await expect(page.locator('.wtv__node').first()).toBeVisible();
 }
 
 function nodeByPath(scope: Locator | Page, path: string): Locator {
-  return scope.locator(`.wtv-node[data-tree-path="${path}"]`).first();
+  return scope.locator(`.wtv__node[data-tree-path="${path}"]`).first();
 }
 
 function readCount(page: Page, testId: string): Promise<number> {

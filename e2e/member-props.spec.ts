@@ -11,7 +11,7 @@ import { test, expect, Page, Locator } from '@playwright/test';
  *   2     Music      selectable=true  selected=true
  *   2.1   Playlists  selectable=true  selected=false
  *
- * Web-treeview's checkbox is a bare `<input class="wtv-checkbox">` (no
+ * Web-treeview's checkbox is a bare `<input class="wtv__checkbox">` (no
  * wrapping label like the Svelte build), so the same locator works for both
  * `checkbox` and `checkboxLabel` in the original spec.
  */
@@ -19,16 +19,16 @@ import { test, expect, Page, Locator } from '@playwright/test';
 const PAGE = '/test/member-props.html';
 
 function nodeByPath(page: Page, path: string): Locator {
-  return page.locator(`.wtv-node[data-tree-path="${path}"]`).first();
+  return page.locator(`.wtv__node[data-tree-path="${path}"]`).first();
 }
 
 function checkbox(node: Locator): Locator {
-  return node.locator('> .wtv-node-row input.wtv-checkbox').first();
+  return node.locator('> .wtv__node-row input.wtv__checkbox').first();
 }
 
 async function gotoFixture(page: Page) {
   await page.goto(PAGE);
-  await expect(page.locator('.wtv-node').first()).toBeVisible();
+  await expect(page.locator('.wtv__node').first()).toBeVisible();
 }
 
 test.describe('isSelectableMember', () => {
@@ -43,28 +43,28 @@ test.describe('isSelectableMember', () => {
   test('nodes with selectable=false do NOT render a checkbox', async ({ page }) => {
     await gotoFixture(page);
     await expect(
-      nodeByPath(page, '1.2').locator('> .wtv-node-row .wtv-checkbox')
+      nodeByPath(page, '1.2').locator('> .wtv__node-row .wtv__checkbox')
     ).toHaveCount(0);
     await expect(
-      nodeByPath(page, '1.3').locator('> .wtv-node-row .wtv-checkbox')
+      nodeByPath(page, '1.3').locator('> .wtv__node-row .wtv__checkbox')
     ).toHaveCount(0);
   });
 
-  test('nodes with selectable=true carry the wtv-clickable class', async ({ page }) => {
+  test('nodes with selectable=true carry the wtv__clickable class', async ({ page }) => {
     await gotoFixture(page);
     await expect(
-      nodeByPath(page, '1').locator('> .wtv-node-row .wtv-node-content').first()
-    ).toHaveClass(/(^|\s)wtv-clickable(\s|$)/);
+      nodeByPath(page, '1').locator('> .wtv__node-row .wtv__node-content').first()
+    ).toHaveClass(/(^|\s)wtv__clickable(\s|$)/);
   });
 
-  test('nodes with selectable=false do NOT carry the wtv-clickable class', async ({ page }) => {
+  test('nodes with selectable=false do NOT carry the wtv__clickable class', async ({ page }) => {
     await gotoFixture(page);
     await expect(
-      nodeByPath(page, '1.2').locator('> .wtv-node-row .wtv-node-content').first()
-    ).not.toHaveClass(/(^|\s)wtv-clickable(\s|$)/);
+      nodeByPath(page, '1.2').locator('> .wtv__node-row .wtv__node-content').first()
+    ).not.toHaveClass(/(^|\s)wtv__clickable(\s|$)/);
     await expect(
-      nodeByPath(page, '1.3').locator('> .wtv-node-row .wtv-node-content').first()
-    ).not.toHaveClass(/(^|\s)wtv-clickable(\s|$)/);
+      nodeByPath(page, '1.3').locator('> .wtv__node-row .wtv__node-content').first()
+    ).not.toHaveClass(/(^|\s)wtv__clickable(\s|$)/);
   });
 });
 

@@ -6,7 +6,7 @@
    @keenmate/svelte-treeview (rc10) so both packages flip the same way.
 
    Resolution precedence (highest specificity wins):
-     per-instance .wtv-container[data-theme]
+     per-instance .wtv__container[data-theme]
        → framework ancestor class
          → OS preference via @media
 
@@ -17,7 +17,7 @@
    This component renders into a Shadow DOM by default, but ancestor selectors
    like `[data-theme="dark"]` outside the shadow root won't reach inside. The
    web component therefore mirrors the document's theme signal onto the host
-   element (see web-component.ts), and the `.wtv-container[data-theme="dark"]`
+   element (see web-component.ts), and the `.wtv__container[data-theme="dark"]`
    block below covers the per-instance case. The framework-class block stays
    for direct (non-shadow) usage of WebTreeView.
    ============================================================================== */
@@ -28,7 +28,7 @@
 @media (prefers-color-scheme: dark) {
   :host,
   :root,
-  .wtv-container {
+  .wtv__container {
     --wtv-bg-color: var(--base-main-bg, #1a1a1a);
     --wtv-light-bg: var(--base-elevated-bg, #2b2b2b);
     --wtv-border-color: var(--base-border-color, #3d3d3d);
@@ -46,11 +46,11 @@
    SIGNAL #2 — Framework theme classes (Bootstrap 5.3+, Tailwind, generic)
    =============================================================================
    Used when WebTreeView is rendered directly into light DOM (no Shadow DOM)
-   so the ancestor selector can reach the .wtv-container.
+   so the ancestor selector can reach the .wtv__container.
    ============================================================================= */
-[data-theme="dark"] .wtv-container,
-[data-bs-theme="dark"] .wtv-container,
-.dark .wtv-container {
+[data-theme="dark"] .wtv__container,
+[data-bs-theme="dark"] .wtv__container,
+.dark .wtv__container {
   --wtv-bg-color: var(--base-main-bg, #1a1a1a);
   --wtv-light-bg: var(--base-elevated-bg, #2b2b2b);
   --wtv-border-color: var(--base-border-color, #3d3d3d);
@@ -67,10 +67,10 @@
    SIGNAL #3 — Per-instance override via the `theme` prop / attribute
    =============================================================================
    Highest specificity. WebTreeViewElement forwards the `theme` attribute as
-   `data-theme` on the .wtv-container. Lets a single tree theme differently
+   `data-theme` on the .wtv__container. Lets a single tree theme differently
    from the surrounding page.
    ============================================================================= */
-.wtv-container[data-theme="dark"] {
+.wtv__container[data-theme="dark"] {
   --wtv-bg-color: var(--base-main-bg, #1a1a1a);
   --wtv-light-bg: var(--base-elevated-bg, #2b2b2b);
   --wtv-border-color: var(--base-border-color, #3d3d3d);
@@ -86,10 +86,10 @@
 /* =============================================================================
    SYMMETRIC LIGHT OVERRIDES — force light on a dark page
    ============================================================================= */
-[data-theme="light"] .wtv-container,
-[data-bs-theme="light"] .wtv-container,
-.light .wtv-container,
-.wtv-container[data-theme="light"] {
+[data-theme="light"] .wtv__container,
+[data-bs-theme="light"] .wtv__container,
+.light .wtv__container,
+.wtv__container[data-theme="light"] {
   --wtv-bg-color: var(--base-main-bg, #ffffff);
   --wtv-light-bg: var(--base-elevated-bg, #f8f9fa);
   --wtv-border-color: var(--base-border-color, #e2e8f0);

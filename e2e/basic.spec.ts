@@ -57,11 +57,11 @@ function treeIn(card: Locator): Locator {
 }
 
 function nodeIn(card: Locator, path: string): Locator {
-  return treeIn(card).locator(`.wtv-node[data-tree-path="${path}"]`).first();
+  return treeIn(card).locator(`.wtv__node[data-tree-path="${path}"]`).first();
 }
 
 function nodeContent(node: Locator): Locator {
-  return node.locator('> .wtv-node-row .wtv-node-content').first();
+  return node.locator('> .wtv__node-row .wtv__node-content').first();
 }
 
 function outputValue(card: Locator, label: string): Locator {
@@ -75,7 +75,7 @@ function outputValue(card: Locator, label: string): Locator {
 
 async function gotoBasic(page: Page) {
   await page.goto(PAGE);
-  await expect(page.locator('.wtv-node').first()).toBeVisible();
+  await expect(page.locator('.wtv__node').first()).toBeVisible();
 }
 
 // ── Simple Tree ────────────────────────────────────────────────────────────
@@ -121,9 +121,9 @@ test.describe('Expand Controls card', () => {
     await card.getByLabel('Expand Level:').fill('0');
 
     const tree = treeIn(card);
-    await expect(tree.locator('.wtv-node[data-tree-path="1"]')).toBeVisible();
-    await expect(tree.locator('.wtv-node[data-tree-path="2"]')).toBeVisible();
-    await expect(tree.locator('.wtv-node[data-tree-path="1.1"]')).toHaveCount(0);
+    await expect(tree.locator('.wtv__node[data-tree-path="1"]')).toBeVisible();
+    await expect(tree.locator('.wtv__node[data-tree-path="2"]')).toBeVisible();
+    await expect(tree.locator('.wtv__node[data-tree-path="1.1"]')).toHaveCount(0);
   });
 
   test('setting expandLevel=3 expands everything (15 visible nodes)', async ({ page }) => {
@@ -132,7 +132,7 @@ test.describe('Expand Controls card', () => {
 
     await card.getByLabel('Expand Level:').fill('3');
 
-    await expect(treeIn(card).locator('.wtv-node[data-tree-path]')).toHaveCount(15);
+    await expect(treeIn(card).locator('.wtv__node[data-tree-path]')).toHaveCount(15);
   });
 
   test('accordionExpand collapses sibling subtrees when a new node is expanded', async ({ page }) => {
@@ -144,26 +144,26 @@ test.describe('Expand Controls card', () => {
     await card.getByLabel('Accordion Expand').check();
 
     const tree = treeIn(card);
-    await expect(tree.locator('.wtv-node[data-tree-path="1.1"]')).toHaveCount(0);
+    await expect(tree.locator('.wtv__node[data-tree-path="1.1"]')).toHaveCount(0);
 
     // Expand Documents (1).
     const docsToggle = tree
-      .locator('.wtv-node[data-tree-path="1"]')
+      .locator('.wtv__node[data-tree-path="1"]')
       .first()
-      .locator('> .wtv-node-row .wtv-toggle-icon')
+      .locator('> .wtv__node-row .wtv__toggle-icon')
       .first();
     await docsToggle.click();
-    await expect(tree.locator('.wtv-node[data-tree-path="1.1"]')).toBeVisible();
+    await expect(tree.locator('.wtv__node[data-tree-path="1.1"]')).toBeVisible();
 
     // Expand Downloads (2). Accordion should collapse Documents.
     const downloadsToggle = tree
-      .locator('.wtv-node[data-tree-path="2"]')
+      .locator('.wtv__node[data-tree-path="2"]')
       .first()
-      .locator('> .wtv-node-row .wtv-toggle-icon')
+      .locator('> .wtv__node-row .wtv__toggle-icon')
       .first();
     await downloadsToggle.click();
-    await expect(tree.locator('.wtv-node[data-tree-path="2.1"]')).toBeVisible();
-    await expect(tree.locator('.wtv-node[data-tree-path="1.1"]')).toHaveCount(0);
+    await expect(tree.locator('.wtv__node[data-tree-path="2.1"]')).toBeVisible();
+    await expect(tree.locator('.wtv__node[data-tree-path="1.1"]')).toHaveCount(0);
   });
 });
 
@@ -177,10 +177,10 @@ test.describe('Scroll to Path card', () => {
     // Default input value is '1.2.1' (Photos).
     await card.getByRole('button', { name: 'Scroll to Path' }).click();
 
-    const target = treeIn(card).locator('.wtv-node[data-tree-path="1.2.1"]').first();
+    const target = treeIn(card).locator('.wtv__node[data-tree-path="1.2.1"]').first();
     await expect(target).toBeVisible();
-    await expect(target.locator('> .wtv-node-row .wtv-node-content')).toHaveClass(
-      /(^|\s)wtv-scroll-highlight(\s|$)/
+    await expect(target.locator('> .wtv__node-row .wtv__node-content')).toHaveClass(
+      /(^|\s)wtv__node-content--scroll-highlight(\s|$)/
     );
   });
 
@@ -192,9 +192,9 @@ test.describe('Scroll to Path card', () => {
     await input.fill('3.1.1');
     await card.getByRole('button', { name: 'Scroll to Path' }).click();
 
-    const target = treeIn(card).locator('.wtv-node[data-tree-path="3.1.1"]').first();
-    await expect(target.locator('> .wtv-node-row .wtv-node-content')).toHaveClass(
-      /(^|\s)wtv-scroll-highlight(\s|$)/
+    const target = treeIn(card).locator('.wtv__node[data-tree-path="3.1.1"]').first();
+    await expect(target.locator('> .wtv__node-row .wtv__node-content')).toHaveClass(
+      /(^|\s)wtv__node-content--scroll-highlight(\s|$)/
     );
   });
 });
@@ -207,17 +207,17 @@ test.describe('Programmatic Expand/Collapse card', () => {
     const card = programmaticCard(page);
 
     const tree = treeIn(card);
-    await expect(tree.locator('.wtv-node[data-tree-path="1.1.1"]')).toHaveCount(0);
+    await expect(tree.locator('.wtv__node[data-tree-path="1.1.1"]')).toHaveCount(0);
 
     await card.getByRole('button', { name: 'Expand All' }).click();
-    await expect(tree.locator('.wtv-node[data-tree-path]')).toHaveCount(15);
-    await expect(tree.locator('.wtv-node[data-tree-path="1.1.1"]')).toBeVisible();
+    await expect(tree.locator('.wtv__node[data-tree-path]')).toHaveCount(15);
+    await expect(tree.locator('.wtv__node[data-tree-path="1.1.1"]')).toBeVisible();
 
     await card.getByRole('button', { name: 'Collapse All' }).click();
-    await expect(tree.locator('.wtv-node[data-tree-path="1"]')).toBeVisible();
-    await expect(tree.locator('.wtv-node[data-tree-path="2"]')).toBeVisible();
-    await expect(tree.locator('.wtv-node[data-tree-path="3"]')).toBeVisible();
-    await expect(tree.locator('.wtv-node[data-tree-path="1.1"]')).toHaveCount(0);
+    await expect(tree.locator('.wtv__node[data-tree-path="1"]')).toBeVisible();
+    await expect(tree.locator('.wtv__node[data-tree-path="2"]')).toBeVisible();
+    await expect(tree.locator('.wtv__node[data-tree-path="3"]')).toBeVisible();
+    await expect(tree.locator('.wtv__node[data-tree-path="1.1"]')).toHaveCount(0);
   });
 
   test('Expand "Documents" expands that subtree only; Collapse "Documents" hides it again', async ({ page }) => {
@@ -226,14 +226,14 @@ test.describe('Programmatic Expand/Collapse card', () => {
 
     // Clean baseline.
     await card.getByRole('button', { name: 'Collapse All' }).click();
-    await expect(treeIn(card).locator('.wtv-node[data-tree-path="1.1"]')).toHaveCount(0);
+    await expect(treeIn(card).locator('.wtv__node[data-tree-path="1.1"]')).toHaveCount(0);
 
     await card.getByRole('button', { name: 'Expand "Documents" (1)' }).click();
-    await expect(treeIn(card).locator('.wtv-node[data-tree-path="1.1"]')).toBeVisible();
-    await expect(treeIn(card).locator('.wtv-node[data-tree-path="1.2"]')).toBeVisible();
-    await expect(treeIn(card).locator('.wtv-node[data-tree-path="2.1"]')).toHaveCount(0);
+    await expect(treeIn(card).locator('.wtv__node[data-tree-path="1.1"]')).toBeVisible();
+    await expect(treeIn(card).locator('.wtv__node[data-tree-path="1.2"]')).toBeVisible();
+    await expect(treeIn(card).locator('.wtv__node[data-tree-path="2.1"]')).toHaveCount(0);
 
     await card.getByRole('button', { name: 'Collapse "Documents" (1)' }).click();
-    await expect(treeIn(card).locator('.wtv-node[data-tree-path="1.1"]')).toHaveCount(0);
+    await expect(treeIn(card).locator('.wtv__node[data-tree-path="1.1"]')).toHaveCount(0);
   });
 });

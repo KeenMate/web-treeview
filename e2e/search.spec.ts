@@ -42,14 +42,14 @@ function treeContainer(page: Page): Locator {
 
 function nodeByName(page: Page, name: string): Locator {
   return treeContainer(page)
-    .locator('.wtv-node')
+    .locator('.wtv__node')
     .filter({ hasText: new RegExp(`^${name}$`) })
     .first();
 }
 
 async function gotoSearch(page: Page) {
   await page.goto(PAGE);
-  await expect(page.locator('.wtv-node').first()).toBeVisible();
+  await expect(page.locator('.wtv__node').first()).toBeVisible();
 }
 
 async function fillUntilCounter(page: Page, query: string, match: RegExp | string) {

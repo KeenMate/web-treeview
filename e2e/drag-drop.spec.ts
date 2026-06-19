@@ -15,15 +15,15 @@ const PAGE = '/test/drag-drop.html';
 
 async function gotoFixture(page: Page) {
   await page.goto(PAGE);
-  await expect(page.locator('.wtv-node').first()).toBeVisible();
+  await expect(page.locator('.wtv__node').first()).toBeVisible();
 }
 
 function nodeByPath(scope: Locator | Page, path: string): Locator {
-  return scope.locator(`.wtv-node[data-tree-path="${path}"]`).first();
+  return scope.locator(`.wtv__node[data-tree-path="${path}"]`).first();
 }
 
 function nodeRow(node: Locator): Locator {
-  return node.locator('> .wtv-node-row .wtv-node-content').first();
+  return node.locator('> .wtv__node-row .wtv__node-content').first();
 }
 
 async function dragNodeTo(
@@ -158,8 +158,8 @@ test.describe('restricted drop positions — getAllowedDropPositionsCallback', (
 
 test.describe('multi-drag (selectionMode=multi)', () => {
   async function rootNodeNamesInOrder(section: Locator): Promise<string[]> {
-    const roots = section.locator('.wtv-node[data-tree-path]:not([data-tree-path*="."])');
-    return await roots.locator('.wtv-node-row .wtv-node-content > span').allInnerTexts();
+    const roots = section.locator('.wtv__node[data-tree-path]:not([data-tree-path*="."])');
+    return await roots.locator('.wtv__node-row .wtv__node-content > span').allInnerTexts();
   }
 
   test('grabbing a non-highlighted node replaces the highlight with just that node', async ({ page }) => {
@@ -208,7 +208,7 @@ test.describe('multi-drag (selectionMode=multi)', () => {
     const afterRoots = await rootNodeNamesInOrder(section);
     expect(afterRoots).toEqual(['Multi-D']);
 
-    await expect(section.locator('.wtv-node[data-tree-path]')).toHaveCount(6);
+    await expect(section.locator('.wtv__node[data-tree-path]')).toHaveCount(6);
 
     await expect(page.getByTestId('multi-drop-count')).toHaveText('1');
     await expect(page.getByTestId('multi-drop-dragged')).toHaveText('Multi-A');
@@ -225,7 +225,7 @@ test.describe('multi-drag (selectionMode=multi)', () => {
 
     const afterRoots = await rootNodeNamesInOrder(section);
     expect(afterRoots).toEqual(['Multi-D', 'Multi-A', 'Multi-B', 'Multi-C']);
-    await expect(section.locator('.wtv-node[data-tree-path]')).toHaveCount(6);
+    await expect(section.locator('.wtv__node[data-tree-path]')).toHaveCount(6);
   });
 
   // Top-level absorption (ancestor + descendant both highlighted) currently

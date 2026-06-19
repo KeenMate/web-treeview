@@ -17,12 +17,12 @@ import { test, expect } from '@playwright/test';
  */
 test('Esc during drag restores the pre-drag highlight on the source row', async ({ page }) => {
   await page.goto('/test/drag-esc-cancel.html');
-  await expect(page.locator('.wtv-node').first()).toBeVisible();
+  await expect(page.locator('.wtv__node').first()).toBeVisible();
 
   const fileARow = page
-    .locator('.wtv-container')
+    .locator('.wtv__container')
     .first()
-    .locator('.wtv-node[data-tree-path="1.1"] .wtv-node-content')
+    .locator('.wtv__node[data-tree-path="1.1"] .wtv__node-content')
     .first();
   await expect(fileARow).toBeVisible();
 
@@ -33,7 +33,7 @@ test('Esc during drag restores the pre-drag highlight on the source row', async 
     if (!root) throw new Error('shadow root missing');
     const find = () =>
       root.querySelector(
-        '.wtv-container .wtv-node[data-tree-path="1.1"] .wtv-node-content'
+        '.wtv__container .wtv__node[data-tree-path="1.1"] .wtv__node-content'
       ) as HTMLElement | null;
     const start = find();
     if (!start) throw new Error('source row missing');
