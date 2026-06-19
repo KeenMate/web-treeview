@@ -763,7 +763,6 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
   private render(): void {
     this.containerElement = document.createElement('div');
-    this.containerElement.classList.add('web-treeview');
     this.shadow.appendChild(this.containerElement);
     this._applyCustomStyles();
   }

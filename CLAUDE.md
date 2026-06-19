@@ -55,9 +55,11 @@ src/
 │   ├── dom-renderer.ts   # DomRenderer (flat DOM, event delegation, keyboard)
 │   └── render-coordinator.ts # Progressive rendering coordinator
 └── css/
-    ├── main.css          # Entry point importing partials
-    ├── _variables.css    # CSS custom properties with --base fallbacks
-    └── _tree.css         # Component styles (nodes, DnD, context menu, cut state)
+    ├── main.css          # Entry point + @layer declaration
+    ├── variables.css     # CSS custom properties with --base fallbacks + light-dark()
+    ├── base.css          # :host shell, FOUC guard
+    ├── tree.css          # Component styles (nodes, DnD, context menu, cut state)
+    └── dark-mode.css     # Conditional color-scheme flips (Strategy B)
 ```
 
 ### Three-Layer Architecture

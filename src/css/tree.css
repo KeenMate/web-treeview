@@ -1,7 +1,9 @@
 /* Tree Component Styles - ported from svelte-treeview styles/main.scss */
-/* All values reference --wtv-* tokens from _variables.css */
+/* All values reference --wtv-* tokens from variables.css */
 
-/* ── Tree Component ───────────────────────────────────────────────── */
+/* ==============================================================================
+   TREE COMPONENT
+   ============================================================================== */
 
 .wtv__tree {
   overflow: visible !important;
@@ -28,7 +30,9 @@
   overflow: visible !important;
 }
 
-/* ── Node ─────────────────────────────────────────────────────────── */
+/* ==============================================================================
+   NODE
+   ============================================================================== */
 
 .wtv__node {
   font-size: var(--wtv-font-size-sm);
@@ -67,7 +71,9 @@
   background: var(--wtv-node-bg-active);
 }
 
-/* ── Glow drop indicators ─────────────────────────────────────────── */
+/* ==============================================================================
+   GLOW DROP INDICATORS
+   ============================================================================== */
 
 .wtv__node .wtv__node-content.wtv__node-content--glow-before {
   border-radius: 0 !important;
@@ -130,7 +136,9 @@
   z-index: 1;
 }
 
-/* ── Node sub-elements ────────────────────────────────────────────── */
+/* ==============================================================================
+   NODE SUB-ELEMENTS
+   ============================================================================== */
 
 .wtv__node .wtv__clickable {
   cursor: pointer;
@@ -169,7 +177,9 @@
   margin-top: var(--wtv-spacing-xs);
 }
 
-/* ── Icon classes ─────────────────────────────────────────────────── */
+/* ==============================================================================
+   ICON CLASSES
+   ============================================================================== */
 
 .wtv__toggle-icon--expand::before { content: '\25B6'; }
 .wtv__toggle-icon--collapse::before { content: '\25BC'; }
@@ -183,7 +193,9 @@
 .wtv__toggle-icon--collapse-arrow::before { content: '\2193'; }
 .wtv__toggle-icon--leaf-none::before { content: ''; }
 
-/* ── Highlight & focus styles ─────────────────────────────────────── */
+/* ==============================================================================
+   HIGHLIGHT & FOCUS STYLES
+   ============================================================================== */
 
 /* Always-on marker for highlighted nodes (multi-select via Ctrl/Shift-click).
    Ships a subtle default look so opting into selectionMode='multi' produces
@@ -236,7 +248,9 @@
   font-weight: bold;
 }
 
-/* ── Drag-over node styles ────────────────────────────────────────── */
+/* ==============================================================================
+   DRAG-OVER NODE STYLES
+   ============================================================================== */
 
 .wtv__node-content--dragover-highlight {
   background: var(--wtv-dragover-highlight-bg) !important;
@@ -249,14 +263,18 @@
   box-shadow: var(--wtv-drag-over-glow-shadow) !important;
 }
 
-/* ── Cut state (clipboard) ────────────────────────────────────────── */
+/* ==============================================================================
+   CUT STATE (CLIPBOARD)
+   ============================================================================== */
 
 .wtv__node-content--cut {
   opacity: var(--wtv-cut-opacity);
   font-style: italic;
 }
 
-/* ── Drag and drop ────────────────────────────────────────────────── */
+/* ==============================================================================
+   DRAG AND DROP
+   ============================================================================== */
 
 .wtv__node-content--draggable {
   cursor: grab;
@@ -343,7 +361,9 @@
   background: var(--wtv-drop-invalid-bg) !important;
 }
 
-/* ── Context menu ─────────────────────────────────────────────────── */
+/* ==============================================================================
+   CONTEXT MENU
+   ============================================================================== */
 
 .wtv__context-menu {
   position: fixed;
@@ -455,7 +475,9 @@
   margin-left: 0;
 }
 
-/* ── Debug info ───────────────────────────────────────────────────── */
+/* ==============================================================================
+   DEBUG INFO
+   ============================================================================== */
 
 .wtv__debug-info {
   font-size: var(--wtv-font-size-xs);
@@ -498,7 +520,9 @@
   border: 1px solid var(--wtv-border-color);
 }
 
-/* ── Scroll highlight ─────────────────────────────────────────────── */
+/* ==============================================================================
+   SCROLL HIGHLIGHT
+   ============================================================================== */
 
 .wtv__node-content--scroll-highlight {
   background: var(--wtv-scroll-highlight-bg) !important;
@@ -534,7 +558,9 @@
   z-index: 1;
 }
 
-/* ── Drop zones ───────────────────────────────────────────────────── */
+/* ==============================================================================
+   DROP ZONES
+   ============================================================================== */
 
 .wtv__drop-zones {
   /* position/top/left/width/height set via inline styles (JS-calculated fixed overlay) */
@@ -699,7 +725,9 @@
   transform: translateY(100%);
 }
 
-/* ── Virtual scroll ──────────────────────────────────────────────── */
+/* ==============================================================================
+   VIRTUAL SCROLL
+   ============================================================================== */
 
 .wtv__tree.wtv__virtual-scroll {
   overflow: hidden auto !important;
@@ -714,7 +742,9 @@
   overflow: visible;
 }
 
-/* ── Checkbox ────────────────────────────────────────────────────── */
+/* ==============================================================================
+   CHECKBOX
+   ============================================================================== */
 
 .wtv__checkbox {
   width: var(--wtv-icon-size);
@@ -730,10 +760,14 @@
   outline-offset: 1px;
 }
 
-/* ── Container ────────────────────────────────────────────────────── */
+/* ==============================================================================
+   CONTAINER
+   ============================================================================== */
 
 .wtv__container {
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
   /* Paint the tree's own surface so consumers don't have to wrap it in a
      colored container for a visible background. Set --wtv-bg-color: transparent
      to restore the pre-rc03 layered behaviour. Mirrors svelte-treeview's
@@ -742,7 +776,9 @@
   color: var(--wtv-text-color);
 }
 
-/* ── Loading overlay ──────────────────────────────────────────────── */
+/* ==============================================================================
+   LOADING OVERLAY
+   ============================================================================== */
 
 .wtv__loading-overlay {
   position: absolute;

@@ -70,7 +70,7 @@
      ==========================================================================
      Every color fallback uses light-dark(<light>, <dark>). The active value is
      picked by `color-scheme` at this level: the user-agent default tracks
-     `prefers-color-scheme`, and `_dark-mode.css` overrides it with
+     `prefers-color-scheme`, and `dark-mode.css` overrides it with
      `color-scheme: dark` / `color-scheme: light` on conditional selectors.
      Hover/active/selected use color-mix chains so the highlight stays visible
      against any base luminance (avoids the bare-literal fallback footgun). */

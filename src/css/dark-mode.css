@@ -1,7 +1,7 @@
 /* ==============================================================================
    DARK MODE / LIGHT MODE SUPPORT (Strategy B — color-scheme flipping)
    ==============================================================================
-   Every --wtv-* color fallback in _variables.css uses `light-dark(<light>, <dark>)`,
+   Every --wtv-* color fallback in variables.css uses `light-dark(<light>, <dark>)`,
    which picks the active branch based on the inherited `color-scheme` value.
    This file flips `color-scheme: dark` (or `light`) on conditional selectors so
    the variables resolve to their dark (or light) branch automatically — no need
@@ -25,7 +25,7 @@
    SIGNAL #1 — OS preference
    =============================================================================
    Flip `color-scheme: dark` on :host when the user prefers dark. light-dark()
-   in _variables.css then resolves to the dark branch automatically. This is
+   in variables.css then resolves to the dark branch automatically. This is
    the standalone case (no consumer color-scheme declaration on :root) — when
    the consumer DOES set color-scheme on :root, the inherited value flows into
    the shadow root naturally; this @media just adds the missing OS signal.

@@ -1,4 +1,18 @@
-@import './_variables.css';
-@import './_base.css';
-@import './_tree.css';
-@import './_dark-mode.css';
+/* ==============================================================================
+   WEB-TREEVIEW — MAIN ENTRY POINT
+   ==============================================================================
+   Cascade layer order (later = higher priority):
+     variables  — :host { --wtv-* } declarations
+     component  — base + tree-feature rules
+     overrides  — dark mode, framework themes, per-instance overrides
+
+   Layers let consumers override component rules from outside the shadow root
+   without specificity wars or !important. Any rule outside a layer beats any
+   rule inside any layer — so consumer CSS in their app stylesheet just works.
+   ============================================================================== */
+@layer variables, component, overrides;
+
+@import url('./variables.css') layer(variables);
+@import url('./base.css')      layer(component);
+@import url('./tree.css')      layer(component);
+@import url('./dark-mode.css') layer(overrides);

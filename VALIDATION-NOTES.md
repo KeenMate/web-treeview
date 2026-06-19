@@ -27,7 +27,7 @@ single-Logic-class subsystem internals.
 ## C-CSS-1 — Lean strategy (D-CSS-1 = B)
 
 The component uses the lean CSS strategy: only the four files actually
-needed (`_variables.css`, `_base.css`, `_tree.css`, `_dark-mode.css`)
+needed (`variables.css`, `base.css`, `tree.css`, `dark-mode.css`)
 rather than the canonical eight-file set. The component has no Tier-2
 surfaces (no controls, no floating, no animations, no cross-feature
 state modifiers worth their own file). PASS with note; the C-CSS-1
@@ -39,9 +39,9 @@ Instead of the canonical `<tag>:not(:defined)` rule in `base.css`, the
 component uses a `data-ready` attribute set in the Element constructor's
 `requestAnimationFrame` callback (`src/web-component.ts:205-207`) and
 hidden via `:host(:not([data-ready])) { visibility: hidden }`
-(`src/css/_base.css:12-14`). Functionally equivalent to the
+(`src/css/base.css`). Functionally equivalent to the
 `:not(:defined)` pattern but works with shadow-DOM inline-style
-injection (which the component does in the constructor — `_base.css`
+injection (which the component does in the constructor — `base.css`
 can't reach the light DOM tag selector from inside the shadow root).
 PASS with note.
 
