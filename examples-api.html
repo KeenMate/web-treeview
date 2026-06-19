@@ -197,6 +197,8 @@
         customElements.whenDefined('web-treeview').then(() => {
             const tree1 = initTree('tree1', projectTree, { expandLevel: 1 });
             const tree2 = initTree('tree2', projectTree, { expandLevel: 2 });
+            tree2.searchValueMember = 'name';
+            tree2.shouldUseInternalSearchIndex = true;
             const tree3 = initTree('tree3', projectTree, { expandLevel: 0 });
             const tree4 = initTree('tree4', mutableData, { expandLevel: 2 });
             const tree5 = initTree('tree5', projectTree, { expandLevel: 2 });

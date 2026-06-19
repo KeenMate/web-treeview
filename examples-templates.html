@@ -138,7 +138,7 @@
         <!-- Example 3: Context Menu -->
         <div class="card">
             <h2>Example 3: Custom Context Menu</h2>
-            <p>Right-click a node to see a multi-level context menu with nested submenus, positioned with Floating UI.</p>
+            <p>Right-click a node to see a multi-level context menu with nested submenus, positioned with Floating UI. The controls below tweak <code>--wtv-context-menu-*</code> CSS variables — they affect the <strong>menu</strong>, not the tree rows. Debug mode (last checkbox) is on by default so you can see changes live.</p>
 
             <div class="controls" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; align-items: end;">
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
@@ -228,7 +228,7 @@
                     <input type="color" id="ctx-divider" value="#e2e8f0">
                 </label>
                 <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem;">
-                    <input type="checkbox" id="ctx-debug-menu">
+                    <input type="checkbox" id="ctx-debug-menu" checked>
                     <code>Debug: keep menu open</code>
                 </label>
             </div>
@@ -246,7 +246,7 @@
         <!-- Example 3b: Custom Context Menu Item Rendering -->
         <div class="card">
             <h2>Example 3b: Node-Aware Context Menu (renderContextMenuItemCallback)</h2>
-            <p>Use <code>renderContextMenuItemCallback</code> to render completely custom HTML per menu item. The callback replaces the button's inner content — you control the layout. The outer <code>&lt;button&gt;</code> with classes, <code>data-*</code> attributes, disabled state, and submenu hover behavior is still managed by the component.</p>
+            <p>Use <code>renderContextMenuItemCallback</code> to render completely custom HTML per menu item. The callback replaces the button's inner content — you control the layout. The outer <code>&lt;button&gt;</code> with classes, <code>data-*</code> attributes, disabled state, and submenu hover behavior is still managed by the component. Debug mode is on by default so the controls below preview live.</p>
 
             <div class="controls" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; align-items: end;">
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
@@ -326,7 +326,7 @@
                     <input type="color" id="ctx3b-divider" value="#e2e8f0">
                 </label>
                 <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem;">
-                    <input type="checkbox" id="ctx3b-debug-menu">
+                    <input type="checkbox" id="ctx3b-debug-menu" checked>
                     <code>Debug: keep menu open</code>
                 </label>
                 <label style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
@@ -600,6 +600,7 @@ tree.customStylesCallback = () =>
             tree3.pathMember = 'path';
             tree3.displayValueMember = 'name';
             tree3.expandLevel = 2;
+            tree3.shouldDisplayContextMenuInDebugMode = true;
 
             const output3 = document.getElementById('tree3-output');
             const logAction = (action, node) => {
@@ -680,6 +681,7 @@ tree.customStylesCallback = () =>
             tree3b.displayValueMember = 'name';
             tree3b.expandLevel = 2;
             tree3b.contextMenuYOffset = -30;
+            tree3b.shouldDisplayContextMenuInDebugMode = true;
 
             const output3b = document.getElementById('tree3b-output');
             const logAction3b = (action, node) => {

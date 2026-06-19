@@ -2121,7 +2121,6 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this._shouldDisplayDebugInformation = updates.shouldDisplayDebugInformation ?? false;
     if (updates.shouldDisplayContextMenuInDebugMode !== undefined) {
       this._shouldDisplayContextMenuInDebugMode = updates.shouldDisplayContextMenuInDebugMode ?? false;
-      this._updateDebugContextMenu();
     }
     if (updates.isLoading !== undefined) this._isLoading = updates.isLoading ?? false;
     if (updates.bodyClass !== undefined) this._bodyClass = updates.bodyClass;
@@ -2278,6 +2277,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     }
 
     this._updateNodeConfig();
+    this._updateDebugContextMenu();
     this._scheduleNotify();
   }
 
