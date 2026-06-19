@@ -226,7 +226,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       if (path) {
         const node = this.controller.getNodeByPath(path);
         if (node) {
-          // toggleNodeExpanded honors accordionExpand and the
+          // toggleNodeExpanded honors isAccordionExpand and the
           // isCollapsible gate. Programmatic expandNodes / collapseNodes
           // callers still bypass the accordion.
           this.controller.toggleNodeExpanded(path);
@@ -245,12 +245,12 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         const behavior = this.lastNodeConfig?.clickBehavior ?? 'expand-and-focus';
         const isPlainClick = !modifiers.ctrl && !modifiers.shift;
 
-        // clickTogglesCheckbox: a plain click on a selectable node with
+        // shouldClickToggleCheckbox: a plain click on a selectable node with
         // checkboxes shown toggles the checkbox instead of running the
         // normal click/highlight flow. Expand-on-click still fires.
         if (
-          this.controller.clickTogglesCheckbox &&
-          this.lastNodeConfig?.showCheckboxes &&
+          this.controller.shouldClickToggleCheckbox &&
+          this.lastNodeConfig?.shouldShowCheckboxes &&
           node.isSelectable &&
           isPlainClick
         ) {
@@ -665,7 +665,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _ensureVirtualScrollStructure(snapshot: TreeControllerSnapshot<T>): void {
     if (!this.bodyEl) return;
 
-    if (snapshot.virtualScroll && !this.vsSpacerEl) {
+    if (snapshot.isVirtualScrollEnabled && !this.vsSpacerEl) {
       // Enable virtual scroll: add class, create spacer + content wrapper
       this.bodyEl.classList.add('wtv__virtual-scroll');
       this.bodyEl.style.height = snapshot.virtualContainerHeight;
@@ -693,7 +693,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       this._vsLastStartIndex = -1;
       this._vsLastEndIndex = -1;
 
-    } else if (!snapshot.virtualScroll && this.vsSpacerEl) {
+    } else if (!snapshot.isVirtualScrollEnabled && this.vsSpacerEl) {
       // Disable virtual scroll: tear down structure
       this.bodyEl.removeEventListener('scroll', this._onVirtualScroll);
       this.bodyEl.classList.remove('wtv__virtual-scroll');
@@ -715,7 +715,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   }
 
   private _updateVirtualScrollPositioning(snapshot: TreeControllerSnapshot<T>): void {
-    if (!snapshot.virtualScroll || !this.vsSpacerEl || !this.vsContentEl || !this.bodyEl) return;
+    if (!snapshot.isVirtualScrollEnabled || !this.vsSpacerEl || !this.vsContentEl || !this.bodyEl) return;
 
     // Update container height if changed
     if (this.bodyEl.style.height !== snapshot.virtualContainerHeight) {
@@ -765,7 +765,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this._updateVirtualScrollPositioning(snapshot);
 
     // Virtual scroll: auto-measure row height from first rendered node
-    if (snapshot.virtualScroll && !this._vsMeasured) {
+    if (snapshot.isVirtualScrollEnabled && !this._vsMeasured) {
       this._autoMeasureRowHeight();
     }
 
@@ -856,7 +856,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           }
         }
         // Update indent for flat mode
-        if (snapshot.useFlatRendering) {
+        if (snapshot.isFlatRenderingEnabled) {
           el.style.paddingLeft = `calc((${node.level} - 1) * ${snapshot.flatIndentSize})`;
         }
       } else {
@@ -957,7 +957,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
 
     // Flat mode indent
-    if (snapshot.useFlatRendering) {
+    if (snapshot.isFlatRenderingEnabled) {
       el.style.paddingLeft = `calc((${node.level} - 1) * ${snapshot.flatIndentSize})`;
     }
 
@@ -1008,8 +1008,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     row.appendChild(toggle);
 
     // Checkbox (between toggle and content). Rendered only when
-    // showCheckboxes is true and the node is selectable.
-    if (nodeConfig?.showCheckboxes && node.isSelectable) {
+    // shouldShowCheckboxes is true and the node is selectable.
+    if (nodeConfig?.shouldShowCheckboxes && node.isSelectable) {
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.className = 'wtv__checkbox';
@@ -1083,7 +1083,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
 
     // Sync checkbox checked / indeterminate
-    if (nodeConfig?.showCheckboxes && node.isSelectable) {
+    if (nodeConfig?.shouldShowCheckboxes && node.isSelectable) {
       let cb = el.querySelector('.wtv__checkbox') as HTMLInputElement | null;
       if (!cb) {
         // Showed checkboxes was just toggled on — insert one.
@@ -1519,9 +1519,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           <span>Nodes: ${stats.nodeCount}</span>
           <span>Visible: ${snapshot.flatNodesToRender.length}</span>
           <span>Max Level: ${stats.maxLevel}</span>
-          <span>Flat: ${snapshot.useFlatRendering}</span>
+          <span>Flat: ${snapshot.isFlatRenderingEnabled}</span>
           <span>Rendering: ${snapshot.isRendering}</span>
-          ${snapshot.virtualScroll ? `<span>VScroll: on</span><span>RowH: ${snapshot.virtualRowHeight}px</span>` : ''}
+          ${snapshot.isVirtualScrollEnabled ? `<span>VScroll: on</span><span>RowH: ${snapshot.virtualRowHeight}px</span>` : ''}
         </div>
       </details>
     `;

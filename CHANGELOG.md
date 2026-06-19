@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0-rc05] - 2026-06-19
+
+### Changed (BlissFramework `/validate-web-component` cleanup — breaking)
+
+Three batches of fixes landed against the `validation_2026-06-19_1918.md` punch-list. The RC cycle is still active so these are clean breaking renames — no deprecation aliases.
+
+- **Theming migration to Strategy B (`color-scheme` flipping + `light-dark()`)**. The four dark-mode-signal blocks in `_dark-mode.css` (~100 lines of `--wtv-*` variable redeclarations) collapse to a single `color-scheme: dark` / `color-scheme: light` declaration on the same signal selectors (~50 lines). Every color fallback in `variables.css` now uses `light-dark(<light>, <dark>)` and the variables flip automatically based on the inherited `color-scheme`. `:root` selector dropped from `variables.css` (the rc09 subtree-theming bug: a consumer wrapping `<web-treeview>` in `<div style="--base-accent-color: red">` couldn't override anything because variables were resolved at `:root`). Hover / active / selected switched to `color-mix` chains so highlights stay visible at any base luminance. `--wtv-context-menu-bg` now chains through `--base-dropdown-bg` → `--base-elevated-bg`. Per-instance `:host([data-theme])` selectors added alongside the existing `.wtv__container[data-theme]` so consumers using `<web-treeview data-theme="dark">` get a flip without needing the JS-prop forwarder.
+- **CSS structure cleanup**. The duplicate non-BEM `.web-treeview` class added in `render()` is gone (the BEM `.wtv__container` already lived on the same element; layout properties moved there). `main.css` now declares `@layer variables, component, overrides;` and wraps every `@import` in `layer(...)` so consumers can override component rules from outside the shadow root without specificity wars or `!important`. The four CSS files lost their SASS-partial `_` prefix (`_variables.css` → `variables.css`, etc.) — they're plain CSS modules, not partials. The 17 section markers in `tree.css` upgraded from box-drawing-char `── Section ──` to the canonical `==== SECTION ====` banner format.
+- **Public API rename (every `on*` event handler → `*Callback`; boolean prefixes per `naming-conventions.md`)**. The web-component config now follows the `*Callback` convention universally (`on*` is the Svelte idiom — kept inside the internal renderer→controller `NodeCallbacks` bridge, but removed from every consumer-facing surface):
+  - `onNodeClicked` → `nodeClickedCallback`
+  - `onNodeDragStart` → `nodeDragStartCallback`
+  - `onNodeDragOver` → `nodeDragOverCallback`
+  - `onNodeDrop` → `nodeDropCallback`
+  - `onSelectionChange` → `selectionChangeCallback`
+  - `onHighlightChange` → `highlightChangeCallback`
+  - `onRenderStart` → `renderStartCallback`
+  - `onRenderProgress` → `renderProgressCallback`
+  - `onRenderComplete` → `renderCompleteCallback`
+
+  Boolean Config props now follow the `is*` / `should*` rule:
+  - `accordionExpand` → `isAccordionExpand`
+  - `progressiveRender` → `isProgressiveRender`
+  - `useFlatRendering` → `isFlatRenderingEnabled`
+  - `virtualScroll` → `isVirtualScrollEnabled`
+  - `alignNodeIcons` → `shouldAlignNodeIcons`
+  - `allowCopy` → `isCopyAllowed`
+  - `autoHandleCopy` → `shouldAutoHandleCopy`
+  - `autoHandleMove` → `shouldAutoHandleMove`
+  - `showCheckboxes` → `shouldShowCheckboxes`
+  - `clickTogglesCheckbox` → `shouldClickToggleCheckbox`
+
+  HTML attribute names stay unchanged (`show-checkboxes`, `allow-copy`, `accordion-expand`, `virtual-scroll`, etc.) — they're already short and readable; the renames apply only to the JS property / config surface. The `ATTRIBUTE_TABLE` in `web-component.ts` maps each kebab-case attribute to its renamed camelCase config key (single source of truth — `observedAttributes` and the `buildConfig()` body both derive from it). Rename applied by `scripts/rename-api.mjs`, kept in-tree.
+
+- **`component-variables.manifest.json` repaired.** Prefix field `tv` → `wtv`, all 108 entries renamed (`tv-*` → `wtv-*`), stale entries fixed (`glow-above` / `glow-below` → `glow-before` / `glow-after` to match the code, added missing `wtv-cut-opacity` and `wtv-font-family`).
+
+- **`VALIDATION-NOTES.md` register** now documents four accepted deviations (C-CST-4/10 namespace-style Logic split, C-CSS-1 lean strategy, C-TC-15 `data-ready` FOUC guard, C-NC-6 D-NC-7=C member-only structural extractors). Future validation runs downgrade matching flags to ⚠️ Exception instead of re-promoting them on every run.
+
 ## [2.0.0-rc04] - 2026-06-19
 
 ### Changed
@@ -22,36 +59,36 @@ Catch-up release pulling forward the features `@keenmate/svelte-treeview` shippe
 - **New always-on `.wtv-focused` marker class** applied to the single focused node, with a subtle default outline so keyboard navigation is visible without configuring `focusedNodeClass`.
 
 ### Added
-- **Checkbox UI (`showCheckboxes`, `checkboxMode`, `beforeCheckboxToggleCallback`)**: Mirrors svelte-treeview rc06+. The DOM renderer draws an `.ltree-checkbox` element between the toggle column and the node content when `showCheckboxes` is true and the node is `isSelectable`. Clicks route through a new `nodeCallbacks.onCheckboxToggle` → `controller._onCheckboxToggle(node)` which honors:
+- **Checkbox UI (`shouldShowCheckboxes`, `checkboxMode`, `beforeCheckboxToggleCallback`)**: Mirrors svelte-treeview rc06+. The DOM renderer draws an `.ltree-checkbox` element between the toggle column and the node content when `shouldShowCheckboxes` is true and the node is `isSelectable`. Clicks route through a new `nodeCallbacks.onCheckboxToggle` → `controller._onCheckboxToggle(node)` which honors:
   - **`checkboxMode='independent'`** (default): each checkbox is standalone; toggling a parent does NOT touch descendants and a parent never auto-checks itself from its descendants.
   - **`checkboxMode='cascade'`**: toggling a parent cascades to every descendant; a parent's `visualState` reflects its descendants (`selected` / `notSelected` / `indeterminate`) and is synced back to its `isSelected`.
   - **Bulk via highlight**: when the toggled node is in a multi-highlight set (`highlightedPaths.size > 1`), the toggle applies to every highlighted node.
   - **`beforeCheckboxToggleCallback(node, checked, affectedPaths)`** interceptor: return `false` to cancel, return a `string[]` to override which paths are actually affected, or return `void` to apply unchanged.
-  - **`clickTogglesCheckbox`** (boolean, default `false`): when `true` AND `showCheckboxes` is on AND the node is selectable, a plain click on the node label runs the checkbox-toggle path instead of focusing/highlighting. Expand-on-click still fires when `clickBehavior` is `'expand'` or `'expand-and-focus'`.
+  - **`shouldClickToggleCheckbox`** (boolean, default `false`): when `true` AND `shouldShowCheckboxes` is on AND the node is selectable, a plain click on the node label runs the checkbox-toggle path instead of focusing/highlighting. Expand-on-click still fires when `clickBehavior` is `'expand'` or `'expand-and-focus'`.
 - **`theme` prop / attribute** (`'dark' | 'light' | null`): Per-instance theme override forwarded to the root `.ltree-container` as `data-theme="..."`. The new `_dark-mode.css` partial flips the `--tv-*` color tokens against four signals — OS preference (`@media (prefers-color-scheme: dark)`), framework theme classes (`[data-theme="dark"]`, `[data-bs-theme="dark"]`, `.dark`), per-instance `data-theme` on the container, and symmetric `light` variants so a single tree can force light on a dark page. Default behaviour with `theme=null|undefined` is to inherit from the page. Mirrors `@keenmate/svelte-treeview` rc10's `theme` prop.
 - **`getIsExpandedCallback`, `getIsSelectableCallback`, `getIsSelectedCallback`, `getIsDropAllowedCallback` props**: Callback variants for the matching `is*Member` data-field props, matching the same pattern as the existing `getIsDraggableCallback` / `getIsCollapsibleCallback` / `getAllowedDropPositionsCallback`. Seed-only: invoked once per node at `insertArray` / `addNode` time so subsequent user mutations (checkbox clicks, expand button) aren't overridden by the callback. Precedence: callback > member > default. Mirrors `@keenmate/svelte-treeview` rc09–rc10. Also: `getIsDraggableCallback` is now actually applied at seed time (previously the prop existed but didn't run during insert). New `getNodeIsDropAllowed(node)` method on the LTree mirrors the lazy lookup helpers (`getNodeIsDraggable`, `getNodeIsCollapsible`).
-- **`accordionExpand` prop / `accordion-expand` attribute** (boolean, default `false`): Per-parent accordion behaviour — expanding a node via the toggle UI automatically collapses any expanded siblings. Respects `isCollapsibleMember` / `getIsCollapsibleCallback` (non-collapsible siblings are not force-collapsed). Programmatic `expandNodes` / `expandAll` are unaffected. Implemented via a new `toggleNodeExpanded(path)` method on the controller / facade; the DOM renderer's toggle-icon click now routes through it. While here, the renderer's toggle now also matches svelte-treeview's gate of blocking the toggle entirely on nodes where `getNodeIsCollapsible(node)` is false. Mirrors `@keenmate/svelte-treeview` rc03.
+- **`isAccordionExpand` prop / `accordion-expand` attribute** (boolean, default `false`): Per-parent accordion behaviour — expanding a node via the toggle UI automatically collapses any expanded siblings. Respects `isCollapsibleMember` / `getIsCollapsibleCallback` (non-collapsible siblings are not force-collapsed). Programmatic `expandNodes` / `expandAll` are unaffected. Implemented via a new `toggleNodeExpanded(path)` method on the controller / facade; the DOM renderer's toggle-icon click now routes through it. While here, the renderer's toggle now also matches svelte-treeview's gate of blocking the toggle entirely on nodes where `getNodeIsCollapsible(node)` is false. Mirrors `@keenmate/svelte-treeview` rc03.
 - **Array variants + option bags on `expandNodes` / `collapseNodes` / `expandAll` / `collapseAll`**: all four now accept `string | string[] | null` instead of a single path. `expandNodes` and `expandAll` take `{ exclusive?: boolean; noEmit?: boolean }`; `collapseNodes` and `collapseAll` take `{ noEmit?: boolean }`. `exclusive` collapses anything off the union-of-spines so downstream listeners (URL sync, virtualised renderers, transition animations) don't see the intermediate fully-collapsed state. `noEmit` skips the change emission so consumers can batch several mutations and emit once at the end via `tree.refresh()`. Single emit per call regardless of array length. Mirrors `@keenmate/svelte-treeview` rc08.
 
 ### Changed
 - **`DropPosition` renamed `'above' | 'below' | 'child'` → `'before' | 'after' | 'child'`** for full naming parity with svelte-treeview (which renamed the same in its rc02). Knock-on effects:
   - Per-node `allowedDropPositions` data arrays must change from `['above', 'below']` → `['before', 'after']`. Same for the values returned by `getAllowedDropPositionsCallback`.
-  - The `position` argument of `onNodeDrop`, `beforeDropCallback`, `moveNode`, `pasteNodes`, `copyNodeWithDescendants` is now `'before' | 'after' | 'child'`.
+  - The `position` argument of `nodeDropCallback`, `beforeDropCallback`, `moveNode`, `pasteNodes`, `copyNodeWithDescendants` is now `'before' | 'after' | 'child'`.
   - CSS class names follow: `.ltree-drop-above` → `.ltree-drop-before`, `.ltree-drop-below` → `.ltree-drop-after`, `.ltree-glow-above` → `.ltree-glow-before`, `.ltree-glow-below` → `.ltree-glow-after`. Consumers theming the glow indicators or styling the drop zones via these classes will need to update their selectors.
   - CSS variables follow: `--tv-glow-above-*` → `--tv-glow-before-*`, `--tv-glow-below-*` → `--tv-glow-after-*`.
   - `dropZoneLayout` values (`'around' | 'above' | 'below' | 'wave' | 'wave2'`) are **unchanged** — those are layout names (where the floating zones sit), distinct from position values (which target the floating zones identify). The CSS class names `.ltree-drop-zones-above` / `.ltree-drop-zones-below` likewise stay.
-- **Drag-and-drop: multi-drag, non-highlighted drag replaces highlight, `autoHandleMove` opt-out**:
-  - **Multi-drag** (same-tree, `operation='move'`, `autoHandleMove=true`): when the dragged node is in `highlightedPaths` and the set has more than one entry, the controller moves every **top-level highlighted** subtree (a path whose nearest highlighted ancestor is NOT in the set). The first move uses the requested drop position; subsequent moves chain `'below'` the previously-moved node, so the whole set lands as siblings in source order: dropping `{A, B, C}` `'below D'` → `[D, A, B, C]`; `'above D'` → `[A, B, C, D]`; `'child of D'` → `D`'s children = `[A, B, C]`. Selected descendants of a top-level node are absorbed (they ride along inside their ancestor's subtree, not separately extracted).
+- **Drag-and-drop: multi-drag, non-highlighted drag replaces highlight, `shouldAutoHandleMove` opt-out**:
+  - **Multi-drag** (same-tree, `operation='move'`, `shouldAutoHandleMove=true`): when the dragged node is in `highlightedPaths` and the set has more than one entry, the controller moves every **top-level highlighted** subtree (a path whose nearest highlighted ancestor is NOT in the set). The first move uses the requested drop position; subsequent moves chain `'below'` the previously-moved node, so the whole set lands as siblings in source order: dropping `{A, B, C}` `'below D'` → `[D, A, B, C]`; `'above D'` → `[A, B, C, D]`; `'child of D'` → `D`'s children = `[A, B, C]`. Selected descendants of a top-level node are absorbed (they ride along inside their ancestor's subtree, not separately extracted).
   - **Non-highlighted drag**: dragging a node that isn't in `highlightedPaths` now replaces the highlight with that single node before the drag completes. Matches Windows Explorer / macOS Finder where mousedown on an unselected item selects it. Skipped when the node is already in the set (multi-drag) or is not selectable. Runs in a `requestAnimationFrame` after the browser commits the drag image so the source row's DOM isn't disturbed mid-drag.
-  - **`autoHandleMove`** prop (boolean, default `true`): set to `false` to receive the `onNodeDrop` callback without the controller mutating the tree (consumer handles the move). Mirrors svelte-treeview's `autoHandleMove`.
+  - **`shouldAutoHandleMove`** prop (boolean, default `true`): set to `false` to receive the `nodeDropCallback` callback without the controller mutating the tree (consumer handles the move). Mirrors svelte-treeview's `shouldAutoHandleMove`.
   - Mirrors `@keenmate/svelte-treeview` rc09.
 - **Three-level selection model (`focusedNode` / `highlightedPaths` / `selectedPaths`)** — biggest behaviour change in rc03. Mirrors svelte-treeview rc06+.
   - **`focusedNode`** (was `selectedNode`): single focused node (click, arrow keys). The web component now dispatches `focused-node-changed` (was `selected-node-changed`) with `detail.focusedNode`. The controller getter / setter is `focusedNode`.
   - **`highlightedPaths`**: multi-select set built by Ctrl/Shift+click and arrow extensions. New methods `highlightNode(path, mode, options)` / `highlightNodes(paths, options)` / `clearHighlight(options)` / `getHighlightedNodes()` / `getHighlightedPaths()` / `isNodeHighlighted(path)`. The web component dispatches `highlight-change` with `detail.highlightedNodes` and `detail.highlightedPaths`.
-  - **`selectedPaths`** is now the checkbox / data-state selection set (was: the multi-select set). When `showCheckboxes` is false, every change to `highlightedPaths` is mirrored into `selectedPaths` so consumers reading the form-style selection still reflect what the user picked via the mouse. With checkboxes visible, the two sets stay independent.
+  - **`selectedPaths`** is now the checkbox / data-state selection set (was: the multi-select set). When `shouldShowCheckboxes` is false, every change to `highlightedPaths` is mirrored into `selectedPaths` so consumers reading the form-style selection still reflect what the user picked via the mouse. With checkboxes visible, the two sets stay independent.
   - **`selectionMode` prop** (`'single' | 'multi'`, default `'single'`): in `'single'`, Ctrl/Shift+click degrade to plain click. In `'multi'`, Ctrl+click toggles, Shift+click range-extends.
-  - **`showCheckboxes`**, **`clickTogglesCheckbox`** props added (wiring; checkbox UI ports in the next commit).
-  - **`onHighlightChange`** callback added.
+  - **`shouldShowCheckboxes`**, **`shouldClickToggleCheckbox`** props added (wiring; checkbox UI ports in the next commit).
+  - **`highlightChangeCallback`** callback added.
   - **`{ silent: true }`** option on `highlightNode` / `highlightNodes` / `clearHighlight` / `deselectAll` skips the change callback + mirror. Useful for URL-restore flows where firing the change would re-trigger external sync.
   - **`highlightedNodeClass`** (was `selectedNodeClass`) is the CSS class applied to every node in the highlight set. **`focusedNodeClass`** is new — applied only to the single focused node.
   - **`node.isHighlighted`** added to `LTreeNode` (the existing `node.isSelected` now means "checked", not "selected via mouse").
@@ -75,7 +112,7 @@ Catch-up release pulling forward the features `@keenmate/svelte-treeview` shippe
 - `rangeSelectionMode` config: `'visual'` (uses visible flat nodes, default) or `'logical'` (walks full tree)
 - `selectNode(path, modifiers?)`, `selectNodes(paths)`, `deselectAll()`, `selectAll()` API methods
 - `getSelectedNodes()`, `getSelectedPaths()`, `isNodeSelected(path)` query methods
-- `onSelectionChange` callback and `selection-change` CustomEvent
+- `selectionChangeCallback` callback and `selection-change` CustomEvent
 - `range-selection-mode` HTML attribute on `<web-treeview>`
 - `selectedPaths: Set<string>` in `TreeControllerSnapshot` for renderer access
 
@@ -116,12 +153,12 @@ Catch-up release pulling forward the features `@keenmate/svelte-treeview` shippe
   - `'expand-and-focus'`: single click selects + expands (same as old `shouldToggleOnNodeClick: true`)
   - `'select'`: single click selects only, double-click expands/collapses
   - `'expand'`: single click expands/collapses only, no selection
-- `NodeCallbacks.onNodeClicked` signature extended with optional `SelectionModifiers` parameter
+- `NodeCallbacks.nodeClickedCallback` signature extended with optional `SelectionModifiers` parameter
 - `TreeControllerSnapshot` now includes `selectedPaths` and `cutPaths` sets
 - DomRenderer click handler respects `clickBehavior` and skips toggle when Ctrl or Shift is held
 - `.ltree-selected-border` uses `outline` instead of `border`+`padding` to prevent layout shift on selected nodes
 - **Context menu `offset` middleware reduced from `4` to `0`**: The root menu's top-left now lands exactly at `(cursor.x + contextMenuXOffset, cursor.y + contextMenuYOffset)` with no implicit 4px vertical gap. Restores the pre-Floating UI positioning so consumers' `xOffset` / `yOffset` props are honored pixel-exactly. Submenu positioning is unchanged.
-- **`scrollToPath` retries the DOM lookup across rAF frames before giving up**: With `useFlatRendering` + `progressiveRender` (the default), `expandNodes` reveals new rows in rAF-deferred batches sized `initialBatchSize` (default 20) and doubling. Previously, `scrollToPath` queried the DOM after one microtask flush — only the immediate batch was rendered, so any target row past that batch produced a `console.warn("DOM element not found")` and the function returned `false` without scrolling or highlighting. Now retries for up to ~6 additional frames before giving up. Same fix as `@keenmate/svelte-treeview` rc-next.
+- **`scrollToPath` retries the DOM lookup across rAF frames before giving up**: With `isFlatRenderingEnabled` + `isProgressiveRender` (the default), `expandNodes` reveals new rows in rAF-deferred batches sized `initialBatchSize` (default 20) and doubling. Previously, `scrollToPath` queried the DOM after one microtask flush — only the immediate batch was rendered, so any target row past that batch produced a `console.warn("DOM element not found")` and the function returned `false` without scrolling or highlighting. Now retries for up to ~6 additional frames before giving up. Same fix as `@keenmate/svelte-treeview` rc-next.
 
 ### Removed
 - `shouldToggleOnNodeClick` property/attribute — replaced by `clickBehavior`
@@ -161,12 +198,12 @@ Complete rewrite as a framework-agnostic web component. The rendering engine, co
 #### Rendering
 
 - **Two rendering modes** —
-  - **Flat rendering** (`useFlatRendering`, default `true`) — single DOM list with `paddingLeft` indentation
-  - **Virtual scroll** (`virtualScroll`, default `false`) — only renders rows visible in the viewport, suitable for 100k+ node trees. Configurable via `virtualRowHeight`, `virtualOverscan`, `virtualContainerHeight`.
+  - **Flat rendering** (`isFlatRenderingEnabled`, default `true`) — single DOM list with `paddingLeft` indentation
+  - **Virtual scroll** (`isVirtualScrollEnabled`, default `false`) — only renders rows visible in the viewport, suitable for 100k+ node trees. Configurable via `virtualRowHeight`, `virtualOverscan`, `virtualContainerHeight`.
 - **Progressive rendering** — `requestAnimationFrame`-batched rendering for smooth initial load of large trees
 - **Full-width clickable node rows** — Entire node row is clickable including indent zone, with uniform hover highlight
 - **Node row layout** — Each row is `[toggle/icon column] [content]` with unified `--tv-column-width` (24px) controlling toggle, icon, and indent step
-- **Per-node icons** — `iconMember` (data field) and `iconCallback` (dynamic function) for assigning icons to individual nodes. `alignNodeIcons` reserves column width for alignment.
+- **Per-node icons** — `iconMember` (data field) and `iconCallback` (dynamic function) for assigning icons to individual nodes. `shouldAlignNodeIcons` reserves column width for alignment.
 - **Custom render callbacks** — `renderNodeCallback`, `renderEmptyStateCallback`, `renderEmptyZoneCallback`, `renderLoadingCallback`, `renderHeaderCallback`, `renderFooterCallback`, `renderContextMenuCallback`
 
 #### Drag and Drop
@@ -178,7 +215,7 @@ Complete rewrite as a framework-agnostic web component. The rendering engine, co
   - Drop positions: `'above'` | `'below'` | `'child'`
   - Configurable `dropZoneStart` threshold for child zone
   - Per-node `allowedDropPositionsMember` for restricted drop positions
-  - Copy operations with `allowCopy` / `autoHandleCopy`
+  - Copy operations with `isCopyAllowed` / `shouldAutoHandleCopy`
   - `beforeDropCallback` for validation/interception
   - Touch drag support with ghost element
   - Cross-tree drag detection via shared global state

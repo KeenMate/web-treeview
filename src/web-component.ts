@@ -69,7 +69,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _indexerTimeout?: number;
 
   // Virtual scroll
-  private _virtualScroll?: boolean;
+  private _isVirtualScrollEnabled?: boolean;
   private _virtualRowHeight?: number;
   private _virtualOverscan?: number;
   private _virtualContainerHeight?: string;
@@ -80,7 +80,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   // Per-node icons
   private _iconMember?: string;
   private _iconCallback?: (node: LTreeNode<T>) => string | null;
-  private _alignNodeIcons?: boolean;
+  private _shouldAlignNodeIcons?: boolean;
 
   // DnD config
   private _dragDropMode?: DragDropMode;
@@ -88,14 +88,14 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _dropZoneLayout?: 'around' | 'above' | 'below' | 'wave' | 'wave2';
   private _dropZoneStart?: number | string;
   private _dropZoneMaxWidth?: number;
-  private _allowCopy?: boolean;
-  private _autoHandleCopy?: boolean;
+  private _isCopyAllowed?: boolean;
+  private _shouldAutoHandleCopy?: boolean;
   private _contextMenuXOffset?: number;
   private _contextMenuYOffset?: number;
 
   // Multi-select
   private _rangeSelectionMode?: RangeSelectionMode;
-  private _onSelectionChange?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
+  private _selectionChangeCallback?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
 
   // Callback properties
   private _getDisplayValueCallback?: (node: LTreeNode<T>) => string;
@@ -124,16 +124,16 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _renderContextMenuItemCallback?: (item: ContextMenuItem, node: LTreeNode<T>, container: HTMLElement) => void;
 
   // Event callbacks
-  private _onNodeClicked?: (node: LTreeNode<T>) => void;
-  private _onNodeDragStart?: (node: LTreeNode<T>, event: DragEvent) => void;
-  private _onNodeDragOver?: (node: LTreeNode<T>, event: DragEvent) => void;
+  private _nodeClickedCallback?: (node: LTreeNode<T>) => void;
+  private _nodeDragStartCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
+  private _nodeDragOverCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
   private _beforeDropCallback?: TreeViewConfig<T>['beforeDropCallback'];
-  private _onNodeDrop?: TreeViewConfig<T>['onNodeDrop'];
+  private _nodeDropCallback?: TreeViewConfig<T>['nodeDropCallback'];
 
   // Render callbacks
-  private _onRenderStart?: () => void;
-  private _onRenderProgress?: (stats: any) => void;
-  private _onRenderComplete?: (stats: any) => void;
+  private _renderStartCallback?: () => void;
+  private _renderProgressCallback?: (stats: any) => void;
+  private _renderCompleteCallback?: (stats: any) => void;
 
   static get observedAttributes() {
     return [
@@ -336,8 +336,8 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get iconCallback(): ((node: LTreeNode<T>) => string | null) | undefined { return this._iconCallback; }
   set iconCallback(value: ((node: LTreeNode<T>) => string | null) | undefined) { this._iconCallback = value; this._scheduleUpdate(); }
 
-  get alignNodeIcons(): boolean | undefined { return this._alignNodeIcons; }
-  set alignNodeIcons(value: boolean | undefined) { this._alignNodeIcons = value; this._scheduleUpdate(); }
+  get shouldAlignNodeIcons(): boolean | undefined { return this._shouldAlignNodeIcons; }
+  set shouldAlignNodeIcons(value: boolean | undefined) { this._shouldAlignNodeIcons = value; this._scheduleUpdate(); }
 
   // DnD properties
   get dragDropMode(): DragDropMode | undefined { return this._dragDropMode; }
@@ -355,11 +355,11 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get dropZoneMaxWidth(): number | undefined { return this._dropZoneMaxWidth; }
   set dropZoneMaxWidth(value: number | undefined) { this._dropZoneMaxWidth = value; this._scheduleUpdate(); }
 
-  get allowCopy(): boolean | undefined { return this._allowCopy; }
-  set allowCopy(value: boolean | undefined) { this._allowCopy = value; this._scheduleUpdate(); }
+  get isCopyAllowed(): boolean | undefined { return this._isCopyAllowed; }
+  set isCopyAllowed(value: boolean | undefined) { this._isCopyAllowed = value; this._scheduleUpdate(); }
 
-  get autoHandleCopy(): boolean | undefined { return this._autoHandleCopy; }
-  set autoHandleCopy(value: boolean | undefined) { this._autoHandleCopy = value; this._scheduleUpdate(); }
+  get shouldAutoHandleCopy(): boolean | undefined { return this._shouldAutoHandleCopy; }
+  set shouldAutoHandleCopy(value: boolean | undefined) { this._shouldAutoHandleCopy = value; this._scheduleUpdate(); }
 
   get contextMenuXOffset(): number | undefined { return this._contextMenuXOffset; }
   set contextMenuXOffset(value: number | undefined) { this._contextMenuXOffset = value; this._scheduleUpdate(); }
@@ -371,15 +371,15 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get rangeSelectionMode(): RangeSelectionMode | undefined { return this._rangeSelectionMode; }
   set rangeSelectionMode(value: RangeSelectionMode | undefined) { this._rangeSelectionMode = value; this._scheduleUpdate(); }
 
-  get onSelectionChange(): ((selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void) | undefined { return this._onSelectionChange; }
-  set onSelectionChange(value: ((selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void) | undefined) {
-    this._onSelectionChange = value;
+  get selectionChangeCallback(): ((selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void) | undefined { return this._selectionChangeCallback; }
+  set selectionChangeCallback(value: ((selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void) | undefined) {
+    this._selectionChangeCallback = value;
     this._scheduleUpdate();
   }
 
   // Virtual scroll properties
-  get virtualScroll(): boolean | undefined { return this._virtualScroll; }
-  set virtualScroll(value: boolean | undefined) { this._virtualScroll = value; this._scheduleUpdate(); }
+  get isVirtualScrollEnabled(): boolean | undefined { return this._isVirtualScrollEnabled; }
+  set isVirtualScrollEnabled(value: boolean | undefined) { this._isVirtualScrollEnabled = value; this._scheduleUpdate(); }
 
   get virtualRowHeight(): number | undefined { return this._virtualRowHeight; }
   set virtualRowHeight(value: number | undefined) { this._virtualRowHeight = value; this._scheduleUpdate(); }
@@ -489,29 +489,29 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   }
 
   // Render callbacks
-  get onRenderStart() { return this._onRenderStart; }
-  set onRenderStart(value: (() => void) | undefined) { this._onRenderStart = value; }
+  get renderStartCallback() { return this._renderStartCallback; }
+  set renderStartCallback(value: (() => void) | undefined) { this._renderStartCallback = value; }
 
-  get onRenderProgress() { return this._onRenderProgress; }
-  set onRenderProgress(value: ((stats: any) => void) | undefined) { this._onRenderProgress = value; }
+  get renderProgressCallback() { return this._renderProgressCallback; }
+  set renderProgressCallback(value: ((stats: any) => void) | undefined) { this._renderProgressCallback = value; }
 
-  get onRenderComplete() { return this._onRenderComplete; }
-  set onRenderComplete(value: ((stats: any) => void) | undefined) { this._onRenderComplete = value; }
+  get renderCompleteCallback() { return this._renderCompleteCallback; }
+  set renderCompleteCallback(value: ((stats: any) => void) | undefined) { this._renderCompleteCallback = value; }
 
   // Event callbacks
-  get onNodeClicked() { return this._onNodeClicked; }
-  set onNodeClicked(value: ((node: LTreeNode<T>) => void) | undefined) {
-    this._onNodeClicked = value;
+  get nodeClickedCallback() { return this._nodeClickedCallback; }
+  set nodeClickedCallback(value: ((node: LTreeNode<T>) => void) | undefined) {
+    this._nodeClickedCallback = value;
   }
 
-  get onNodeDragStart() { return this._onNodeDragStart; }
-  set onNodeDragStart(value: ((node: LTreeNode<T>, event: DragEvent) => void) | undefined) {
-    this._onNodeDragStart = value;
+  get nodeDragStartCallback() { return this._nodeDragStartCallback; }
+  set nodeDragStartCallback(value: ((node: LTreeNode<T>, event: DragEvent) => void) | undefined) {
+    this._nodeDragStartCallback = value;
   }
 
-  get onNodeDragOver() { return this._onNodeDragOver; }
-  set onNodeDragOver(value: ((node: LTreeNode<T>, event: DragEvent) => void) | undefined) {
-    this._onNodeDragOver = value;
+  get nodeDragOverCallback() { return this._nodeDragOverCallback; }
+  set nodeDragOverCallback(value: ((node: LTreeNode<T>, event: DragEvent) => void) | undefined) {
+    this._nodeDragOverCallback = value;
   }
 
   get beforeDropCallback() { return this._beforeDropCallback; }
@@ -519,9 +519,9 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     this._beforeDropCallback = value;
   }
 
-  get onNodeDrop() { return this._onNodeDrop; }
-  set onNodeDrop(value: TreeViewConfig<T>['onNodeDrop'] | undefined) {
-    this._onNodeDrop = value;
+  get nodeDropCallback() { return this._nodeDropCallback; }
+  set nodeDropCallback(value: TreeViewConfig<T>['nodeDropCallback'] | undefined) {
+    this._nodeDropCallback = value;
   }
 
   // ── Public methods (proxy to engine) ───────────────────────────────
@@ -706,7 +706,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     this.treeview?.selectAll();
   }
 
-  // ── Expand toggle (honors accordionExpand) ────────────────────────
+  // ── Expand toggle (honors isAccordionExpand) ────────────────────────
 
   toggleNodeExpanded(path: string): void {
     this.treeview?.toggleNodeExpanded(path);
@@ -870,9 +870,9 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       dataLength: config.data?.length ?? 0
     });
 
-    // Wrap user's onNodeClicked to also dispatch DOM event
-    const userOnNodeClicked = config.onNodeClicked;
-    config.onNodeClicked = (node) => {
+    // Wrap user's nodeClickedCallback to also dispatch DOM event
+    const userOnNodeClicked = config.nodeClickedCallback;
+    config.nodeClickedCallback = (node) => {
       userOnNodeClicked?.(node);
       this.dispatchEvent(new CustomEvent('node-clicked', {
         bubbles: true,
@@ -881,9 +881,9 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       }));
     };
 
-    // Wrap user's onNodeDrop to also dispatch DOM event
-    const userOnNodeDrop = config.onNodeDrop;
-    config.onNodeDrop = (dropNode, draggedNode, position, event, operation) => {
+    // Wrap user's nodeDropCallback to also dispatch DOM event
+    const userOnNodeDrop = config.nodeDropCallback;
+    config.nodeDropCallback = (dropNode, draggedNode, position, event, operation) => {
       userOnNodeDrop?.(dropNode, draggedNode, position, event, operation);
       this.dispatchEvent(new CustomEvent('node-drop', {
         bubbles: true,
@@ -896,8 +896,8 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     // callbacks (not state-change snapshot diff), so the `silent: true`
     // option on highlightNode / clearHighlight / deselectAll suppresses the
     // DOM event the same way it suppresses the user callback.
-    const userOnHighlightChange = config.onHighlightChange;
-    config.onHighlightChange = (highlightedPaths, highlightedNodes) => {
+    const userOnHighlightChange = config.highlightChangeCallback;
+    config.highlightChangeCallback = (highlightedPaths, highlightedNodes) => {
       userOnHighlightChange?.(highlightedPaths, highlightedNodes);
       this.dispatchEvent(new CustomEvent('highlight-change', {
         bubbles: true,
@@ -906,8 +906,8 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       }));
     };
 
-    const userOnSelectionChange = config.onSelectionChange;
-    config.onSelectionChange = (selectedNodes, selectedPaths) => {
+    const userOnSelectionChange = config.selectionChangeCallback;
+    config.selectionChangeCallback = (selectedNodes, selectedPaths) => {
       userOnSelectionChange?.(selectedNodes, selectedPaths);
       this.dispatchEvent(new CustomEvent('selection-change', {
         bubbles: true,
@@ -1006,7 +1006,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     if (clickBehavior === 'select' || clickBehavior === 'expand' || clickBehavior === 'expand-and-focus') config.clickBehavior = clickBehavior;
 
     const accordionAttr = this.getAttribute('accordion-expand');
-    if (accordionAttr !== null) config.accordionExpand = accordionAttr !== 'false';
+    if (accordionAttr !== null) config.isAccordionExpand = accordionAttr !== 'false';
 
     const isSorted = this._isSorted ?? (this.getAttribute('is-sorted') !== null ? this.getAttribute('is-sorted') !== 'false' : undefined);
     if (isSorted !== undefined) config.isSorted = isSorted;
@@ -1060,8 +1060,8 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
     if (this._iconCallback) config.iconCallback = this._iconCallback;
 
-    const alignNodeIcons = this._alignNodeIcons ?? (this.getAttribute('align-node-icons') !== null ? this.getAttribute('align-node-icons') !== 'false' : undefined);
-    if (alignNodeIcons !== undefined) config.alignNodeIcons = alignNodeIcons;
+    const shouldAlignNodeIcons = this._shouldAlignNodeIcons ?? (this.getAttribute('align-node-icons') !== null ? this.getAttribute('align-node-icons') !== 'false' : undefined);
+    if (shouldAlignNodeIcons !== undefined) config.shouldAlignNodeIcons = shouldAlignNodeIcons;
 
     const scrollHighlightTimeout = this.getAttribute('scroll-highlight-timeout');
     if (scrollHighlightTimeout !== null) config.scrollHighlightTimeout = parseInt(scrollHighlightTimeout, 10);
@@ -1103,21 +1103,21 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     const dropZoneMaxWidth = this._dropZoneMaxWidth ?? (this.getAttribute('drop-zone-max-width') ? parseInt(this.getAttribute('drop-zone-max-width')!, 10) : undefined);
     if (dropZoneMaxWidth !== undefined) config.dropZoneMaxWidth = dropZoneMaxWidth;
 
-    const allowCopy = this._allowCopy ?? (this.getAttribute('allow-copy') !== null ? this.getAttribute('allow-copy') !== 'false' : undefined);
-    if (allowCopy !== undefined) config.allowCopy = allowCopy;
+    const isCopyAllowed = this._isCopyAllowed ?? (this.getAttribute('allow-copy') !== null ? this.getAttribute('allow-copy') !== 'false' : undefined);
+    if (isCopyAllowed !== undefined) config.isCopyAllowed = isCopyAllowed;
 
-    const autoHandleCopy = this._autoHandleCopy ?? (this.getAttribute('auto-handle-copy') !== null ? this.getAttribute('auto-handle-copy') !== 'false' : undefined);
-    if (autoHandleCopy !== undefined) config.autoHandleCopy = autoHandleCopy;
+    const shouldAutoHandleCopy = this._shouldAutoHandleCopy ?? (this.getAttribute('auto-handle-copy') !== null ? this.getAttribute('auto-handle-copy') !== 'false' : undefined);
+    if (shouldAutoHandleCopy !== undefined) config.shouldAutoHandleCopy = shouldAutoHandleCopy;
 
     // Rendering config
-    const useFlatRendering = this.getAttribute('use-flat-rendering');
-    if (useFlatRendering !== null) config.useFlatRendering = useFlatRendering !== 'false';
+    const isFlatRenderingEnabled = this.getAttribute('use-flat-rendering');
+    if (isFlatRenderingEnabled !== null) config.isFlatRenderingEnabled = isFlatRenderingEnabled !== 'false';
 
     const flatIndentSize = this.getAttribute('flat-indent-size');
     if (flatIndentSize) config.flatIndentSize = flatIndentSize;
 
-    const progressiveRender = this.getAttribute('progressive-render');
-    if (progressiveRender !== null) config.progressiveRender = progressiveRender !== 'false';
+    const isProgressiveRender = this.getAttribute('progressive-render');
+    if (isProgressiveRender !== null) config.isProgressiveRender = isProgressiveRender !== 'false';
 
     const initialBatchSize = this.getAttribute('initial-batch-size');
     if (initialBatchSize !== null) config.initialBatchSize = parseInt(initialBatchSize, 10);
@@ -1126,8 +1126,8 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     if (maxBatchSize !== null) config.maxBatchSize = parseInt(maxBatchSize, 10);
 
     // Virtual scroll
-    const virtualScroll = this._virtualScroll ?? (this.getAttribute('virtual-scroll') !== null ? this.getAttribute('virtual-scroll') !== 'false' : undefined);
-    if (virtualScroll !== undefined) config.virtualScroll = virtualScroll;
+    const isVirtualScrollEnabled = this._isVirtualScrollEnabled ?? (this.getAttribute('virtual-scroll') !== null ? this.getAttribute('virtual-scroll') !== 'false' : undefined);
+    if (isVirtualScrollEnabled !== undefined) config.isVirtualScrollEnabled = isVirtualScrollEnabled;
 
     const virtualRowHeight = this._virtualRowHeight ?? (this.getAttribute('virtual-row-height') ? parseFloat(this.getAttribute('virtual-row-height')!) : undefined);
     if (virtualRowHeight !== undefined) config.virtualRowHeight = virtualRowHeight;
@@ -1169,27 +1169,27 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     // Always send a boolean so the controller flips off when the attribute is
     // removed at runtime (the demo toggles `show-checkboxes` via setAttribute /
     // removeAttribute). `update()` only applies keys defined in the config bag.
-    config.showCheckboxes = showCheckboxesAttr !== null && showCheckboxesAttr !== 'false';
+    config.shouldShowCheckboxes = showCheckboxesAttr !== null && showCheckboxesAttr !== 'false';
 
     const checkboxModeAttr = this.getAttribute('checkbox-mode');
     if (checkboxModeAttr === 'independent' || checkboxModeAttr === 'cascade')
       config.checkboxMode = checkboxModeAttr;
 
     const clickTogglesCheckboxAttr = this.getAttribute('click-toggles-checkbox');
-    if (clickTogglesCheckboxAttr !== null) config.clickTogglesCheckbox = clickTogglesCheckboxAttr !== 'false';
-    if (this._onSelectionChange) config.onSelectionChange = this._onSelectionChange;
+    if (clickTogglesCheckboxAttr !== null) config.shouldClickToggleCheckbox = clickTogglesCheckboxAttr !== 'false';
+    if (this._selectionChangeCallback) config.selectionChangeCallback = this._selectionChangeCallback;
 
     // Event handlers
-    if (this._onNodeClicked) config.onNodeClicked = this._onNodeClicked;
-    if (this._onNodeDragStart) config.onNodeDragStart = this._onNodeDragStart;
-    if (this._onNodeDragOver) config.onNodeDragOver = this._onNodeDragOver;
+    if (this._nodeClickedCallback) config.nodeClickedCallback = this._nodeClickedCallback;
+    if (this._nodeDragStartCallback) config.nodeDragStartCallback = this._nodeDragStartCallback;
+    if (this._nodeDragOverCallback) config.nodeDragOverCallback = this._nodeDragOverCallback;
     if (this._beforeDropCallback) config.beforeDropCallback = this._beforeDropCallback;
-    if (this._onNodeDrop) config.onNodeDrop = this._onNodeDrop;
+    if (this._nodeDropCallback) config.nodeDropCallback = this._nodeDropCallback;
 
     // Render callbacks
-    if (this._onRenderStart) config.onRenderStart = this._onRenderStart;
-    if (this._onRenderProgress) config.onRenderProgress = this._onRenderProgress;
-    if (this._onRenderComplete) config.onRenderComplete = this._onRenderComplete;
+    if (this._renderStartCallback) config.renderStartCallback = this._renderStartCallback;
+    if (this._renderProgressCallback) config.renderProgressCallback = this._renderProgressCallback;
+    if (this._renderCompleteCallback) config.renderCompleteCallback = this._renderCompleteCallback;
 
     return config;
   }

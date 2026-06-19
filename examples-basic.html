@@ -247,7 +247,7 @@ element.setAttribute('display-value-member', 'label');</code></pre>
             tree3.pathMember = 'path';
             tree3.displayValueMember = 'name';
 
-            tree3.onRenderComplete = (stats) => {
+            tree3.renderCompleteCallback = (stats) => {
                 document.getElementById('tree3-output').textContent = JSON.stringify(stats, null, 2);
             };
 

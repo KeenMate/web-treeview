@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 /**
  * Regression: Esc-cancelling a drag must restore the pre-drag highlight.
  *
- * On dragstart, the controller's `_onNodeDragStart` schedules a rAF that
+ * On dragstart, the controller's `_nodeDragStartCallback` schedules a rAF that
  * replaces the highlight with the dragged node (OS-convention selection sync).
  * If the user then presses Esc, the browser fires dragend with dropEffect
  * 'none' and the controller must roll the highlight back. Without rollback the

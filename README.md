@@ -41,7 +41,7 @@ A lightweight, framework-agnostic treeview web component built with vanilla Type
 ## Features
 
 - **LTree Path Model** — Materialized path hierarchy (`1`, `1.1`, `1.1.2`) with configurable separator
-- **Multi-Select** — Ctrl+click toggle, Shift+click range, `selectAll()`, visual/logical range modes, `onSelectionChange` callback
+- **Multi-Select** — Ctrl+click toggle, Shift+click range, `selectAll()`, visual/logical range modes, `selectionChangeCallback` callback
 - **Clipboard** — Copy/cut/paste with cross-tree support, cut nodes dimmed with `--wtv-cut-opacity`
 - **Keyboard Navigation** — Arrow keys, Home/End, Enter/Space, Ctrl+A/C/X/V, Escape
 - **Bulk Operations** — `insertBranch`, `replaceBranch`, `deleteBranch` for efficient batch tree mutations
@@ -115,7 +115,7 @@ const tree = new WebTreeView(container, {
   pathMember: 'path',
   displayValueMember: 'name',
   expandLevel: 2,
-  onNodeClicked: (node) => console.log('Clicked:', node),
+  nodeClickedCallback: (node) => console.log('Clicked:', node),
 });
 ```
 
@@ -187,10 +187,10 @@ These properties are set via JavaScript, not HTML attributes:
 |----------|------|-------------|
 | `data` | `T[]` | Array of data objects to display as tree |
 | `renderer` | `TreeViewRenderer<T>` | Custom renderer (replaces default DomRenderer) |
-| `onNodeClicked` | `(node) => void` | Click handler |
-| `onNodeDragStart` | `(node, event) => void` | Drag start handler |
-| `onNodeDragOver` | `(node, event) => void` | Drag over handler |
-| `onNodeDrop` | `(dropNode, draggedNode, position, event, operation) => void` | Drop handler |
+| `nodeClickedCallback` | `(node) => void` | Click handler |
+| `nodeDragStartCallback` | `(node, event) => void` | Drag start handler |
+| `nodeDragOverCallback` | `(node, event) => void` | Drag over handler |
+| `nodeDropCallback` | `(dropNode, draggedNode, position, event, operation) => void` | Drop handler |
 | `beforeDropCallback` | `(dropNode, draggedNode, position, event, operation) => boolean \| void` | Drop validation |
 | `contextMenuCallback` | `(node, close) => ContextMenuEntry[]` | Context menu items |
 | `renderContextMenuItemCallback` | `(item, node, container) => void` | Per-item custom rendering (fill or fall through) |
@@ -203,7 +203,7 @@ These properties are set via JavaScript, not HTML attributes:
 | `renderLoadingCallback` | `(container) => void` | Loading state rendering |
 | `renderHeaderCallback` | `(container) => void` | Tree header rendering |
 | `renderFooterCallback` | `(container) => void` | Tree footer rendering |
-| `onSelectionChange` | `(selectedNodes, selectedPaths) => void` | Selection change handler |
+| `selectionChangeCallback` | `(selectedNodes, selectedPaths) => void` | Selection change handler |
 | `sortCallback` | `(items) => items` | Custom sort function |
 | `getDisplayValueCallback` | `(node) => string` | Dynamic display value |
 | `getIsDraggableCallback` | `(node) => boolean` | Dynamic draggable check |

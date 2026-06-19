@@ -365,7 +365,7 @@ element.iconMember = 'icon';
                 return extIconMap[ext] || 'icon-file';
             };
 
-            // Tree 4a: alignNodeIcons=true
+            // Tree 4a: shouldAlignNodeIcons=true
             const tree4a = document.getElementById('tree4a');
             tree4a.customStylesCallback = () => iconStyles;
             tree4a.data = mixedIconData;
@@ -387,7 +387,7 @@ element.iconMember = 'icon';
             tree6.customStylesCallback = () => iconStyles;
             tree6.data = fileTreeWithIcons;
             tree6.displayValueMember = 'name';
-            tree6.onNodeDrop = (dropNode, draggedNode, position, event, operation) => {
+            tree6.nodeDropCallback = (dropNode, draggedNode, position, event, operation) => {
                 document.getElementById('tree6-output').textContent = JSON.stringify({
                     dragged: draggedNode.data?.name,
                     droppedOn: dropNode?.data?.name ?? '(root)',

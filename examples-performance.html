@@ -331,7 +331,7 @@
                 nodeCountTarget: +$('cfg-node-count').value,
                 shouldUseInternalSearchIndex: $('cfg-search-index').checked,
                 indexerBatchSize: +$('cfg-indexer-batch').value,
-                progressiveRender: $('opt-progressive').checked,
+                isProgressiveRender: $('opt-progressive').checked,
                 initialBatchSize: +$('opt-initial-batch').value,
                 maxBatchSize: +$('opt-max-batch').value,
                 virtualContainerHeight: $('opt-container-height').value,
@@ -346,7 +346,7 @@
             if (c.nodeCountTarget !== undefined) $('cfg-node-count').value = c.nodeCountTarget;
             if (c.shouldUseInternalSearchIndex !== undefined) $('cfg-search-index').checked = c.shouldUseInternalSearchIndex;
             if (c.indexerBatchSize !== undefined) $('cfg-indexer-batch').value = c.indexerBatchSize;
-            if (c.progressiveRender !== undefined) $('opt-progressive').checked = c.progressiveRender;
+            if (c.isProgressiveRender !== undefined) $('opt-progressive').checked = c.isProgressiveRender;
             if (c.initialBatchSize !== undefined) $('opt-initial-batch').value = c.initialBatchSize;
             if (c.maxBatchSize !== undefined) $('opt-max-batch').value = c.maxBatchSize;
             if (c.virtualContainerHeight) $('opt-container-height').value = c.virtualContainerHeight;
@@ -444,15 +444,15 @@
                 isSorted: $('cfg-sorted').checked || undefined,
                 shouldUseInternalSearchIndex: $('cfg-search-index').checked || undefined,
                 indexerBatchSize: +$('cfg-indexer-batch').value,
-                virtualScroll: isVirtual,
-                useFlatRendering: true,
+                isVirtualScrollEnabled: isVirtual,
+                isFlatRenderingEnabled: true,
             };
             if (isVirtual) {
                 cfg.virtualContainerHeight = $('opt-container-height').value;
                 cfg.virtualOverscan = +$('opt-overscan').value;
-                cfg.progressiveRender = false;
+                cfg.isProgressiveRender = false;
             } else {
-                cfg.progressiveRender = $('opt-progressive').checked;
+                cfg.isProgressiveRender = $('opt-progressive').checked;
                 cfg.initialBatchSize = +$('opt-initial-batch').value;
                 cfg.maxBatchSize = +$('opt-max-batch').value;
             }

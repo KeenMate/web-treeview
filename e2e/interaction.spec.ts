@@ -165,7 +165,7 @@ test.describe('Click Behavior tree', () => {
     await expect(selected).not.toHaveText(/(^|, )1(,|$)/);
   });
 
-  test('clickTogglesCheckbox: plain click toggles checkbox and skips focus/highlight', async ({ page }) => {
+  test('shouldClickToggleCheckbox: plain click toggles checkbox and skips focus/highlight', async ({ page }) => {
     await gotoInteraction(page);
     const card = clickBehaviorCard(page);
 
@@ -184,7 +184,7 @@ test.describe('Click Behavior tree', () => {
     await expect(checkboxOf(nodeInCard(card, '1.1'))).not.toBeChecked();
   });
 
-  test('clickTogglesCheckbox: Ctrl+click still builds multi-highlight (modifier falls through)', async ({ page }) => {
+  test('shouldClickToggleCheckbox: Ctrl+click still builds multi-highlight (modifier falls through)', async ({ page }) => {
     await gotoInteraction(page);
     const card = clickBehaviorCard(page);
 

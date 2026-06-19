@@ -72,7 +72,7 @@ export class WebTreeView<T = any> {
   }
 
   /** Toggle the expand state of a node as if the user had clicked its toggle
-   *  icon. Honors `accordionExpand`. */
+   *  icon. Honors `isAccordionExpand`. */
   toggleNodeExpanded(path: string): void {
     this.controller.toggleNodeExpanded(path);
   }
@@ -351,7 +351,7 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     selectedPaths: options.selectedPaths,
 
     expandLevel: options.expandLevel,
-    accordionExpand: options.accordionExpand,
+    isAccordionExpand: options.isAccordionExpand,
     clickBehavior: options.clickBehavior,
     searchText: options.searchText,
     shouldUseInternalSearchIndex: options.shouldUseInternalSearchIndex,
@@ -361,13 +361,13 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     shouldDisplayContextMenuInDebugMode: options.shouldDisplayContextMenuInDebugMode ?? false,
     isLoading: options.isLoading ?? false,
 
-    progressiveRender: options.progressiveRender ?? true,
+    isProgressiveRender: options.isProgressiveRender ?? true,
     initialBatchSize: options.initialBatchSize,
     maxBatchSize: options.maxBatchSize,
-    useFlatRendering: options.useFlatRendering ?? true,
+    isFlatRenderingEnabled: options.isFlatRenderingEnabled ?? true,
     flatIndentSize: options.flatIndentSize,
 
-    virtualScroll: options.virtualScroll ?? false,
+    isVirtualScrollEnabled: options.isVirtualScrollEnabled ?? false,
     virtualRowHeight: options.virtualRowHeight ?? undefined,
     virtualOverscan: options.virtualOverscan ?? undefined,
     virtualContainerHeight: options.virtualContainerHeight ?? undefined,
@@ -377,15 +377,15 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     dropZoneLayout: options.dropZoneLayout,
     dropZoneStart: options.dropZoneStart,
     dropZoneMaxWidth: options.dropZoneMaxWidth,
-    allowCopy: options.allowCopy,
-    autoHandleCopy: options.autoHandleCopy,
-    autoHandleMove: options.autoHandleMove,
+    isCopyAllowed: options.isCopyAllowed,
+    shouldAutoHandleCopy: options.shouldAutoHandleCopy,
+    shouldAutoHandleMove: options.shouldAutoHandleMove,
 
-    onNodeClicked: options.onNodeClicked,
-    onNodeDragStart: options.onNodeDragStart,
-    onNodeDragOver: options.onNodeDragOver,
+    nodeClickedCallback: options.nodeClickedCallback,
+    nodeDragStartCallback: options.nodeDragStartCallback,
+    nodeDragOverCallback: options.nodeDragOverCallback,
     beforeDropCallback: options.beforeDropCallback,
-    onNodeDrop: options.onNodeDrop,
+    nodeDropCallback: options.nodeDropCallback,
     contextMenuCallback: options.contextMenuCallback,
     hasContextMenuRenderer: !!(options.contextMenuCallback || options.renderContextMenuCallback),
 
@@ -403,20 +403,20 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     contextMenuYOffset: options.contextMenuYOffset,
     iconMember: options.iconMember,
     iconCallback: options.iconCallback,
-    alignNodeIcons: options.alignNodeIcons,
+    shouldAlignNodeIcons: options.shouldAlignNodeIcons,
 
-    onRenderStart: options.onRenderStart,
-    onRenderProgress: options.onRenderProgress,
-    onRenderComplete: options.onRenderComplete,
+    renderStartCallback: options.renderStartCallback,
+    renderProgressCallback: options.renderProgressCallback,
+    renderCompleteCallback: options.renderCompleteCallback,
 
     rangeSelectionMode: options.rangeSelectionMode,
     selectionMode: options.selectionMode,
-    showCheckboxes: options.showCheckboxes,
+    shouldShowCheckboxes: options.shouldShowCheckboxes,
     checkboxMode: options.checkboxMode,
-    clickTogglesCheckbox: options.clickTogglesCheckbox,
+    shouldClickToggleCheckbox: options.shouldClickToggleCheckbox,
     beforeCheckboxToggleCallback: options.beforeCheckboxToggleCallback,
-    onSelectionChange: options.onSelectionChange,
-    onHighlightChange: options.onHighlightChange,
+    selectionChangeCallback: options.selectionChangeCallback,
+    highlightChangeCallback: options.highlightChangeCallback,
   } as TreeControllerConfig<T>;
 }
 

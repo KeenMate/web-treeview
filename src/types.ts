@@ -77,7 +77,7 @@ export interface TreeViewConfig<T = any> {
    *  siblings. Programmatic `expandNodes` / `expandAll` are unaffected.
    *  Respects `isCollapsibleMember` / `getIsCollapsibleCallback`.
    *  Mirrors svelte-treeview rc03. */
-  accordionExpand?: boolean | null;
+  isAccordionExpand?: boolean | null;
   isSorted?: boolean | null;
 
   // Search
@@ -86,16 +86,16 @@ export interface TreeViewConfig<T = any> {
   indexerTimeout?: number | null;
 
   // Progressive rendering
-  progressiveRender?: boolean | null;
+  isProgressiveRender?: boolean | null;
   initialBatchSize?: number | null;
   maxBatchSize?: number | null;
 
   // Flat rendering
-  useFlatRendering?: boolean | null;
+  isFlatRenderingEnabled?: boolean | null;
   flatIndentSize?: string | null;
 
   // Virtual scroll
-  virtualScroll?: boolean | null;
+  isVirtualScrollEnabled?: boolean | null;
   virtualRowHeight?: number | null;
   virtualOverscan?: number | null;
   virtualContainerHeight?: string | null;
@@ -122,7 +122,7 @@ export interface TreeViewConfig<T = any> {
   // Per-node icons
   iconMember?: string | null;
   iconCallback?: (node: LTreeNode<T>) => string | null;
-  alignNodeIcons?: boolean | null;
+  shouldAlignNodeIcons?: boolean | null;
 
   // Bindable properties
   searchText?: string | null;
@@ -131,7 +131,7 @@ export interface TreeViewConfig<T = any> {
   focusedNode?: LTreeNode<T> | null;
   /** Multi-select highlight set (Ctrl/Shift+click). */
   highlightedPaths?: Set<string>;
-  /** Checkbox / data-state selection set. When `showCheckboxes` is false,
+  /** Checkbox / data-state selection set. When `shouldShowCheckboxes` is false,
    *  the controller mirrors `highlightedPaths` into this set. */
   selectedPaths?: Set<string>;
 
@@ -161,15 +161,15 @@ export interface TreeViewConfig<T = any> {
    *  `'multi'` — Ctrl+click toggles, Shift+click range-extends. */
   selectionMode?: 'single' | 'multi';
   /** Render a checkbox per selectable node. Default `false`. */
-  showCheckboxes?: boolean;
+  shouldShowCheckboxes?: boolean;
   /** `'independent'` (default) — checkbox state is per-node; toggling a parent
    *  does NOT cascade to descendants. `'cascade'` — toggling a parent cascades
    *  to every descendant; partial selection shows an indeterminate state on
    *  the parent. */
   checkboxMode?: 'independent' | 'cascade';
   /** When `true`, plain clicks on a selectable node toggle its checkbox
-   *  instead of focusing/highlighting. Requires `showCheckboxes=true`. */
-  clickTogglesCheckbox?: boolean;
+   *  instead of focusing/highlighting. Requires `shouldShowCheckboxes=true`. */
+  shouldClickToggleCheckbox?: boolean;
   /** Interceptor invoked before applying a checkbox toggle. Return `false`
    *  to cancel, return a `string[]` to override which paths are affected,
    *  or return `void` to apply unchanged. */
@@ -180,9 +180,9 @@ export interface TreeViewConfig<T = any> {
   ) => boolean | string[] | void;
   rangeSelectionMode?: RangeSelectionMode;
   /** Fires on changes to the checkbox / data-state selection set. */
-  onSelectionChange?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
+  selectionChangeCallback?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
   /** Fires on changes to the highlight set (Ctrl/Shift+click, arrow keys). */
-  onHighlightChange?: (highlightedPaths: Set<string>, highlightedNodes: LTreeNode<T>[]) => void;
+  highlightChangeCallback?: (highlightedPaths: Set<string>, highlightedNodes: LTreeNode<T>[]) => void;
 
   // Debug
   shouldDisplayDebugInformation?: boolean | null;
@@ -194,17 +194,17 @@ export interface TreeViewConfig<T = any> {
   dropZoneLayout?: 'around' | 'above' | 'below' | 'wave' | 'wave2';
   dropZoneStart?: number | string;
   dropZoneMaxWidth?: number;
-  allowCopy?: boolean;
-  autoHandleCopy?: boolean;
+  isCopyAllowed?: boolean;
+  shouldAutoHandleCopy?: boolean;
   /** When `true` (default), drop operations with `move` semantics call
-   *  `moveNode` automatically. Set to `false` to receive the `onNodeDrop`
+   *  `moveNode` automatically. Set to `false` to receive the `nodeDropCallback`
    *  callback without mutating the tree (consumer handles the move). */
-  autoHandleMove?: boolean;
+  shouldAutoHandleMove?: boolean;
 
   // Event handlers
-  onNodeClicked?: (node: LTreeNode<T>) => void;
-  onNodeDragStart?: (node: LTreeNode<T>, event: DragEvent) => void;
-  onNodeDragOver?: (node: LTreeNode<T>, event: DragEvent) => void;
+  nodeClickedCallback?: (node: LTreeNode<T>) => void;
+  nodeDragStartCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
+  nodeDragOverCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
   beforeDropCallback?: (
     dropNode: LTreeNode<T> | null,
     draggedNode: LTreeNode<T>,
@@ -220,7 +220,7 @@ export interface TreeViewConfig<T = any> {
         | { position?: DropPosition; operation?: DropOperation }
         | void
       >;
-  onNodeDrop?: (
+  nodeDropCallback?: (
     dropNode: LTreeNode<T> | null,
     draggedNode: LTreeNode<T>,
     position: DropPosition,
@@ -229,9 +229,9 @@ export interface TreeViewConfig<T = any> {
   ) => void;
 
   // Render callbacks
-  onRenderStart?: () => void;
-  onRenderProgress?: (stats: RenderStats) => void;
-  onRenderComplete?: (stats: RenderStats) => void;
+  renderStartCallback?: () => void;
+  renderProgressCallback?: (stats: RenderStats) => void;
+  renderCompleteCallback?: (stats: RenderStats) => void;
 
   // Render callbacks (for DomRenderer)
   renderNodeCallback?: (node: LTreeNode<T>, container: HTMLElement) => void;

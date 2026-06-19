@@ -315,8 +315,8 @@
             el.expandLevel = opts.expandLevel ?? 3;
             el.dragDropMode = opts.dragDropMode ?? 'both';
             if (opts.dropZoneMode) el.dropZoneMode = opts.dropZoneMode;
-            if (opts.allowCopy) el.allowCopy = true;
-            if (opts.autoHandleCopy) el.autoHandleCopy = true;
+            if (opts.isCopyAllowed) el.isCopyAllowed = true;
+            if (opts.shouldAutoHandleCopy) el.shouldAutoHandleCopy = true;
             if (opts.treeId) el.treeId = opts.treeId;
             return el;
         }
@@ -341,7 +341,7 @@
                 if (config.layout) document.getElementById('ctrl-layout').value = config.layout;
                 if (config.start !== undefined) document.getElementById('ctrl-zone-start').value = config.start;
                 if (config.maxWidth !== undefined) document.getElementById('ctrl-max-width').value = config.maxWidth;
-                if (config.allowCopy !== undefined) document.getElementById('ctrl-allow-copy').checked = config.allowCopy;
+                if (config.isCopyAllowed !== undefined) document.getElementById('ctrl-allow-copy').checked = config.isCopyAllowed;
             } catch (e) {
                 // Ignore invalid JSON
             }
@@ -354,7 +354,7 @@
                 layout: document.getElementById('ctrl-layout').value,
                 start: document.getElementById('ctrl-zone-start').value,
                 maxWidth: parseInt(document.getElementById('ctrl-max-width').value, 10),
-                allowCopy: document.getElementById('ctrl-allow-copy').checked
+                isCopyAllowed: document.getElementById('ctrl-allow-copy').checked
             };
             localStorage.setItem('dropZoneConfig', JSON.stringify(config));
         }
@@ -367,7 +367,7 @@
             const layout = document.getElementById('ctrl-layout').value;
             const zoneStart = document.getElementById('ctrl-zone-start').value;
             const maxWidth = parseInt(document.getElementById('ctrl-max-width').value, 10);
-            const allowCopy = document.getElementById('ctrl-allow-copy').checked;
+            const isCopyAllowed = document.getElementById('ctrl-allow-copy').checked;
 
             // Show/hide floating-specific controls
             const floatingControls = document.getElementById('floating-controls');
@@ -380,7 +380,7 @@
                 sourceTreeEl.dropZoneLayout = layout;
                 sourceTreeEl.dropZoneStart = zoneStart;
                 sourceTreeEl.dropZoneMaxWidth = maxWidth;
-                sourceTreeEl.allowCopy = allowCopy;
+                sourceTreeEl.isCopyAllowed = isCopyAllowed;
             }
 
             // Apply to target tree (always 'both' mode)
@@ -389,7 +389,7 @@
                 targetTreeEl.dropZoneLayout = layout;
                 targetTreeEl.dropZoneStart = zoneStart;
                 targetTreeEl.dropZoneMaxWidth = maxWidth;
-                targetTreeEl.allowCopy = allowCopy;
+                targetTreeEl.isCopyAllowed = isCopyAllowed;
             }
 
             saveSettings();
@@ -502,19 +502,19 @@
             sourceTreeEl = initTree('source-tree', sourceData, {
                 dragDropMode: document.getElementById('ctrl-drag-mode').value,
                 treeId: 'source-tree',
-                allowCopy: document.getElementById('ctrl-allow-copy').checked,
-                autoHandleCopy: true
+                isCopyAllowed: document.getElementById('ctrl-allow-copy').checked,
+                shouldAutoHandleCopy: true
             });
-            sourceTreeEl.onNodeDrop = handleSourceDrop;
+            sourceTreeEl.nodeDropCallback = handleSourceDrop;
 
             // Target tree (always accepts drops)
             targetTreeEl = initTree('target-tree', [], {
                 dragDropMode: 'both',
                 treeId: 'target-tree',
-                allowCopy: document.getElementById('ctrl-allow-copy').checked,
-                autoHandleCopy: true
+                isCopyAllowed: document.getElementById('ctrl-allow-copy').checked,
+                shouldAutoHandleCopy: true
             });
-            targetTreeEl.onNodeDrop = handleTargetDrop;
+            targetTreeEl.nodeDropCallback = handleTargetDrop;
 
             // Apply all settings from controls
             applySettings();
@@ -538,7 +538,7 @@
             const restrictedLogEl = document.getElementById('restricted-log');
             const restrictedOutputEl = document.getElementById('restricted-output');
             let restrictedLogEntries = [];
-            restrictedTree.onNodeDrop = (dropNode, draggedNode, position) => {
+            restrictedTree.nodeDropCallback = (dropNode, draggedNode, position) => {
                 const posLabel = dropNode?.data?.allowedDropPositions?.length === 1
                     ? `(only ${dropNode.data.allowedDropPositions[0]} allowed)`
                     : '';
@@ -580,14 +580,14 @@
             multiTreeEl.addEventListener('selection-change', (e) => {
                 const paths = [...e.detail.selectedPaths].sort();
                 if (paths.length === 0) {
-                    multiSelectedEl.textContent = multiTreeEl.showCheckboxes ? '(none)' : '(checkboxes off)';
+                    multiSelectedEl.textContent = multiTreeEl.shouldShowCheckboxes ? '(none)' : '(checkboxes off)';
                     return;
                 }
                 const names = e.detail.selectedNodes.map(n => n.data?.name).join(', ');
                 multiSelectedEl.textContent = `${paths.length} selected — ${names}`;
             });
 
-            multiTreeEl.onNodeDrop = (dropNode, draggedNode, position, _ev, op) => {
+            multiTreeEl.nodeDropCallback = (dropNode, draggedNode, position, _ev, op) => {
                 multiDropEl.textContent =
                     `[${op.toUpperCase()}] "${draggedNode.data?.name}" ${position} "${dropNode?.data?.name ?? 'root'}"`;
             };

@@ -59,9 +59,9 @@ export interface NodeConfig {
   dropZoneLayout: 'around' | 'above' | 'below' | 'wave' | 'wave2';
   dropZoneStart: number | string;
   dropZoneMaxWidth: number;
-  allowCopy: boolean;
+  isCopyAllowed: boolean;
   iconMember: string | null | undefined;
-  showCheckboxes: boolean;
+  shouldShowCheckboxes: boolean;
 }
 
 // ─── Controller props ─────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ export interface TreeControllerConfig<T> {
    *  siblings. Programmatic `expandNodes` / `expandAll` are NOT constrained.
    *  Respects `isCollapsibleMember` / `getIsCollapsibleCallback`.
    *  Mirrors svelte-treeview rc03. */
-  accordionExpand?: boolean | null | undefined;
+  isAccordionExpand?: boolean | null | undefined;
   clickBehavior?: ClickBehavior | null | undefined;
   initializeIndexCallback?: () => Index;
   searchText?: string | null | undefined;
@@ -125,19 +125,19 @@ export interface TreeControllerConfig<T> {
   isLoading?: boolean;
 
   // Progressive rendering
-  progressiveRender?: boolean;
+  isProgressiveRender?: boolean;
   initialBatchSize?: number;
   maxBatchSize?: number;
-  onRenderStart?: () => void;
-  onRenderProgress?: (stats: RenderStats) => void;
-  onRenderComplete?: (stats: RenderStats) => void;
+  renderStartCallback?: () => void;
+  renderProgressCallback?: (stats: RenderStats) => void;
+  renderCompleteCallback?: (stats: RenderStats) => void;
 
   // Flat rendering
-  useFlatRendering?: boolean;
+  isFlatRenderingEnabled?: boolean;
   flatIndentSize?: string;
 
   // Virtual scroll
-  virtualScroll?: boolean;
+  isVirtualScrollEnabled?: boolean;
   virtualRowHeight?: number;
   virtualOverscan?: number;
   virtualContainerHeight?: string;
@@ -148,28 +148,28 @@ export interface TreeControllerConfig<T> {
   dropZoneLayout?: 'around' | 'above' | 'below' | 'wave' | 'wave2';
   dropZoneStart?: number | string;
   dropZoneMaxWidth?: number;
-  allowCopy?: boolean;
-  autoHandleCopy?: boolean;
-  autoHandleMove?: boolean;
+  isCopyAllowed?: boolean;
+  shouldAutoHandleCopy?: boolean;
+  shouldAutoHandleMove?: boolean;
 
   // SELECTION MODEL (rc06+: focusedNode / highlightedPaths / selectedPaths)
   rangeSelectionMode?: RangeSelectionMode;
   selectionMode?: 'single' | 'multi';
-  showCheckboxes?: boolean;
+  shouldShowCheckboxes?: boolean;
   checkboxMode?: CheckboxMode;
-  clickTogglesCheckbox?: boolean;
+  shouldClickToggleCheckbox?: boolean;
   beforeCheckboxToggleCallback?: (
     node: LTreeNode<T>,
     checked: boolean,
     affectedPaths: string[]
   ) => boolean | string[] | void;
-  onSelectionChange?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
-  onHighlightChange?: (highlightedPaths: Set<string>, highlightedNodes: LTreeNode<T>[]) => void;
+  selectionChangeCallback?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
+  highlightChangeCallback?: (highlightedPaths: Set<string>, highlightedNodes: LTreeNode<T>[]) => void;
 
   // EVENTS
-  onNodeClicked?: (node: LTreeNode<T>) => void;
-  onNodeDragStart?: (node: LTreeNode<T>, event: DragEvent) => void;
-  onNodeDragOver?: (node: LTreeNode<T>, event: DragEvent) => void;
+  nodeClickedCallback?: (node: LTreeNode<T>) => void;
+  nodeDragStartCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
+  nodeDragOverCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
   beforeDropCallback?: (
     dropNode: LTreeNode<T> | null,
     draggedNode: LTreeNode<T>,
@@ -185,7 +185,7 @@ export interface TreeControllerConfig<T> {
         | { position?: DropPosition; operation?: DropOperation }
         | void
       >;
-  onNodeDrop?: (
+  nodeDropCallback?: (
     dropNode: LTreeNode<T> | null,
     draggedNode: LTreeNode<T>,
     position: DropPosition,
@@ -217,7 +217,7 @@ export interface TreeControllerConfig<T> {
   // Per-node icons
   iconMember?: string | null | undefined;
   iconCallback?: (node: LTreeNode<T>) => string | null;
-  alignNodeIcons?: boolean | null | undefined;
+  shouldAlignNodeIcons?: boolean | null | undefined;
 }
 
 // ─── Snapshot ─────────────────────────────────────────────────────────────
@@ -239,7 +239,7 @@ export interface TreeControllerSnapshot<T> {
   isLoading: boolean;
   isRendering: boolean;
   bodyClass: string | null | undefined;
-  useFlatRendering: boolean;
+  isFlatRenderingEnabled: boolean;
   flatIndentSize: string;
   shouldDisplayDebugInformation: boolean;
   focusedNode: LTreeNode<T> | null | undefined;
@@ -248,7 +248,7 @@ export interface TreeControllerSnapshot<T> {
   cutPaths: Set<string>;
 
   // Virtual scroll
-  virtualScroll: boolean;
+  isVirtualScrollEnabled: boolean;
   virtualRowHeight: number;
   virtualContainerHeight: string;
   virtualTotalHeight: number;
