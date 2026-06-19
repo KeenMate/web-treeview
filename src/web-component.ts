@@ -19,6 +19,202 @@ declare const __VERSION__: string;
 // Instance tracking for global API
 const instances = new Set<WebTreeViewElement>();
 
+// ── ATTRIBUTE_TABLE ───────────────────────────────────────────────────────
+//
+// Single source of truth for the HTML-attribute ⇄ JS-config wiring. Each
+// entry declares how to read one attribute, what private field shadows it
+// (JS property takes precedence over the attribute), how to parse the raw
+// string, and which TreeViewConfig key to write into.
+//
+// `observedAttributes` derives from this list. `buildConfig()` iterates this
+// list. Adding a new attribute is now one entry here — not three spots that
+// drift out of sync.
+//
+// HTML attribute names stay in kebab-case (`show-checkboxes`, `allow-copy`,
+// `accordion-expand`, etc.) — short and readable. The JS config keys follow
+// the BlissFramework naming convention (`shouldShowCheckboxes`,
+// `isCopyAllowed`, `isAccordionExpand`, etc.).
+
+type AttrParse =
+  | { kind: 'string'; default?: string; allowEmpty?: boolean }
+  | { kind: 'number'; parser?: 'int' | 'float'; alwaysSet?: boolean }
+  | { kind: 'boolean'; alwaysSet?: boolean }
+  | { kind: 'enum'; values: readonly string[]; setNullOnInvalid?: boolean };
+
+interface AttrSpec {
+  attr: string;
+  configKey: string;
+  field?: string; // private field on the element (e.g. '_idMember')
+  parse: AttrParse;
+}
+
+const ATTRIBUTE_TABLE: readonly AttrSpec[] = [
+  // ── Tree identification ─────────────────────────────────────────────
+  { attr: 'tree-id', configKey: 'treeId', field: '_treeId', parse: { kind: 'string' } },
+
+  // ── Member mappings: required (with defaults) ───────────────────────
+  { attr: 'id-member',            configKey: 'idMember',            field: '_idMember',            parse: { kind: 'string', default: 'id' } },
+  { attr: 'path-member',          configKey: 'pathMember',          field: '_pathMember',          parse: { kind: 'string', default: 'path' } },
+  { attr: 'display-value-member', configKey: 'displayValueMember',  field: '_displayValueMember',  parse: { kind: 'string', default: 'displayValue' } },
+
+  // ── Member mappings: optional ───────────────────────────────────────
+  { attr: 'parent-path-member',          configKey: 'parentPathMember',          field: '_parentPathMember',          parse: { kind: 'string' } },
+  { attr: 'level-member',                configKey: 'levelMember',               field: '_levelMember',               parse: { kind: 'string' } },
+  { attr: 'is-expanded-member',          configKey: 'isExpandedMember',          field: '_isExpandedMember',          parse: { kind: 'string' } },
+  { attr: 'is-selected-member',          configKey: 'isSelectedMember',          field: '_isSelectedMember',          parse: { kind: 'string' } },
+  { attr: 'is-draggable-member',         configKey: 'isDraggableMember',         field: '_isDraggableMember',         parse: { kind: 'string' } },
+  { attr: 'is-drop-allowed-member',      configKey: 'isDropAllowedMember',       field: '_isDropAllowedMember',       parse: { kind: 'string' } },
+  { attr: 'has-children-member',         configKey: 'hasChildrenMember',         field: '_hasChildrenMember',         parse: { kind: 'string' } },
+  { attr: 'search-value-member',         configKey: 'searchValueMember',         field: '_searchValueMember',         parse: { kind: 'string' } },
+  { attr: 'is-selectable-member',        configKey: 'isSelectableMember',        field: '_isSelectableMember',        parse: { kind: 'string' } },
+  { attr: 'is-collapsible-member',       configKey: 'isCollapsibleMember',       field: '_isCollapsibleMember',       parse: { kind: 'string' } },
+  { attr: 'order-member',                configKey: 'orderMember',               field: '_orderMember',               parse: { kind: 'string' } },
+  { attr: 'allowed-drop-positions-member', configKey: 'allowedDropPositionsMember', field: '_allowedDropPositionsMember', parse: { kind: 'string' } },
+  { attr: 'icon-member',                 configKey: 'iconMember',                field: '_iconMember',                parse: { kind: 'string' } },
+
+  // ── Behavior ────────────────────────────────────────────────────────
+  { attr: 'expand-level',         configKey: 'expandLevel',        field: '_expandLevel',  parse: { kind: 'number', parser: 'int' } },
+  { attr: 'tree-path-separator',  configKey: 'treePathSeparator',                          parse: { kind: 'string', allowEmpty: true } },
+  { attr: 'click-behavior',       configKey: 'clickBehavior',      field: '_clickBehavior', parse: { kind: 'enum', values: ['select', 'expand', 'expand-and-focus'] } },
+  { attr: 'accordion-expand',     configKey: 'isAccordionExpand',                          parse: { kind: 'boolean' } },
+  { attr: 'is-sorted',            configKey: 'isSorted',           field: '_isSorted',     parse: { kind: 'boolean' } },
+
+  // ── Search / indexer ───────────────────────────────────────────────
+  { attr: 'should-use-internal-search-index', configKey: 'shouldUseInternalSearchIndex', field: '_shouldUseInternalSearchIndex', parse: { kind: 'boolean' } },
+  { attr: 'indexer-batch-size',   configKey: 'indexerBatchSize',  field: '_indexerBatchSize', parse: { kind: 'number', parser: 'int' } },
+  { attr: 'indexer-timeout',      configKey: 'indexerTimeout',    field: '_indexerTimeout',   parse: { kind: 'number', parser: 'int' } },
+  { attr: 'search-text',          configKey: 'searchText',                                    parse: { kind: 'string', allowEmpty: true } },
+
+  // ── Theme / visual classes ─────────────────────────────────────────
+  { attr: 'theme',                configKey: 'theme',                                       parse: { kind: 'enum', values: ['dark', 'light'], setNullOnInvalid: true } },
+  { attr: 'body-class',           configKey: 'bodyClass',                                   parse: { kind: 'string' } },
+  { attr: 'highlighted-node-class', configKey: 'highlightedNodeClass',                      parse: { kind: 'string' } },
+  { attr: 'focused-node-class',   configKey: 'focusedNodeClass',                            parse: { kind: 'string' } },
+  { attr: 'drag-over-node-class', configKey: 'dragOverNodeClass',                           parse: { kind: 'string' } },
+  { attr: 'expand-icon-class',    configKey: 'expandIconClass',                             parse: { kind: 'string' } },
+  { attr: 'collapse-icon-class',  configKey: 'collapseIconClass',                           parse: { kind: 'string' } },
+  { attr: 'leaf-icon-class',      configKey: 'leafIconClass',                               parse: { kind: 'string' } },
+  { attr: 'toggle-icon-mode',     configKey: 'toggleIconMode',     field: '_toggleIconMode', parse: { kind: 'enum', values: ['rotate', 'swap'] } },
+  { attr: 'scroll-highlight-class', configKey: 'scrollHighlightClass',                       parse: { kind: 'string' } },
+  { attr: 'scroll-highlight-timeout', configKey: 'scrollHighlightTimeout',                   parse: { kind: 'number', parser: 'int', alwaysSet: true } },
+
+  // ── Per-node icons ─────────────────────────────────────────────────
+  { attr: 'align-node-icons',     configKey: 'shouldAlignNodeIcons', field: '_shouldAlignNodeIcons', parse: { kind: 'boolean' } },
+
+  // ── Context menu ───────────────────────────────────────────────────
+  { attr: 'context-menu-x-offset', configKey: 'contextMenuXOffset', field: '_contextMenuXOffset', parse: { kind: 'number', parser: 'int' } },
+  { attr: 'context-menu-y-offset', configKey: 'contextMenuYOffset', field: '_contextMenuYOffset', parse: { kind: 'number', parser: 'int' } },
+
+  // ── Debug / Loading ─────────────────────────────────────────────────
+  { attr: 'should-display-debug-information', configKey: 'shouldDisplayDebugInformation', field: '_shouldDisplayDebugInformation', parse: { kind: 'boolean' } },
+  { attr: 'is-loading',           configKey: 'isLoading',          field: '_isLoading',    parse: { kind: 'boolean' } },
+
+  // ── Drag and drop ──────────────────────────────────────────────────
+  { attr: 'drag-drop-mode',       configKey: 'dragDropMode',       field: '_dragDropMode',  parse: { kind: 'string' } },
+  { attr: 'drop-zone-mode',       configKey: 'dropZoneMode',       field: '_dropZoneMode',  parse: { kind: 'enum', values: ['floating', 'glow'] } },
+  { attr: 'drop-zone-layout',     configKey: 'dropZoneLayout',     field: '_dropZoneLayout', parse: { kind: 'enum', values: ['around', 'above', 'below', 'wave', 'wave2'] } },
+  { attr: 'drop-zone-start',      configKey: 'dropZoneStart',      field: '_dropZoneStart',  parse: { kind: 'number', parser: 'int' } },
+  { attr: 'drop-zone-max-width',  configKey: 'dropZoneMaxWidth',   field: '_dropZoneMaxWidth', parse: { kind: 'number', parser: 'int' } },
+  { attr: 'allow-copy',           configKey: 'isCopyAllowed',      field: '_isCopyAllowed',  parse: { kind: 'boolean' } },
+  { attr: 'auto-handle-copy',     configKey: 'shouldAutoHandleCopy', field: '_shouldAutoHandleCopy', parse: { kind: 'boolean' } },
+
+  // ── Rendering ──────────────────────────────────────────────────────
+  { attr: 'use-flat-rendering',   configKey: 'isFlatRenderingEnabled',                       parse: { kind: 'boolean' } },
+  { attr: 'flat-indent-size',     configKey: 'flatIndentSize',                               parse: { kind: 'string' } },
+  { attr: 'progressive-render',   configKey: 'isProgressiveRender',                          parse: { kind: 'boolean' } },
+  { attr: 'initial-batch-size',   configKey: 'initialBatchSize',                             parse: { kind: 'number', parser: 'int', alwaysSet: true } },
+  { attr: 'max-batch-size',       configKey: 'maxBatchSize',                                 parse: { kind: 'number', parser: 'int', alwaysSet: true } },
+
+  // ── Virtual scroll ─────────────────────────────────────────────────
+  { attr: 'virtual-scroll',       configKey: 'isVirtualScrollEnabled', field: '_isVirtualScrollEnabled', parse: { kind: 'boolean' } },
+  { attr: 'virtual-row-height',   configKey: 'virtualRowHeight',    field: '_virtualRowHeight',  parse: { kind: 'number', parser: 'float' } },
+  { attr: 'virtual-overscan',     configKey: 'virtualOverscan',     field: '_virtualOverscan',   parse: { kind: 'number', parser: 'int' } },
+  { attr: 'virtual-container-height', configKey: 'virtualContainerHeight', field: '_virtualContainerHeight', parse: { kind: 'string' } },
+
+  // ── Selection model ────────────────────────────────────────────────
+  { attr: 'range-selection-mode', configKey: 'rangeSelectionMode', field: '_rangeSelectionMode', parse: { kind: 'enum', values: ['visual', 'logical'] } },
+  { attr: 'selection-mode',       configKey: 'selectionMode',                                  parse: { kind: 'enum', values: ['single', 'multi'] } },
+  { attr: 'show-checkboxes',      configKey: 'shouldShowCheckboxes',                           parse: { kind: 'boolean', alwaysSet: true } },
+  { attr: 'checkbox-mode',        configKey: 'checkboxMode',                                   parse: { kind: 'enum', values: ['independent', 'cascade'] } },
+  { attr: 'click-toggles-checkbox', configKey: 'shouldClickToggleCheckbox',                    parse: { kind: 'boolean' } },
+];
+
+// JS-only callback fields that don't have an HTML attribute counterpart.
+// buildConfig() copies each one to the matching config key when set.
+const JS_CALLBACK_FIELDS: readonly { field: string; configKey: string }[] = [
+  { field: '_iconCallback',                 configKey: 'iconCallback' },
+  { field: '_getDisplayValueCallback',      configKey: 'getDisplayValueCallback' },
+  { field: '_getSearchValueCallback',       configKey: 'getSearchValueCallback' },
+  { field: '_getIsDraggableCallback',       configKey: 'getIsDraggableCallback' },
+  { field: '_getIsCollapsibleCallback',     configKey: 'getIsCollapsibleCallback' },
+  { field: '_getAllowedDropPositionsCallback', configKey: 'getAllowedDropPositionsCallback' },
+  { field: '_sortCallback',                 configKey: 'sortCallback' },
+  { field: '_contextMenuCallback',          configKey: 'contextMenuCallback' },
+  { field: '_indexingCompleteCallback',     configKey: 'indexingCompleteCallback' },
+  { field: '_renderNodeCallback',           configKey: 'renderNodeCallback' },
+  { field: '_renderEmptyStateCallback',     configKey: 'renderEmptyStateCallback' },
+  { field: '_renderEmptyZoneCallback',      configKey: 'renderEmptyZoneCallback' },
+  { field: '_renderLoadingCallback',        configKey: 'renderLoadingCallback' },
+  { field: '_renderHeaderCallback',         configKey: 'renderHeaderCallback' },
+  { field: '_renderFooterCallback',         configKey: 'renderFooterCallback' },
+  { field: '_renderContextMenuCallback',    configKey: 'renderContextMenuCallback' },
+  { field: '_renderContextMenuItemCallback', configKey: 'renderContextMenuItemCallback' },
+  { field: '_selectionChangeCallback',      configKey: 'selectionChangeCallback' },
+  { field: '_nodeClickedCallback',          configKey: 'nodeClickedCallback' },
+  { field: '_nodeDragStartCallback',        configKey: 'nodeDragStartCallback' },
+  { field: '_nodeDragOverCallback',         configKey: 'nodeDragOverCallback' },
+  { field: '_beforeDropCallback',           configKey: 'beforeDropCallback' },
+  { field: '_nodeDropCallback',             configKey: 'nodeDropCallback' },
+  { field: '_renderStartCallback',          configKey: 'renderStartCallback' },
+  { field: '_renderProgressCallback',       configKey: 'renderProgressCallback' },
+  { field: '_renderCompleteCallback',       configKey: 'renderCompleteCallback' },
+  // JS-only flag (no attribute) — set via property setter.
+  { field: '_shouldDisplayContextMenuInDebugMode', configKey: 'shouldDisplayContextMenuInDebugMode' },
+];
+
+function readAttrValue(
+  el: HTMLElement,
+  spec: AttrSpec
+): { assigned: boolean; value: unknown } {
+  const fieldVal = spec.field ? (el as any)[spec.field] : undefined;
+  const attrVal = el.getAttribute(spec.attr);
+
+  switch (spec.parse.kind) {
+    case 'string': {
+      const v = fieldVal ?? attrVal ?? spec.parse.default;
+      if (v == null) return { assigned: false, value: undefined };
+      if (!spec.parse.allowEmpty && v === '') return { assigned: false, value: undefined };
+      return { assigned: true, value: v };
+    }
+    case 'number': {
+      const parseFn = spec.parse.parser === 'float' ? parseFloat : (s: string) => parseInt(s, 10);
+      const num = fieldVal ?? (attrVal !== null ? parseFn(attrVal) : undefined);
+      if (num === undefined || Number.isNaN(num)) {
+        return spec.parse.alwaysSet && attrVal !== null
+          ? { assigned: true, value: NaN }
+          : { assigned: false, value: undefined };
+      }
+      return { assigned: true, value: num };
+    }
+    case 'boolean': {
+      if (spec.parse.alwaysSet) {
+        return { assigned: true, value: attrVal !== null && attrVal !== 'false' };
+      }
+      if (fieldVal !== undefined) return { assigned: true, value: fieldVal };
+      if (attrVal !== null) return { assigned: true, value: attrVal !== 'false' };
+      return { assigned: false, value: undefined };
+    }
+    case 'enum': {
+      const v = fieldVal ?? attrVal;
+      if (typeof v === 'string' && spec.parse.values.includes(v)) {
+        return { assigned: true, value: v };
+      }
+      if (spec.parse.setNullOnInvalid) return { assigned: true, value: null };
+      return { assigned: false, value: undefined };
+    }
+  }
+}
+
 export function getAllInstances(): WebTreeViewElement[] {
   return Array.from(instances);
 }
@@ -136,60 +332,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _renderCompleteCallback?: (stats: any) => void;
 
   static get observedAttributes() {
-    return [
-      // Tree identification
-      'tree-id',
-
-      // Member mappings
-      'id-member', 'path-member', 'parent-path-member', 'level-member',
-      'is-expanded-member', 'is-selected-member', 'is-draggable-member',
-      'is-drop-allowed-member', 'has-children-member',
-      'display-value-member', 'search-value-member',
-      'is-selectable-member', 'is-collapsible-member',
-      'order-member', 'allowed-drop-positions-member',
-
-      // Behavior
-      'expand-level', 'tree-path-separator', 'click-behavior',
-      'is-sorted', 'should-use-internal-search-index',
-      'indexer-batch-size', 'indexer-timeout',
-
-      // Visual / CSS classes
-      'theme',
-      'body-class', 'highlighted-node-class', 'focused-node-class', 'drag-over-node-class',
-      // Selection model
-      'selection-mode', 'show-checkboxes', 'checkbox-mode', 'click-toggles-checkbox',
-      'expand-icon-class', 'collapse-icon-class', 'leaf-icon-class', 'toggle-icon-mode',
-      'scroll-highlight-timeout', 'scroll-highlight-class',
-
-      // Behaviour
-      'accordion-expand',
-
-      // Bindable
-      'search-text',
-
-      // Context menu
-      'context-menu-x-offset', 'context-menu-y-offset',
-
-      // Debug / Loading
-      'should-display-debug-information', 'is-loading',
-
-      // DnD
-      'drag-drop-mode', 'drop-zone-mode', 'drop-zone-layout',
-      'drop-zone-start', 'drop-zone-max-width', 'allow-copy', 'auto-handle-copy',
-
-      // Rendering
-      'use-flat-rendering', 'flat-indent-size',
-      'progressive-render', 'initial-batch-size', 'max-batch-size',
-
-      // Virtual scroll
-      'virtual-scroll', 'virtual-row-height', 'virtual-overscan', 'virtual-container-height',
-
-      // Per-node icons
-      'icon-member', 'align-node-icons',
-
-      // Multi-select
-      'range-selection-mode',
-    ];
+    return ATTRIBUTE_TABLE.map((spec) => spec.attr);
   }
 
   constructor() {
@@ -942,256 +1085,27 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   }
 
   private buildConfig(): Partial<TreeViewConfig<T>> {
-    const config: Partial<TreeViewConfig<T>> = {};
+    const config: Record<string, unknown> = {};
 
-    // Data
+    // `data` is a JS-only property (too large for an HTML attribute).
     if (this._data) config.data = this._data;
 
-    // Member mappings from attributes or properties (defaults: property name without "Member" suffix)
-    config.idMember = this._idMember ?? this.getAttribute('id-member') ?? 'id';
-    config.pathMember = this._pathMember ?? this.getAttribute('path-member') ?? 'path';
-
-    // Optional member mappings — only set when explicitly provided by user.
-    // When left undefined, LTree auto-calculates these from the path structure.
-    const parentPathMember = this._parentPathMember ?? this.getAttribute('parent-path-member');
-    if (parentPathMember) config.parentPathMember = parentPathMember;
-
-    const levelMember = this._levelMember ?? this.getAttribute('level-member');
-    if (levelMember) config.levelMember = levelMember;
-
-    const isExpandedMember = this._isExpandedMember ?? this.getAttribute('is-expanded-member');
-    if (isExpandedMember) config.isExpandedMember = isExpandedMember;
-
-    const isSelectedMember = this._isSelectedMember ?? this.getAttribute('is-selected-member');
-    if (isSelectedMember) config.isSelectedMember = isSelectedMember;
-
-    const isDraggableMember = this._isDraggableMember ?? this.getAttribute('is-draggable-member');
-    if (isDraggableMember) config.isDraggableMember = isDraggableMember;
-
-    const isDropAllowedMember = this._isDropAllowedMember ?? this.getAttribute('is-drop-allowed-member');
-    if (isDropAllowedMember) config.isDropAllowedMember = isDropAllowedMember;
-
-    const hasChildrenMember = this._hasChildrenMember ?? this.getAttribute('has-children-member');
-    if (hasChildrenMember) config.hasChildrenMember = hasChildrenMember;
-
-    config.displayValueMember = this._displayValueMember ?? this.getAttribute('display-value-member') ?? 'displayValue';
-
-    const searchValueMember = this._searchValueMember ?? this.getAttribute('search-value-member');
-    if (searchValueMember) config.searchValueMember = searchValueMember;
-
-    const isSelectableMember = this._isSelectableMember ?? this.getAttribute('is-selectable-member');
-    if (isSelectableMember) config.isSelectableMember = isSelectableMember;
-
-    const isCollapsibleMember = this._isCollapsibleMember ?? this.getAttribute('is-collapsible-member');
-    if (isCollapsibleMember) config.isCollapsibleMember = isCollapsibleMember;
-
-    const orderMember = this._orderMember ?? this.getAttribute('order-member');
-    if (orderMember) config.orderMember = orderMember;
-
-    const allowedDropPositionsMember = this._allowedDropPositionsMember ?? this.getAttribute('allowed-drop-positions-member');
-    if (allowedDropPositionsMember) config.allowedDropPositionsMember = allowedDropPositionsMember;
-
-    // Tree identification
-    const treeId = this._treeId ?? this.getAttribute('tree-id');
-    if (treeId) config.treeId = treeId;
-
-    // Behavior attributes
-    const expandLevel = this._expandLevel ?? (this.getAttribute('expand-level') !== null ? parseInt(this.getAttribute('expand-level')!, 10) : undefined);
-    if (expandLevel !== undefined) config.expandLevel = expandLevel;
-
-    const treePathSeparator = this.getAttribute('tree-path-separator');
-    if (treePathSeparator !== null) config.treePathSeparator = treePathSeparator;
-
-    const clickBehavior = this._clickBehavior ?? this.getAttribute('click-behavior') as import('./controller/types').ClickBehavior;
-    if (clickBehavior === 'select' || clickBehavior === 'expand' || clickBehavior === 'expand-and-focus') config.clickBehavior = clickBehavior;
-
-    const accordionAttr = this.getAttribute('accordion-expand');
-    if (accordionAttr !== null) config.isAccordionExpand = accordionAttr !== 'false';
-
-    const isSorted = this._isSorted ?? (this.getAttribute('is-sorted') !== null ? this.getAttribute('is-sorted') !== 'false' : undefined);
-    if (isSorted !== undefined) config.isSorted = isSorted;
-
-    // Search/indexer
-    const shouldUseSearch = this._shouldUseInternalSearchIndex ?? (this.getAttribute('should-use-internal-search-index') !== null ? this.getAttribute('should-use-internal-search-index') !== 'false' : undefined);
-    if (shouldUseSearch !== undefined) config.shouldUseInternalSearchIndex = shouldUseSearch;
-
-    const batchSize = this._indexerBatchSize ?? (this.getAttribute('indexer-batch-size') ? parseInt(this.getAttribute('indexer-batch-size')!, 10) : undefined);
-    if (batchSize !== undefined) config.indexerBatchSize = batchSize;
-
-    const timeout = this._indexerTimeout ?? (this.getAttribute('indexer-timeout') ? parseInt(this.getAttribute('indexer-timeout')!, 10) : undefined);
-    if (timeout !== undefined) config.indexerTimeout = timeout;
-
-    // Search
-    const searchText = this.getAttribute('search-text');
-    if (searchText !== null) config.searchText = searchText;
-
-    // Visual classes
-    const themeAttr = this.getAttribute('theme');
-    if (themeAttr === 'dark' || themeAttr === 'light') config.theme = themeAttr;
-    else config.theme = null;
-
-    const bodyClass = this.getAttribute('body-class');
-    if (bodyClass) config.bodyClass = bodyClass;
-
-    const highlightedNodeClass = this.getAttribute('highlighted-node-class');
-    if (highlightedNodeClass) config.highlightedNodeClass = highlightedNodeClass;
-
-    const focusedNodeClass = this.getAttribute('focused-node-class');
-    if (focusedNodeClass) config.focusedNodeClass = focusedNodeClass;
-
-    const dragOverNodeClass = this.getAttribute('drag-over-node-class');
-    if (dragOverNodeClass) config.dragOverNodeClass = dragOverNodeClass;
-
-    const expandIconClass = this.getAttribute('expand-icon-class');
-    if (expandIconClass) config.expandIconClass = expandIconClass;
-
-    const collapseIconClass = this.getAttribute('collapse-icon-class');
-    if (collapseIconClass) config.collapseIconClass = collapseIconClass;
-
-    const leafIconClass = this.getAttribute('leaf-icon-class');
-    if (leafIconClass) config.leafIconClass = leafIconClass;
-
-    const toggleIconMode = this._toggleIconMode ?? this.getAttribute('toggle-icon-mode');
-    if (toggleIconMode === 'rotate' || toggleIconMode === 'swap') config.toggleIconMode = toggleIconMode;
-
-    // Per-node icons
-    const iconMember = this._iconMember ?? this.getAttribute('icon-member');
-    if (iconMember) config.iconMember = iconMember;
-
-    if (this._iconCallback) config.iconCallback = this._iconCallback;
-
-    const shouldAlignNodeIcons = this._shouldAlignNodeIcons ?? (this.getAttribute('align-node-icons') !== null ? this.getAttribute('align-node-icons') !== 'false' : undefined);
-    if (shouldAlignNodeIcons !== undefined) config.shouldAlignNodeIcons = shouldAlignNodeIcons;
-
-    const scrollHighlightTimeout = this.getAttribute('scroll-highlight-timeout');
-    if (scrollHighlightTimeout !== null) config.scrollHighlightTimeout = parseInt(scrollHighlightTimeout, 10);
-
-    const scrollHighlightClass = this.getAttribute('scroll-highlight-class');
-    if (scrollHighlightClass) config.scrollHighlightClass = scrollHighlightClass;
-
-    // Context menu offsets (JS property takes precedence over HTML attribute)
-    const ctxXOff = this._contextMenuXOffset ?? (this.getAttribute('context-menu-x-offset') !== null ? parseInt(this.getAttribute('context-menu-x-offset')!, 10) : undefined);
-    if (ctxXOff !== undefined) config.contextMenuXOffset = ctxXOff;
-
-    const ctxYOff = this._contextMenuYOffset ?? (this.getAttribute('context-menu-y-offset') !== null ? parseInt(this.getAttribute('context-menu-y-offset')!, 10) : undefined);
-    if (ctxYOff !== undefined) config.contextMenuYOffset = ctxYOff;
-
-    // Debug
-    const debugInfo = this._shouldDisplayDebugInformation ?? (this.getAttribute('should-display-debug-information') !== null ? this.getAttribute('should-display-debug-information') !== 'false' : undefined);
-    if (debugInfo !== undefined) config.shouldDisplayDebugInformation = debugInfo;
-
-    const debugCtxMenu = this._shouldDisplayContextMenuInDebugMode;
-    if (debugCtxMenu !== undefined) config.shouldDisplayContextMenuInDebugMode = debugCtxMenu;
-
-    // Loading
-    const isLoading = this._isLoading ?? (this.getAttribute('is-loading') !== null ? this.getAttribute('is-loading') !== 'false' : undefined);
-    if (isLoading !== undefined) config.isLoading = isLoading;
-
-    // DnD attributes
-    const dragDropMode = this._dragDropMode ?? this.getAttribute('drag-drop-mode') as DragDropMode;
-    if (dragDropMode) config.dragDropMode = dragDropMode;
-
-    const dropZoneMode = this._dropZoneMode ?? this.getAttribute('drop-zone-mode') as 'floating' | 'glow';
-    if (dropZoneMode) config.dropZoneMode = dropZoneMode;
-
-    const dropZoneLayout = this._dropZoneLayout ?? this.getAttribute('drop-zone-layout') as any;
-    if (dropZoneLayout) config.dropZoneLayout = dropZoneLayout;
-
-    const dropZoneStart = this._dropZoneStart ?? (this.getAttribute('drop-zone-start') ? parseInt(this.getAttribute('drop-zone-start')!, 10) : undefined);
-    if (dropZoneStart !== undefined) config.dropZoneStart = dropZoneStart;
-
-    const dropZoneMaxWidth = this._dropZoneMaxWidth ?? (this.getAttribute('drop-zone-max-width') ? parseInt(this.getAttribute('drop-zone-max-width')!, 10) : undefined);
-    if (dropZoneMaxWidth !== undefined) config.dropZoneMaxWidth = dropZoneMaxWidth;
-
-    const isCopyAllowed = this._isCopyAllowed ?? (this.getAttribute('allow-copy') !== null ? this.getAttribute('allow-copy') !== 'false' : undefined);
-    if (isCopyAllowed !== undefined) config.isCopyAllowed = isCopyAllowed;
-
-    const shouldAutoHandleCopy = this._shouldAutoHandleCopy ?? (this.getAttribute('auto-handle-copy') !== null ? this.getAttribute('auto-handle-copy') !== 'false' : undefined);
-    if (shouldAutoHandleCopy !== undefined) config.shouldAutoHandleCopy = shouldAutoHandleCopy;
-
-    // Rendering config
-    const isFlatRenderingEnabled = this.getAttribute('use-flat-rendering');
-    if (isFlatRenderingEnabled !== null) config.isFlatRenderingEnabled = isFlatRenderingEnabled !== 'false';
-
-    const flatIndentSize = this.getAttribute('flat-indent-size');
-    if (flatIndentSize) config.flatIndentSize = flatIndentSize;
-
-    const isProgressiveRender = this.getAttribute('progressive-render');
-    if (isProgressiveRender !== null) config.isProgressiveRender = isProgressiveRender !== 'false';
-
-    const initialBatchSize = this.getAttribute('initial-batch-size');
-    if (initialBatchSize !== null) config.initialBatchSize = parseInt(initialBatchSize, 10);
-
-    const maxBatchSize = this.getAttribute('max-batch-size');
-    if (maxBatchSize !== null) config.maxBatchSize = parseInt(maxBatchSize, 10);
-
-    // Virtual scroll
-    const isVirtualScrollEnabled = this._isVirtualScrollEnabled ?? (this.getAttribute('virtual-scroll') !== null ? this.getAttribute('virtual-scroll') !== 'false' : undefined);
-    if (isVirtualScrollEnabled !== undefined) config.isVirtualScrollEnabled = isVirtualScrollEnabled;
-
-    const virtualRowHeight = this._virtualRowHeight ?? (this.getAttribute('virtual-row-height') ? parseFloat(this.getAttribute('virtual-row-height')!) : undefined);
-    if (virtualRowHeight !== undefined) config.virtualRowHeight = virtualRowHeight;
-
-    const virtualOverscan = this._virtualOverscan ?? (this.getAttribute('virtual-overscan') ? parseInt(this.getAttribute('virtual-overscan')!, 10) : undefined);
-    if (virtualOverscan !== undefined) config.virtualOverscan = virtualOverscan;
-
-    const virtualContainerHeight = this._virtualContainerHeight ?? this.getAttribute('virtual-container-height');
-    if (virtualContainerHeight) config.virtualContainerHeight = virtualContainerHeight;
-
-    // Callbacks
-    if (this._getDisplayValueCallback) config.getDisplayValueCallback = this._getDisplayValueCallback;
-    if (this._getSearchValueCallback) config.getSearchValueCallback = this._getSearchValueCallback;
-    if (this._getIsDraggableCallback) config.getIsDraggableCallback = this._getIsDraggableCallback;
-    if (this._getIsCollapsibleCallback) config.getIsCollapsibleCallback = this._getIsCollapsibleCallback;
-    if (this._getAllowedDropPositionsCallback) config.getAllowedDropPositionsCallback = this._getAllowedDropPositionsCallback;
-    if (this._sortCallback) config.sortCallback = this._sortCallback;
-    if (this._contextMenuCallback) config.contextMenuCallback = this._contextMenuCallback;
-    if (this._indexingCompleteCallback) config.indexingCompleteCallback = this._indexingCompleteCallback;
-
-    // Render callbacks
-    if (this._renderNodeCallback) config.renderNodeCallback = this._renderNodeCallback;
-    if (this._renderEmptyStateCallback) config.renderEmptyStateCallback = this._renderEmptyStateCallback;
-    if (this._renderEmptyZoneCallback) config.renderEmptyZoneCallback = this._renderEmptyZoneCallback;
-    if (this._renderLoadingCallback) config.renderLoadingCallback = this._renderLoadingCallback;
-    if (this._renderHeaderCallback) config.renderHeaderCallback = this._renderHeaderCallback;
-    if (this._renderFooterCallback) config.renderFooterCallback = this._renderFooterCallback;
-    if (this._renderContextMenuCallback) config.renderContextMenuCallback = this._renderContextMenuCallback;
-    if (this._renderContextMenuItemCallback) config.renderContextMenuItemCallback = this._renderContextMenuItemCallback;
-
-    // Multi-select
-    const rangeSelectionMode = this._rangeSelectionMode ?? this.getAttribute('range-selection-mode') as RangeSelectionMode;
-    if (rangeSelectionMode === 'visual' || rangeSelectionMode === 'logical') config.rangeSelectionMode = rangeSelectionMode;
-
-    const selectionModeAttr = this.getAttribute('selection-mode');
-    if (selectionModeAttr === 'single' || selectionModeAttr === 'multi') config.selectionMode = selectionModeAttr;
-
-    const showCheckboxesAttr = this.getAttribute('show-checkboxes');
-    // Always send a boolean so the controller flips off when the attribute is
-    // removed at runtime (the demo toggles `show-checkboxes` via setAttribute /
-    // removeAttribute). `update()` only applies keys defined in the config bag.
-    config.shouldShowCheckboxes = showCheckboxesAttr !== null && showCheckboxesAttr !== 'false';
-
-    const checkboxModeAttr = this.getAttribute('checkbox-mode');
-    if (checkboxModeAttr === 'independent' || checkboxModeAttr === 'cascade')
-      config.checkboxMode = checkboxModeAttr;
-
-    const clickTogglesCheckboxAttr = this.getAttribute('click-toggles-checkbox');
-    if (clickTogglesCheckboxAttr !== null) config.shouldClickToggleCheckbox = clickTogglesCheckboxAttr !== 'false';
-    if (this._selectionChangeCallback) config.selectionChangeCallback = this._selectionChangeCallback;
-
-    // Event handlers
-    if (this._nodeClickedCallback) config.nodeClickedCallback = this._nodeClickedCallback;
-    if (this._nodeDragStartCallback) config.nodeDragStartCallback = this._nodeDragStartCallback;
-    if (this._nodeDragOverCallback) config.nodeDragOverCallback = this._nodeDragOverCallback;
-    if (this._beforeDropCallback) config.beforeDropCallback = this._beforeDropCallback;
-    if (this._nodeDropCallback) config.nodeDropCallback = this._nodeDropCallback;
-
-    // Render callbacks
-    if (this._renderStartCallback) config.renderStartCallback = this._renderStartCallback;
-    if (this._renderProgressCallback) config.renderProgressCallback = this._renderProgressCallback;
-    if (this._renderCompleteCallback) config.renderCompleteCallback = this._renderCompleteCallback;
-
-    return config;
+    // Walk ATTRIBUTE_TABLE — the single source of truth for the
+    // HTML-attribute ⇄ JS-config wiring. Each entry encodes the parser,
+    // the private-field shadow, and the target config key.
+    for (const spec of ATTRIBUTE_TABLE) {
+      const { assigned, value } = readAttrValue(this, spec);
+      if (assigned) config[spec.configKey] = value;
+    }
+
+    // JS-only callback fields with no HTML attribute. Just copy each set
+    // field onto the matching config key.
+    for (const { field, configKey } of JS_CALLBACK_FIELDS) {
+      const v = (this as any)[field];
+      if (v !== undefined) config[configKey] = v;
+    }
+
+    return config as Partial<TreeViewConfig<T>>;
   }
 }
 
