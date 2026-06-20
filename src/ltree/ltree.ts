@@ -583,7 +583,10 @@ export function createLTree<T>(
 			const noEmit = options?.noEmit ?? false;
 
 			function setExpandedRecursive(node: LTreeNode<T>, value: boolean) {
-				node.isExpanded = value;
+				if (node.isExpanded !== value) {
+					node.isExpanded = value;
+					node._rev = (node._rev || 0) + 1;
+				}
 				for (const key in node.children) {
 					setExpandedRecursive(node.children[key], value);
 				}
@@ -639,7 +642,10 @@ export function createLTree<T>(
 						const segment = segmentPrefix + segments[i];
 						if (node && node.children.hasOwnProperty(segment)) {
 							node = node.children[segment];
-							node.isExpanded = true;
+							if (!node.isExpanded) {
+								node.isExpanded = true;
+								node._rev = (node._rev || 0) + 1;
+							}
 						} else {
 							node = undefined;
 							break;
@@ -664,6 +670,7 @@ export function createLTree<T>(
 			function collapseRecursive(node: LTreeNode<T>) {
 				if (node.isExpanded && self.getNodeIsCollapsible(node)) {
 					node.isExpanded = false;
+					node._rev = (node._rev || 0) + 1;
 				}
 				for (const key in node.children) {
 					collapseRecursive(node.children[key]);
@@ -804,6 +811,11 @@ export function createLTree<T>(
 				}
 				if (node && node.isExpanded) {
 					node.isExpanded = false;
+					// Bump _rev to match expandNodes — the DOM renderer reads
+					// data-expanded directly so it doesn't strictly need this,
+					// but custom renderers may key off _rev (parity with
+					// svelte-treeview, which does require the bump).
+					node._rev = (node._rev || 0) + 1;
 					hasChanges = true;
 				}
 			}

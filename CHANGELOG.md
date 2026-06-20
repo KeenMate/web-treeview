@@ -42,6 +42,9 @@ Three batches of fixes landed against the `validation_2026-06-19_1918.md` punch-
 
 - **`VALIDATION-NOTES.md` register** now documents four accepted deviations (C-CST-4/10 namespace-style Logic split, C-CSS-1 lean strategy, C-TC-15 `data-ready` FOUC guard, C-NC-6 D-NC-7=C member-only structural extractors). Future validation runs downgrade matching flags to ⚠️ Exception instead of re-promoting them on every run.
 
+### Fixed
+- **`collapseNodes`, `collapseAll`, `expandAll` now bump `_rev` on every `isExpanded` mutation** (parity with `expandNodes`). Mirrors the rc13 `@keenmate/svelte-treeview` fix where the same gap manifested as a stale toggle chevron (collapsed node, chevron still pointing down) in `clickBehavior='select'` dblclick-collapse. The DOM renderer here keys node refreshes off `data-expanded` directly, so the user-visible symptom didn't surface — but custom `TreeViewRenderer<T>` implementations that key off `_rev` (matching the documented invariant) would have hit the same staleness. Four sites fixed in `src/ltree/ltree.ts`: `expandAll`'s `setExpandedRecursive`, `expandAll`'s spine-walk, `collapseAll`'s `collapseRecursive`, and `collapseNodes`. Each is guarded by an "actually changed" check so already-correct rows don't churn.
+
 ## [2.0.0-rc04] - 2026-06-19
 
 ### Changed
