@@ -119,3 +119,22 @@ All mounted `<web-treeview>` elements are tracked in a `Set` and exposed via `ge
 
 - **Runtime**: `@floating-ui/dom` (context menu positioning)
 - **Dev**: Vite, TypeScript, vite-plugin-dts, rimraf
+
+## Comparison with sibling package `@keenmate/svelte-treeview`
+
+The two packages render the same logical tree but have different DOM strategies. Useful when porting features or debugging visual differences.
+
+| | svelte-treeview | web-treeview |
+|---|---|---|
+| **Rendering modes** | Recursive (default) + flat | Flat only |
+| **Children DOM** | `.stv__children` wrapper holds real descendants in recursive mode | None — siblings under `.wtv__tree` |
+| **Indent math** | `margin-left: level × indent` (flat) or compounded per nesting level (recursive) | `padding-left: (level − 1) × indent` — root at zero offset |
+| **Virtual scroll** | Flat mode only | Built-in (three-div spacer/translateY structure) |
+| **Label markup** | `<span class="stv__node-label">` by default — replace via `nodeTemplate` snippet | `<span class="wtv__node-label">` by default — replace via `renderNodeCallback` |
+| **Checkbox** | `<label>` + custom `.stv__checkbox-box` span (styled non-native shape) | Bare native `<input type="checkbox" class="wtv__checkbox">` |
+| **`draggable` attr** | On `.stv__node-content` (inner) | On `.wtv__node` (outer) |
+| **Extra dataset attrs** | `data-tree-path` only | `data-tree-path` + `data-rev` + `data-expanded` (used by the diff-based reconciler) |
+| **Update mechanism** | Svelte 5 runes + per-node `_rev` keyed `{#each}` | Imperative reconciler comparing `data-rev` / `data-expanded` and patching DOM |
+| **Highlight padding** | Symmetric (~8px both sides via `--stv-node-content-padding`) | `padding-left: 0` hardcoded → highlight hugs label |
+
+Neither is "more mature" — svelte-treeview is broader (two rendering modes, easier vertical guide lines via CSS on `.stv__children`); web-treeview is purpose-built for virtual scrolling over large datasets with a flatter DOM and dirty-attribute reconciliation.

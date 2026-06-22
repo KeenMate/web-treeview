@@ -11,6 +11,22 @@ A lightweight, framework-agnostic treeview web component built with vanilla Type
 
 Built on the same LTree path-based engine as [`@keenmate/svelte-treeview`](https://github.com/KeenMate/svelte-treeview) and ported to vanilla TypeScript with zero framework dependencies. If you know svelte-treeview, you already know the API surface.
 
+### How it differs from `@keenmate/svelte-treeview`
+
+Same logical tree, different DOM strategy — neither is "more mature", they target different priorities.
+
+| | svelte-treeview | web-treeview |
+|---|---|---|
+| Rendering modes | Recursive (default) + flat | Flat only |
+| Children DOM | `.stv__children` wrapper (recursive mode) | None — siblings under `.wtv__tree` |
+| Indent math | `level × indent` | `(level − 1) × indent` (root at zero offset) |
+| Virtual scroll | Flat mode only | Built-in (three-div spacer / `translateY`) |
+| Label markup | `<span class="stv__node-label">` by default — replace via `nodeTemplate` snippet | `<span class="wtv__node-label">` by default — replace via `renderNodeCallback` |
+| Checkbox | `<label>` + custom `.stv__checkbox-box` span | Bare native `<input type="checkbox">` |
+| Update mechanism | Svelte 5 runes + per-node `_rev` keyed `{#each}` | Imperative reconciler diffing `data-rev` / `data-expanded` attributes |
+
+svelte-treeview is broader (two rendering modes, easier vertical guide lines via `.stv__children`); web-treeview is purpose-built for virtual scrolling over large datasets with a flatter DOM.
+
 ## What's New in v2.0.0-rc05
 
 This release lands the BlissFramework `/validate-web-component` punch-list and bumps the API surface to current naming conventions. Since the RC cycle is still active, breaking changes are direct renames without deprecation aliases.
