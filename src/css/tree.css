@@ -210,11 +210,12 @@
 }
 
 /* Always-on marker for the focused node (single, last click / arrow nav).
-   Subtle ring so keyboard navigation is visible without a custom focusedNodeClass. */
+   Pure CSS hook — no default styles. Apps that want a built-in focus ring
+   write their own rule and pass the class via `focusedNodeClass`. Matches
+   svelte-treeview's policy (the rc12 default outline confused consumers who
+   chose "no focus style" but still saw a ring). */
 .wtv__node-content--focused {
-  outline: 2px solid var(--wtv-focused-outline, color-mix(in srgb, var(--wtv-accent-color) 60%, transparent));
-  outline-offset: -2px;
-  border-radius: var(--wtv-border-radius-sm);
+  /* intentionally empty */
 }
 
 /* Opt-in highlight flavors — applied via the `highlightedNodeClass` prop. */
