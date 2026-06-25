@@ -232,6 +232,31 @@ test.describe('multi-drag (selectionMode=multi)', () => {
   // doesn't fire the move on web-treeview's controller. Skipped pending a
   // follow-up — the other multi-drag positions cover the bulk of the path.
   test.skip('top-level absorption: descendant of a highlighted ancestor rides along inside — controller bug', () => {});
+
+  test('locked node (isDraggable=false) in the highlight set does NOT ride along on multi-drag', async ({ page }) => {
+    await gotoFixture(page);
+    const section = page.getByTestId('section-multi-locked');
+
+    expect(await rootNodeNamesInOrder(section)).toEqual(['Lock-A', 'Lock-B', 'Lock-C', 'Lock-D']);
+
+    // Highlight A, B and the LOCKED C.
+    await nodeRow(nodeByPath(section, '1')).click();
+    await nodeRow(nodeByPath(section, '2')).click({ modifiers: ['Control'] });
+    await nodeRow(nodeByPath(section, '3')).click({ modifiers: ['Control'] });
+    await expect(page.getByTestId('locked-highlighted-size')).toHaveText('3');
+
+    // Drag the lead (Lock-A) onto Lock-D as child. A and B move; the locked
+    // Lock-C must stay at root despite being highlighted.
+    await dragNodeTo(nodeRow(nodeByPath(section, '1')), nodeRow(nodeByPath(section, '4')), 'child');
+
+    // Pre-fix, Lock-C would have ridden along and roots would be just ['Lock-D'].
+    expect(await rootNodeNamesInOrder(section)).toEqual(['Lock-C', 'Lock-D']);
+
+    // No orphans / duplicates, and exactly two nodes are now nested (A + B).
+    await expect(section.locator('.wtv__node[data-tree-path]')).toHaveCount(4);
+    await expect(section.locator('.wtv__node[data-tree-path*="."]')).toHaveCount(2);
+    await expect(page.getByTestId('locked-drop-count')).toHaveText('1');
+  });
 });
 
 // ── Sections NOT ported ───────────────────────────────────────────────────

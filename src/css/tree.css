@@ -197,11 +197,13 @@
    HIGHLIGHT & FOCUS STYLES
    ============================================================================== */
 
-/* Always-on marker for highlighted nodes (multi-select via Ctrl/Shift-click).
+/* FALLBACK marker for highlighted nodes (multi-select via Ctrl/Shift-click).
    Ships a subtle default look so opting into selectionMode='multi' produces
-   visible feedback without configuring `highlightedNodeClass`. Override the
-   --wtv-highlighted-bg / --wtv-highlighted-outline variables, or pair this
-   class with one of the opt-in variants below (.wtv__node-content--highlight-bold etc.). */
+   visible feedback without configuring `highlightedNodeClass`. The renderer
+   only applies this class when NO highlightedNodeClass is set (see
+   dom-renderer.ts), so the default look never fights a configured variant —
+   set a highlight class and this marker steps aside entirely. Override the
+   --wtv-highlighted-bg / --wtv-highlighted-outline variables to retint it. */
 .wtv__node-content--highlighted {
   background-color: var(--wtv-highlighted-bg, color-mix(in srgb, var(--wtv-accent-color) 10%, transparent));
   outline: 1px solid var(--wtv-highlighted-outline, color-mix(in srgb, var(--wtv-accent-color) 25%, transparent));
@@ -247,6 +249,16 @@
   margin-left: calc(0.6 * var(--wtv-rem));
   color: var(--wtv-accent-color);
   font-weight: bold;
+}
+
+/* Soft glow ring — tinted background plus an accent-colored outer glow.
+   Parity with svelte-treeview's .stv__node-content--highlight-glow. */
+.wtv__node-content--highlight-glow {
+  background-color: color-mix(in srgb, var(--wtv-accent-color) 12%, transparent) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--wtv-accent-color) 40%, transparent),
+    0 0 8px 1px color-mix(in srgb, var(--wtv-accent-color) 35%, transparent) !important;
+  border-radius: var(--wtv-border-radius-sm) !important;
 }
 
 /* ==============================================================================

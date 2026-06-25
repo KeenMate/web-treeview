@@ -1261,6 +1261,12 @@ export function createLTree<T>(
 			if (_getIsDropAllowedCallback) newNode.isDropAllowed = _getIsDropAllowedCallback(newNode);
 			else if (!shouldCalculateIsDropAllowed && data) newNode.isDropAllowed = getField(data, _isDropAllowedMember!);
 
+			// Parity with insertArray (and svelte-treeview): seed the remaining
+			// member-driven flags so a copied / added node keeps its drop-position
+			// restriction and collapsible flag instead of silently reverting.
+			if (!shouldCalculateIsCollapsible && data) newNode.isCollapsible = getField(data, _isCollapsibleMember!);
+			if (!shouldCalculateAllowedDropPositions && data) newNode.allowedDropPositions = getField(data, _allowedDropPositionsMember!);
+
 			newNode.hasChildren = false;
 
 			// Update path in data if pathMember is defined

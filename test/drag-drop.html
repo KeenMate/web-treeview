@@ -82,6 +82,24 @@
                 <dt>dragged</dt><dd data-testid="multi-drop-dragged"></dd>
             </dl>
         </div>
+
+        <!-- Section 6b: multi-drag with a LOCKED node (isDraggable=false) -->
+        <div class="card" data-testid="section-multi-locked">
+            <h2>Multi-drag with a locked node (isDraggable=false)</h2>
+            <div class="tree-container">
+                <web-treeview id="tree-multi-locked"
+                    expand-level="3"
+                    drag-drop-mode="both"
+                    selection-mode="multi"
+                    click-behavior="select"
+                    use-flat-rendering="true"></web-treeview>
+            </div>
+            <dl class="readouts">
+                <dt>highlighted-size</dt><dd data-testid="locked-highlighted-size">0</dd>
+                <dt>drop-count</dt><dd data-testid="locked-drop-count">0</dd>
+                <dt>dragged</dt><dd data-testid="locked-drop-dragged"></dd>
+            </dl>
+        </div>
     </main>
 
     <script type="module">
@@ -116,6 +134,15 @@
             { id: 2, path: '2', name: 'Multi-B', sortOrder: 20 },
             { id: 3, path: '3', name: 'Multi-C', sortOrder: 30 },
             { id: 4, path: '4', name: 'Multi-D', sortOrder: 40 }
+        ];
+
+        // Mirrors the demo "File C (pinned)" scenario: Multi-LC is non-draggable
+        // but still highlightable, so it must NOT ride along on a multi-drag.
+        const lockedData = [
+            { id: 1, path: '1', name: 'Lock-A', sortOrder: 10 },
+            { id: 2, path: '2', name: 'Lock-B', sortOrder: 20 },
+            { id: 3, path: '3', name: 'Lock-C', sortOrder: 30, draggable: false },
+            { id: 4, path: '4', name: 'Lock-D', sortOrder: 40 }
         ];
 
         const sortByOrder = (items) =>
@@ -197,6 +224,28 @@
                 setText('multi-highlighted-size', String(e.detail.highlightedPaths.size));
             });
             multi.data = multiData;
+
+            // ── Section 6b: locked multi-drag ──
+            counters.locked = 0;
+            const locked = document.getElementById('tree-multi-locked');
+            locked.idMember = 'id';
+            locked.pathMember = 'path';
+            locked.displayValueMember = 'name';
+            locked.renderNodeCallback = (node, container) => {
+                container.innerHTML = '';
+                const span = document.createElement('span');
+                span.setAttribute('data-testid', `locked-node-${node.data?.id}`);
+                span.textContent = node.data?.name ?? '';
+                container.appendChild(span);
+            };
+            locked.sortCallback = sortByOrder;
+            locked.isSorted = true;
+            locked.getIsDraggableCallback = (node) => node.data?.draggable !== false;
+            wireDrop(locked, 'locked', 'locked');
+            locked.addEventListener('highlight-change', (e) => {
+                setText('locked-highlighted-size', String(e.detail.highlightedPaths.size));
+            });
+            locked.data = lockedData;
         });
     </script>
 </body>

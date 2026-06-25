@@ -1029,9 +1029,12 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     // Highlight / focus state — applied to the row content so the styling
     // affects only the visible row, not the children indentation area below.
     if (node.isHighlighted) {
-      content.classList.add('wtv__node-content--highlighted');
+      // `--highlighted` is a FALLBACK: only apply it when no highlightedNodeClass
+      // is configured, so the marker's default look never fights a custom class.
       if (nodeConfig?.highlightedNodeClass) {
         content.classList.add(nodeConfig.highlightedNodeClass);
+      } else {
+        content.classList.add('wtv__node-content--highlighted');
       }
     }
     if (snapshot.focusedNode?.path === node.path) {
@@ -1075,8 +1078,11 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     // affects only the visible row, not the children indentation area below.
     const contentEl = el.querySelector(':scope > .wtv__node-row > .wtv__node-content') as HTMLElement | null;
     if (contentEl) {
-      contentEl.classList.toggle('wtv__node-content--highlighted', !!node.isHighlighted);
-      if (nodeConfig?.highlightedNodeClass) {
+      // Fallback marker only when no highlightedNodeClass is configured (see
+      // _createNodeElement) — keeps the default look from fighting a custom class.
+      const hasCustomHighlight = !!nodeConfig?.highlightedNodeClass;
+      contentEl.classList.toggle('wtv__node-content--highlighted', !!node.isHighlighted && !hasCustomHighlight);
+      if (hasCustomHighlight) {
         contentEl.classList.toggle(nodeConfig.highlightedNodeClass, !!node.isHighlighted);
       }
       const isFocused = snapshot.focusedNode?.path === node.path;

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Highlight / Focus Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        .controls { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; font-size: 0.85rem; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; min-height: 80px; max-width: 420px; }
+        .output { margin-top: 0.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 0.5rem; }
+        .output-label { margin: 0 0 0.25rem; font-size: 0.8rem; font-weight: 600; }
+        .output pre { margin: 0; font-size: 0.8rem; }
+
+        /* Page-scoped custom focus class — production focusedNodeClass equivalent.
+           web-treeview renders in light DOM, so a global rule reaches the rows. */
+        .test-focus { box-shadow: inset 3px 0 0 0 var(--wtv-primary, #0d6efd); }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Highlight / Focus Test Fixture</h1>
+
+        <div class="controls">
+            <label>
+                Highlight Class:
+                <select id="highlight-class">
+                    <option value="">(none / fallback)</option>
+                    <option value="wtv__node-content--highlight-bold">Bold</option>
+                    <option value="wtv__node-content--highlight-glow">Glow</option>
+                </select>
+            </label>
+            <label>
+                Focus Class:
+                <select id="focus-class">
+                    <option value="">(none)</option>
+                    <option value="test-focus">Custom focus</option>
+                </select>
+            </label>
+            <button id="clear">Clear</button>
+        </div>
+
+        <div class="tree-container">
+            <web-treeview id="tree"
+                expand-level="2"
+                selection-mode="multi"
+                click-behavior="select"></web-treeview>
+        </div>
+
+        <div class="output"><p class="output-label">Focused Node</p><pre id="out-focused">(none)</pre></div>
+        <div class="output"><p class="output-label">Highlighted</p><pre id="out-highlighted">(none)</pre></div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const sampleData = [
+            { id: 1, path: '1', name: 'Documents' },
+            { id: 2, path: '1.1', name: 'Work' },
+            { id: 3, path: '1.2', name: 'Personal' },
+            { id: 4, path: '2', name: 'Downloads' }
+        ];
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        const setText = (id, t) => { document.getElementById(id).textContent = t; };
+        const pathsText = (set) => (set && set.size > 0 ? [...set].join(', ') : '(none)');
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByName;
+            tree.isSorted = true;
+            tree.data = sampleData;
+
+            const highlightSelect = document.getElementById('highlight-class');
+            const focusSelect = document.getElementById('focus-class');
+
+            // '' = unset → remove the attribute so the fallback marker applies.
+            highlightSelect.addEventListener('change', () => {
+                if (highlightSelect.value) tree.setAttribute('highlighted-node-class', highlightSelect.value);
+                else tree.removeAttribute('highlighted-node-class');
+            });
+            focusSelect.addEventListener('change', () => {
+                if (focusSelect.value) tree.setAttribute('focused-node-class', focusSelect.value);
+                else tree.removeAttribute('focused-node-class');
+            });
+
+            tree.addEventListener('focused-node-changed', (e) => {
+                const node = e.detail.focusedNode;
+                setText('out-focused', node ? `${node.data?.name} (${node.path})` : '(none)');
+            });
+            tree.addEventListener('highlight-change', (e) => {
+                setText('out-highlighted', pathsText(e.detail.highlightedPaths));
+            });
+
+            document.getElementById('clear').addEventListener('click', () => {
+                tree.clearHighlight?.();
+                tree.clearFocus?.();
+                setText('out-highlighted', '(none)');
+                setText('out-focused', '(none)');
+            });
+        });
+    </script>
+</body>
+</html>
