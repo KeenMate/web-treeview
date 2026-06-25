@@ -244,17 +244,25 @@ Set via JavaScript, not HTML attributes.
 | `searchNodes` | `(searchText): LTreeNode[]` | Search without filtering |
 | `scrollToPath` | `(path, options?): Promise<boolean>` | Scroll to (and optionally highlight) a node |
 | `closeContextMenu` | `()` | Close the context menu |
-| `highlightNode` | `(path, mode?, options?)` | Add to highlight set (`'replace' \| 'toggle' \| 'range'`) |
-| `highlightNodes` | `(paths[])` | Replace highlight set with paths |
-| `clearHighlight` | `(options?)` | Clear highlight set (`{ silent? }`) |
+| `highlightNode` | `(path, mode?, options?)` | Highlight one node. `mode`: `'replace'` (default) \| `'toggle'` \| `'range'` |
+| `highlightNodes` | `(paths[], options?)` | Add nodes to the highlight set (**additive**) |
+| `setHighlightedPaths` | `(paths[], options?)` | Replace the entire highlight set |
+| `highlightAll` | `(options?)` | Highlight every visible node (Ctrl+A) |
+| `clearHighlight` | `(paths?, options?)` | Clear the given paths, or all when omitted |
 | `getHighlightedNodes` | `(): LTreeNode[]` | All highlighted nodes |
 | `getHighlightedPaths` | `(): Set<string>` | All highlighted paths |
 | `isNodeHighlighted` | `(path): boolean` | Check highlight membership |
+| `selectNode` | `(path, options?)` | Check one node (cascades in cascade mode) |
+| `selectNodes` | `(paths[], options?)` | Check nodes (**additive**) |
+| `setSelectedPaths` | `(paths[], options?)` | Replace the entire checkbox set |
+| `selectAll` | `(options?)` | Check every selectable node |
+| `deselectNode` | `(path, options?)` | Uncheck one node (cascades in cascade mode) |
+| `clearSelection` | `(paths?, options?)` | Uncheck the given paths, or all when omitted (was `deselectAll`) |
 | `getSelectedNodes` | `(): LTreeNode[]` | All checkbox-selected nodes |
 | `getSelectedPaths` | `(): Set<string>` | All checkbox-selected paths |
 | `isNodeSelected` | `(path): boolean` | Check selection membership |
-| `selectAll` | `()` | Add every visible node to highlight set |
-| `deselectAll` | `(options?)` | Empty the selection set |
+| `focusNode` | `(path, options?)` | Move focus to a node |
+| `clearFocus` | `(options?)` | Clear the focused node |
 | `copyNodes` | `(paths?)` | Copy highlighted/specified nodes to clipboard |
 | `cutNodes` | `(paths?)` | Cut highlighted/specified nodes to clipboard |
 | `pasteNodes` | `(targetPath, transformData?, position?): PasteResult` | Paste clipboard at target |
@@ -288,7 +296,7 @@ Set via JavaScript, not HTML attributes.
 | `tree-changed` | — | Tree state changed (expand, collapse, data) |
 | `data-changed` | `{ data }` | Underlying data array swapped |
 
-`silent: true` on `highlightNode` / `clearHighlight` / `deselectAll` suppresses both the user callback AND the DOM event.
+`silent: true` (the `TreeMutationOptions` flag on every highlight/selection/focus mutator) suppresses both the user callback AND the DOM event. The verbs are partitioned: `highlight*` drives the UI multi-select set, `select*` drives the checkbox/data set, `focus*` drives the single cursor.
 
 ## Architecture
 

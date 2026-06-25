@@ -4,7 +4,7 @@ import type { LTreeNode } from './ltree/ltree-node';
 import type { DropPosition } from './ltree/ltree-node';
 import type { Ltree, ContextMenuItem, ContextMenuEntry, DragDropMode, DropOperation } from './ltree/types';
 import type { TreeViewRenderer, RendererConfig } from './renderer/types';
-import type { SelectionModifiers, RangeSelectionMode } from './controller/types';
+import type { RangeSelectionMode, HighlightMode, TreeMutationOptions } from './controller/types';
 import type { PasteResult } from './clipboard';
 import type { TreeController } from './controller/tree-controller';
 import { initLogger } from './logger';
@@ -791,18 +791,26 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
   highlightNode(
     path: string,
-    mode: 'replace' | 'toggle' | 'range' = 'replace',
-    options?: { silent?: boolean }
+    mode: HighlightMode = 'replace',
+    options?: TreeMutationOptions
   ): void {
     this.treeview?.highlightNode(path, mode, options);
   }
 
-  highlightNodes(paths: string[], options?: { silent?: boolean }): void {
+  highlightNodes(paths: string[], options?: TreeMutationOptions): void {
     this.treeview?.highlightNodes(paths, options);
   }
 
-  clearHighlight(options?: { silent?: boolean }): void {
-    this.treeview?.clearHighlight(options);
+  setHighlightedPaths(paths: string[], options?: TreeMutationOptions): void {
+    this.treeview?.setHighlightedPaths(paths, options);
+  }
+
+  highlightAll(options?: TreeMutationOptions): void {
+    this.treeview?.highlightAll(options);
+  }
+
+  clearHighlight(paths?: string[], options?: TreeMutationOptions): void {
+    this.treeview?.clearHighlight(paths, options);
   }
 
   getHighlightedNodes(): LTreeNode<T>[] {
@@ -817,20 +825,30 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     return this.treeview?.isNodeHighlighted(path) ?? false;
   }
 
-  // ── Selection (checkbox data state; deprecated highlight aliases) ─
+  // ── Selection (checkbox data state) ──────────────────────────────
 
-  /** @deprecated Use highlightNode (rc03 split focus vs checkbox state). */
-  selectNode(path: string, modifiers?: SelectionModifiers): void {
-    this.treeview?.selectNode(path, modifiers);
+  selectNode(path: string, options?: TreeMutationOptions): void {
+    this.treeview?.selectNode(path, options);
   }
 
-  /** @deprecated Use highlightNodes. */
-  selectNodes(paths: string[]): void {
-    this.treeview?.selectNodes(paths);
+  selectNodes(paths: string[], options?: TreeMutationOptions): void {
+    this.treeview?.selectNodes(paths, options);
   }
 
-  deselectAll(options?: { silent?: boolean }): void {
-    this.treeview?.deselectAll(options);
+  setSelectedPaths(paths: string[], options?: TreeMutationOptions): void {
+    this.treeview?.setSelectedPaths(paths, options);
+  }
+
+  selectAll(options?: TreeMutationOptions): void {
+    this.treeview?.selectAll(options);
+  }
+
+  deselectNode(path: string, options?: TreeMutationOptions): void {
+    this.treeview?.deselectNode(path, options);
+  }
+
+  clearSelection(paths?: string[], options?: TreeMutationOptions): void {
+    this.treeview?.clearSelection(paths, options);
   }
 
   getSelectedNodes(): LTreeNode<T>[] {
@@ -845,8 +863,14 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     return this.treeview?.isNodeSelected(path) ?? false;
   }
 
-  selectAll(): void {
-    this.treeview?.selectAll();
+  // ── Focus (single cursor) ────────────────────────────────────────
+
+  focusNode(path: string, options?: TreeMutationOptions): void {
+    this.treeview?.focusNode(path, options);
+  }
+
+  clearFocus(options?: TreeMutationOptions): void {
+    this.treeview?.clearFocus(options);
   }
 
   // ── Expand toggle (honors isAccordionExpand) ────────────────────────
@@ -1037,7 +1061,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
 
     // Wire highlight-change / selection-change through the controller's
     // callbacks (not state-change snapshot diff), so the `silent: true`
-    // option on highlightNode / clearHighlight / deselectAll suppresses the
+    // option on highlightNode / clearHighlight / clearSelection suppresses the
     // DOM event the same way it suppresses the user callback.
     const userOnHighlightChange = config.highlightChangeCallback;
     config.highlightChangeCallback = (highlightedPaths, highlightedNodes) => {

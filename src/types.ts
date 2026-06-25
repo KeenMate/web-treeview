@@ -21,6 +21,8 @@ export type {
   ClickBehavior,
   SelectionModifiers,
   RangeSelectionMode,
+  HighlightMode,
+  TreeMutationOptions,
   TreeControllerConfig,
   TreeControllerSnapshot,
   TreeControllerEvents
@@ -41,7 +43,7 @@ export type { RenderCoordinator, RenderStats, RenderCoordinatorCallbacks } from 
 import type { LTreeNode } from './ltree/ltree-node';
 import type { DropPosition } from './ltree/ltree-node';
 import type { DragDropMode, DropOperation, ContextMenuItem, ContextMenuEntry } from './ltree/types';
-import type { ClickBehavior, RangeSelectionMode, SelectionModifiers } from './controller/types';
+import type { ClickBehavior, RangeSelectionMode, HighlightMode, TreeMutationOptions } from './controller/types';
 import type { PasteResult } from './clipboard';
 import type { RenderStats } from './renderer/render-coordinator';
 
@@ -276,28 +278,30 @@ export interface TreeViewMethods<T = any> {
   replaceBranch(parentPath: string, data: T[]): { success: boolean; removed: number; added: number; error?: string };
   deleteBranch(path: string, keepParent?: boolean): { success: boolean; count: number; error?: string };
 
-  // Highlight set (Ctrl/Shift+click multi-select)
-  highlightNode(
-    path: string,
-    mode?: 'replace' | 'toggle' | 'range',
-    options?: { silent?: boolean }
-  ): void;
-  highlightNodes(paths: string[], options?: { silent?: boolean }): void;
-  clearHighlight(options?: { silent?: boolean }): void;
+  // Highlight set (UI multi-select — Ctrl/Shift+click)
+  highlightNode(path: string, mode?: HighlightMode, options?: TreeMutationOptions): void;
+  highlightNodes(paths: string[], options?: TreeMutationOptions): void;
+  setHighlightedPaths(paths: string[], options?: TreeMutationOptions): void;
+  highlightAll(options?: TreeMutationOptions): void;
+  clearHighlight(paths?: string[], options?: TreeMutationOptions): void;
   getHighlightedNodes(): LTreeNode<T>[];
   getHighlightedPaths(): Set<string>;
   isNodeHighlighted(path: string): boolean;
-  selectAll(): void;
-  /** @deprecated Use `highlightNode()` instead. */
-  selectNode(path: string, modifiers?: SelectionModifiers): void;
-  /** @deprecated Use `highlightNodes()` instead. */
-  selectNodes(paths: string[]): void;
 
   // Selection set (checkbox / data state)
+  selectNode(path: string, options?: TreeMutationOptions): void;
+  selectNodes(paths: string[], options?: TreeMutationOptions): void;
+  setSelectedPaths(paths: string[], options?: TreeMutationOptions): void;
+  selectAll(options?: TreeMutationOptions): void;
+  deselectNode(path: string, options?: TreeMutationOptions): void;
+  clearSelection(paths?: string[], options?: TreeMutationOptions): void;
   getSelectedNodes(): LTreeNode<T>[];
   getSelectedPaths(): Set<string>;
   isNodeSelected(path: string): boolean;
-  deselectAll(options?: { silent?: boolean }): void;
+
+  // Focus (single cursor)
+  focusNode(path: string, options?: TreeMutationOptions): void;
+  clearFocus(options?: TreeMutationOptions): void;
 
   // Navigation
   navTo(path: string): void;

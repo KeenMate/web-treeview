@@ -30,8 +30,8 @@
             <button data-testid="highlight-many-silent">highlightNodes(['1.1','1.2']) silent</button>
             <button data-testid="clear-loud">clearHighlight() loud</button>
             <button data-testid="clear-silent">clearHighlight() silent</button>
-            <button data-testid="deselect-loud">deselectAll() loud</button>
-            <button data-testid="deselect-silent">deselectAll() silent</button>
+            <button data-testid="clear-selection-loud">clearSelection() loud</button>
+            <button data-testid="clear-selection-silent">clearSelection() silent</button>
         </div>
 
         <div class="tree-container">
@@ -137,9 +137,9 @@
             wire('highlight-many-loud',    () => tree.highlightNodes(['1.1', '1.2']));
             wire('highlight-many-silent',  () => tree.highlightNodes(['1.1', '1.2'], { silent: true }));
             wire('clear-loud',             () => tree.clearHighlight());
-            wire('clear-silent',           () => tree.clearHighlight({ silent: true }));
-            wire('deselect-loud',          () => tree.deselectAll());
-            wire('deselect-silent',        () => tree.deselectAll({ silent: true }));
+            wire('clear-silent',           () => tree.clearHighlight(undefined, { silent: true }));
+            wire('clear-selection-loud',   () => tree.clearSelection());
+            wire('clear-selection-silent', () => tree.clearSelection(undefined, { silent: true }));
         });
     </script>
     <style>

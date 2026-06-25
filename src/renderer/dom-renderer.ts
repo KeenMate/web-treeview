@@ -336,7 +336,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       case 'a':
         if (ctrl) {
           event.preventDefault();
-          this.controller.selectAll();
+          this.controller.highlightAll();
         }
         break;
       case 'c':
@@ -363,7 +363,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       case 'Escape':
         // Priority: pending cut → highlight set. Checkboxes are deliberate
         // state (a chosen "yes I want this row") and shouldn't be wiped by a
-        // stray Escape; user can clear them with deselectAll() if needed.
+        // stray Escape; user can clear them with clearSelection() if needed.
         // Mirrors svelte-treeview Tree.svelte handleTreeKeydown.
         if (this.controller.cutPaths.size > 0) {
           this.controller.cancelCut();

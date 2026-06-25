@@ -4,7 +4,7 @@ import type { TreeViewRenderer, RendererConfig } from './renderer/types';
 import { DomRenderer } from './renderer/dom-renderer';
 import type { LTreeNode } from './ltree/ltree-node';
 import type { Ltree, DropPosition, TreeChange, ApplyChangesResult } from './ltree/types';
-import type { SelectionModifiers } from './controller/types';
+import type { HighlightMode, TreeMutationOptions } from './controller/types';
 import type { PasteResult } from './clipboard';
 import type { TreeViewConfig, ScrollToPathOptions } from './types';
 import type { SearchOptions } from 'flexsearch';
@@ -197,18 +197,26 @@ export class WebTreeView<T = any> {
 
   highlightNode(
     path: string,
-    mode: 'replace' | 'toggle' | 'range' = 'replace',
-    options?: { silent?: boolean }
+    mode: HighlightMode = 'replace',
+    options?: TreeMutationOptions
   ): void {
     this.controller.highlightNode(path, mode, options);
   }
 
-  highlightNodes(paths: string[], options?: { silent?: boolean }): void {
+  highlightNodes(paths: string[], options?: TreeMutationOptions): void {
     this.controller.highlightNodes(paths, options);
   }
 
-  clearHighlight(options?: { silent?: boolean }): void {
-    this.controller.clearHighlight(options);
+  setHighlightedPaths(paths: string[], options?: TreeMutationOptions): void {
+    this.controller.setHighlightedPaths(paths, options);
+  }
+
+  highlightAll(options?: TreeMutationOptions): void {
+    this.controller.highlightAll(options);
+  }
+
+  clearHighlight(paths?: string[], options?: TreeMutationOptions): void {
+    this.controller.clearHighlight(paths, options);
   }
 
   getHighlightedNodes(): LTreeNode<T>[] {
@@ -223,24 +231,30 @@ export class WebTreeView<T = any> {
     return this.controller.isNodeHighlighted(path);
   }
 
-  selectAll(): void {
-    this.controller.selectAll();
-  }
-
-  /** @deprecated Use `highlightNode()` instead. */
-  selectNode(path: string, modifiers?: SelectionModifiers): void {
-    this.controller.selectNode(path, modifiers);
-  }
-
-  /** @deprecated Use `highlightNodes()` instead. */
-  selectNodes(paths: string[]): void {
-    this.controller.selectNodes(paths);
-  }
-
   // ── Selection set (checkbox / data state) ───────────────────────────
 
-  deselectAll(options?: { silent?: boolean }): void {
-    this.controller.deselectAll(options);
+  selectNode(path: string, options?: TreeMutationOptions): void {
+    this.controller.selectNode(path, options);
+  }
+
+  selectNodes(paths: string[], options?: TreeMutationOptions): void {
+    this.controller.selectNodes(paths, options);
+  }
+
+  setSelectedPaths(paths: string[], options?: TreeMutationOptions): void {
+    this.controller.setSelectedPaths(paths, options);
+  }
+
+  selectAll(options?: TreeMutationOptions): void {
+    this.controller.selectAll(options);
+  }
+
+  deselectNode(path: string, options?: TreeMutationOptions): void {
+    this.controller.deselectNode(path, options);
+  }
+
+  clearSelection(paths?: string[], options?: TreeMutationOptions): void {
+    this.controller.clearSelection(paths, options);
   }
 
   getSelectedNodes(): LTreeNode<T>[] {
@@ -253,6 +267,16 @@ export class WebTreeView<T = any> {
 
   isNodeSelected(path: string): boolean {
     return this.controller.isNodeSelected(path);
+  }
+
+  // ── Focus (single cursor) ───────────────────────────────────────────
+
+  focusNode(path: string, options?: TreeMutationOptions): void {
+    this.controller.focusNode(path, options);
+  }
+
+  clearFocus(options?: TreeMutationOptions): void {
+    this.controller.clearFocus(options);
   }
 
   // ── Navigation (proxy to controller) ──────────────────────────────

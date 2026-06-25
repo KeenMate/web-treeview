@@ -25,6 +25,16 @@ export interface SelectionModifiers {
 
 export type RangeSelectionMode = 'visual' | 'logical';
 
+/** Gesture mode for highlightNode(): replace = plain click, toggle = Ctrl+click, range = Shift+click. */
+export type HighlightMode = 'replace' | 'toggle' | 'range';
+
+/** Options shared by every imperative selection/highlight/focus mutator. */
+export interface TreeMutationOptions {
+  /** Update state without firing the change callbacks (e.g. when restoring
+   *  state from URL params or other external sources). */
+  silent?: boolean;
+}
+
 // ─── Shared interfaces (also used by renderers) ────────────────────────
 
 export interface NodeCallbacks<T> {
