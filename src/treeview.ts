@@ -406,6 +406,13 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     shouldAutoHandleMove: options.shouldAutoHandleMove,
 
     nodeClickedCallback: options.nodeClickedCallback,
+    onNodeDoubleClick: options.onNodeDoubleClick,
+    beforeCopyCallback: options.beforeCopyCallback,
+    beforeCutCallback: options.beforeCutCallback,
+    beforePasteCallback: options.beforePasteCallback,
+    onCopy: options.onCopy,
+    onCut: options.onCut,
+    onPaste: options.onPaste,
     nodeDragStartCallback: options.nodeDragStartCallback,
     nodeDragOverCallback: options.nodeDragOverCallback,
     beforeDropCallback: options.beforeDropCallback,
@@ -428,6 +435,8 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     iconMember: options.iconMember,
     iconCallback: options.iconCallback,
     shouldAlignNodeIcons: options.shouldAlignNodeIcons,
+    nodeClass: options.nodeClass,
+    nodeContentClass: options.nodeContentClass,
 
     renderStartCallback: options.renderStartCallback,
     renderProgressCallback: options.renderProgressCallback,

@@ -14,6 +14,7 @@ import type {
   ApplyChangesResult
 } from '../ltree/types';
 import type { RenderStats } from '../renderer/render-coordinator';
+import type { PasteResult, ClipboardEntry, ClipboardOperation } from '../clipboard';
 import type { Index, SearchOptions } from 'flexsearch';
 
 // ─── Selection ──────────────────────────────────────────────────────────
@@ -72,6 +73,10 @@ export interface NodeConfig {
   isCopyAllowed: boolean;
   iconMember: string | null | undefined;
   shouldShowCheckboxes: boolean;
+  /** Data-driven per-row class hook. Applied to `.wtv__node`. */
+  nodeClass?: ((node: LTreeNode<any>) => string | null | undefined) | undefined;
+  /** Data-driven per-row class hook. Applied to `.wtv__node-content`. */
+  nodeContentClass?: ((node: LTreeNode<any>) => string | null | undefined) | undefined;
 }
 
 // ─── Controller props ─────────────────────────────────────────────────────
@@ -178,6 +183,21 @@ export interface TreeControllerConfig<T> {
 
   // EVENTS
   nodeClickedCallback?: (node: LTreeNode<T>) => void;
+  /** Fires on a detected node double-click (manual detection, all click behaviors). */
+  onNodeDoubleClick?: (node: LTreeNode<T>) => void;
+  /** Clipboard interceptors — return `false` to block, an array to override the paths. */
+  beforeCopyCallback?: (paths: string[]) => string[] | false | void;
+  beforeCutCallback?: (paths: string[]) => string[] | false | void;
+  /** Return `false` to block the paste, or an object to override target/position. */
+  beforePasteCallback?: (
+    targetPath: string,
+    operation: ClipboardOperation,
+    entries: ClipboardEntry<T>[]
+  ) => { targetPath?: string; position?: DropPosition } | false | void;
+  /** Post-operation clipboard events (symmetric with the controller's clipboard methods). */
+  onCopy?: (paths: string[]) => void;
+  onCut?: (paths: string[]) => void;
+  onPaste?: (result: PasteResult<T>) => void;
   nodeDragStartCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
   nodeDragOverCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
   beforeDropCallback?: (
@@ -228,6 +248,10 @@ export interface TreeControllerConfig<T> {
   iconMember?: string | null | undefined;
   iconCallback?: (node: LTreeNode<T>) => string | null;
   shouldAlignNodeIcons?: boolean | null | undefined;
+
+  // Data-driven per-row class hooks
+  nodeClass?: (node: LTreeNode<T>) => string | null | undefined;
+  nodeContentClass?: (node: LTreeNode<T>) => string | null | undefined;
 }
 
 // ─── Snapshot ─────────────────────────────────────────────────────────────

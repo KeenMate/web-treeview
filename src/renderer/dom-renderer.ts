@@ -245,6 +245,15 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         const behavior = this.lastNodeConfig?.clickBehavior ?? 'expand-and-focus';
         const isPlainClick = !modifiers.ctrl && !modifiers.shift;
 
+        // Manual double-click detection (the native dblclick is unreliable under
+        // the flat diff reconciler — the first click bumps _rev and patches the
+        // row). On a detected double the controller fires onNodeDoubleClick (and,
+        // in select mode, toggles expand/collapse); we consume the 2nd click so
+        // the gesture reads as a single open, not a re-toggle.
+        if (isPlainClick && this.controller.detectDoubleClick(node)) {
+          return;
+        }
+
         // shouldClickToggleCheckbox: a plain click on a selectable node with
         // checkboxes shown toggles the checkbox instead of running the
         // normal click/highlight flow. Expand-on-click still fires.
@@ -275,22 +284,6 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           // expand-and-focus on leaf, or expand on leaf — just select
           this.controller.nodeCallbacks.onNodeClicked(node, modifiers);
         }
-      }
-    }
-  };
-
-  private _onBodyDblClick = (event: MouseEvent) => {
-    if (!this.controller) return;
-    const behavior = this.lastNodeConfig?.clickBehavior ?? 'expand-and-focus';
-    if (behavior !== 'select') return;
-
-    const target = event.target as HTMLElement;
-    const nodeEl = target.closest('.wtv__node') as HTMLElement;
-    const path = nodeEl?.getAttribute('data-tree-path');
-    if (path) {
-      const node = this.controller.getNodeByPath(path);
-      if (node?.hasChildren) {
-        this.controller.toggleNodeExpanded(path);
       }
     }
   };
@@ -632,7 +625,6 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.bodyEl.setAttribute('tabindex', '0');
     this.bodyEl.style.outline = 'none';
     this.bodyEl.addEventListener('click', this._onBodyClick);
-    this.bodyEl.addEventListener('dblclick', this._onBodyDblClick);
     this.bodyEl.addEventListener('keydown', this._onBodyKeydown);
     this.bodyEl.addEventListener('contextmenu', this._onBodyContextMenu);
     this.bodyEl.addEventListener('dragstart', this._onBodyDragStart);
@@ -650,7 +642,6 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _detachBodyListeners() {
     if (!this.bodyEl) return;
     this.bodyEl.removeEventListener('click', this._onBodyClick);
-    this.bodyEl.removeEventListener('dblclick', this._onBodyDblClick);
     this.bodyEl.removeEventListener('keydown', this._onBodyKeydown);
     this.bodyEl.removeEventListener('contextmenu', this._onBodyContextMenu);
     this.bodyEl.removeEventListener('dragstart', this._onBodyDragStart);
@@ -1061,7 +1052,28 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     row.appendChild(content);
     el.appendChild(row);
 
+    this._applyCustomNodeClasses(el, content, node);
     return el;
+  }
+
+  /** Apply the data-driven nodeClass / nodeContentClass hooks to a row.
+   *  Tracks the previously-applied classes in `data-*` attributes so a
+   *  re-render removes stale classes before adding the new ones (the diff
+   *  reconciler reuses row elements rather than recreating them). */
+  private _applyCustomNodeClasses(el: HTMLElement, content: HTMLElement | null, node: LTreeNode<T>): void {
+    const cfg = this.lastNodeConfig;
+    // Outer .wtv__node
+    const prevNodeCls = el.dataset.wtvNodeClass;
+    if (prevNodeCls) { removeClasses(el, prevNodeCls); delete el.dataset.wtvNodeClass; }
+    const nodeCls = cfg?.nodeClass?.(node);
+    if (nodeCls) { addClasses(el, nodeCls); el.dataset.wtvNodeClass = nodeCls; }
+    // Inner .wtv__node-content
+    if (content) {
+      const prevContentCls = content.dataset.wtvContentClass;
+      if (prevContentCls) { removeClasses(content, prevContentCls); delete content.dataset.wtvContentClass; }
+      const contentCls = cfg?.nodeContentClass?.(node);
+      if (contentCls) { addClasses(content, contentCls); content.dataset.wtvContentClass = contentCls; }
+    }
   }
 
   private _updateNodeElement(el: HTMLElement, node: LTreeNode<T>, snapshot: TreeControllerSnapshot<T>): void {
@@ -1158,6 +1170,9 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       el.removeAttribute('draggable');
       el.classList.remove('wtv__node-content--draggable');
     }
+
+    // Re-apply data-driven nodeClass / nodeContentClass (removes stale classes)
+    this._applyCustomNodeClasses(el, content, node);
   }
 
   // ── Drag CSS classes ────────────────────────────────────────────────
@@ -1463,9 +1478,17 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           hideTimeout = setTimeout(hideSubmenu, 150);
         });
       } else if (!item.isDisabled && item.onclick) {
-        btn.addEventListener('click', () => {
-          item.onclick?.();
-          this.controller?.closeContextMenu();
+        btn.addEventListener('click', async () => {
+          try {
+            await item.onclick?.();
+          } catch (error) {
+            console.error('Context menu callback error:', error);
+          } finally {
+            // Auto-close after activating a leaf item — like every native menu.
+            // Opt out with shouldCloseOnClick:false to keep the menu open for
+            // incremental actions; the handler then dismisses it via close().
+            if (item.shouldCloseOnClick !== false) this.controller?.closeContextMenu();
+          }
         });
       }
 

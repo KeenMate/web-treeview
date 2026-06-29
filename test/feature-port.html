@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Feature Port Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; max-width: 720px; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        .card { border: 1px solid #ccc; padding: 0.75rem; margin-bottom: 0.75rem; border-radius: 4px; }
+        .controls { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; font-size: 0.85rem; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; max-width: 520px; }
+        .output { margin-top: 0.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 0.5rem; }
+        .output pre { margin: 0; font-size: 0.8rem; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Feature Port Fixture</h1>
+
+        <div class="card">
+            <div class="controls">
+                <button id="btn-copy">Copy 1.1</button>
+                <button id="btn-paste">Paste into 2</button>
+                <button id="btn-cut">Cut 1.2</button>
+                <label><input type="checkbox" id="copy-override"> beforeCopy → 1.2</label>
+                <label><input type="checkbox" id="block-paste"> Block paste</label>
+            </div>
+            <div class="tree-container">
+                <web-treeview id="tree" expand-level="3" click-behavior="select"></web-treeview>
+            </div>
+            <div class="output"><pre id="dbl-log" data-testid="dbl-log"></pre></div>
+            <div class="output"><pre id="clip-log" data-testid="clip-log"></pre></div>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const data = [
+            { id: 1, path: '1', name: 'Documents', type: 'folder' },
+            { id: 2, path: '1.1', name: 'Reports', type: 'folder' },
+            { id: 3, path: '1.2', name: 'Notes.txt', type: 'file' },
+            { id: 4, path: '2', name: 'Images', type: 'folder' },
+            { id: 5, path: '2.1', name: 'Photo.jpg', type: 'file' }
+        ];
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByName;
+            tree.isSorted = true;
+            tree.selectionMode = 'multi';
+
+            // Data-driven per-row class hooks
+            tree.nodeClass = (node) => node.data?.type === 'folder' ? 'is-folder' : 'is-file';
+            tree.nodeContentClass = (node) => `row-${node.data?.type}`;
+
+            const dblLog = document.getElementById('dbl-log');
+            const clipLog = document.getElementById('clip-log');
+            const dblLines = [];
+            const clipLines = [];
+            const dbl = (m) => { dblLines.push(m); dblLog.textContent = dblLines.join('\n'); };
+            const clip = (m) => { clipLines.push(m); clipLog.textContent = clipLines.join('\n'); };
+
+            // Double-click event
+            tree.onNodeDoubleClick = (node) => dbl(`dblclick "${node.data?.name}"`);
+
+            // Clipboard events
+            tree.onCopy = (paths) => clip(`copy ${paths.join(',')}`);
+            tree.onCut = (paths) => clip(`cut ${paths.join(',')}`);
+            tree.onPaste = (result) => clip(`paste ${result.pastedCount}`);
+
+            // Clipboard interceptors — gated on the checkboxes so the spec can
+            // toggle them. beforeCopy overrides the copied paths; beforePaste
+            // blocks the paste entirely.
+            tree.beforeCopyCallback = (paths) =>
+                document.getElementById('copy-override').checked ? ['1.2'] : undefined;
+            tree.beforePasteCallback = () =>
+                document.getElementById('block-paste').checked ? false : undefined;
+
+            let nextId = 1000;
+            const transform = (d) => ({ ...d, id: ++nextId });
+
+            document.getElementById('btn-copy').addEventListener('click', () => tree.copyNodes(['1.1']));
+            document.getElementById('btn-cut').addEventListener('click', () => tree.cutNodes(['1.2']));
+            document.getElementById('btn-paste').addEventListener('click', () => tree.pasteNodes('2', transform, 'child'));
+
+            tree.data = data;
+        });
+    </script>
+</body>
+</html>

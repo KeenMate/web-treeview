@@ -180,6 +180,9 @@ test.describe('Click Behavior tree', () => {
     await expect(outputValue(card, 'Focused Node')).toHaveText('(none)');
     await expect(outputValue(card, 'Highlighted')).toHaveText('(none)');
 
+    // Gap > 400ms so the re-click reads as a distinct single click rather than
+    // a double-click (which the controller now consumes as a single gesture).
+    await page.waitForTimeout(450);
     await nodeContent(nodeInCard(card, '1.1')).click();
     await expect(checkboxOf(nodeInCard(card, '1.1'))).not.toBeChecked();
   });
@@ -235,6 +238,9 @@ test.describe('Click Behavior tree', () => {
     await nodeContent(docs).click();
     await expect(nodeInCard(card, '1.1')).toBeHidden();
 
+    // Gap > 400ms so the re-click reads as a distinct single click, not a
+    // double-click (which the controller consumes as a single open gesture).
+    await page.waitForTimeout(450);
     await nodeContent(docs).click();
     await expect(nodeInCard(card, '1.1')).toBeVisible();
   });
@@ -251,6 +257,9 @@ test.describe('Click Behavior tree', () => {
     await nodeContent(docs).click();
     await expect(nodeInCard(card, '1.1')).toBeHidden();
 
+    // Gap > 400ms so the re-click reads as a distinct single click, not a
+    // double-click (which the controller consumes as a single open gesture).
+    await page.waitForTimeout(450);
     await nodeContent(docs).click();
     await expect(nodeInCard(card, '1.1')).toBeVisible();
   });

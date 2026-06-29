@@ -63,6 +63,7 @@
             tree.isSorted = true;
 
             const logLines = [];
+            let pinClicks = 0;
             const logEl = document.getElementById('log-1');
             const logWrap = document.getElementById('log-1-wrap');
 
@@ -112,6 +113,16 @@
                     entries.push({ divider: true });
                     entries.push({ label: 'Read-only file', isDisabled: true, isVisible: true });
                 }
+
+                // shouldCloseOnClick: false — the menu stays open so the item can be
+                // clicked repeatedly (an incremental action). The handler would call
+                // close() itself when finished; here it deliberately never does.
+                entries.push({ divider: true });
+                entries.push({
+                    label: 'Bump (stays open)',
+                    shouldCloseOnClick: false,
+                    onclick: () => { pinClicks += 1; append(`Bump ×${pinClicks} on "${node.data?.name}"`); }
+                });
 
                 return entries;
             };

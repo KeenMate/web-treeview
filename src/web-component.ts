@@ -143,6 +143,15 @@ const ATTRIBUTE_TABLE: readonly AttrSpec[] = [
 // buildConfig() copies each one to the matching config key when set.
 const JS_CALLBACK_FIELDS: readonly { field: string; configKey: string }[] = [
   { field: '_iconCallback',                 configKey: 'iconCallback' },
+  { field: '_nodeClass',                    configKey: 'nodeClass' },
+  { field: '_nodeContentClass',             configKey: 'nodeContentClass' },
+  { field: '_onNodeDoubleClick',            configKey: 'onNodeDoubleClick' },
+  { field: '_beforeCopyCallback',           configKey: 'beforeCopyCallback' },
+  { field: '_beforeCutCallback',            configKey: 'beforeCutCallback' },
+  { field: '_beforePasteCallback',          configKey: 'beforePasteCallback' },
+  { field: '_onCopy',                       configKey: 'onCopy' },
+  { field: '_onCut',                        configKey: 'onCut' },
+  { field: '_onPaste',                      configKey: 'onPaste' },
   { field: '_getDisplayValueCallback',      configKey: 'getDisplayValueCallback' },
   { field: '_getSearchValueCallback',       configKey: 'getSearchValueCallback' },
   { field: '_getIsDraggableCallback',       configKey: 'getIsDraggableCallback' },
@@ -319,8 +328,19 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _renderContextMenuCallback?: (node: LTreeNode<T>, close: () => void, container: HTMLElement) => void;
   private _renderContextMenuItemCallback?: (item: ContextMenuItem, node: LTreeNode<T>, container: HTMLElement) => void;
 
+  // Data-driven per-row class hooks
+  private _nodeClass?: (node: LTreeNode<T>) => string | null | undefined;
+  private _nodeContentClass?: (node: LTreeNode<T>) => string | null | undefined;
+
   // Event callbacks
   private _nodeClickedCallback?: (node: LTreeNode<T>) => void;
+  private _onNodeDoubleClick?: (node: LTreeNode<T>) => void;
+  private _beforeCopyCallback?: TreeViewConfig<T>['beforeCopyCallback'];
+  private _beforeCutCallback?: TreeViewConfig<T>['beforeCutCallback'];
+  private _beforePasteCallback?: TreeViewConfig<T>['beforePasteCallback'];
+  private _onCopy?: (paths: string[]) => void;
+  private _onCut?: (paths: string[]) => void;
+  private _onPaste?: (result: PasteResult<T>) => void;
   private _nodeDragStartCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
   private _nodeDragOverCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
   private _beforeDropCallback?: TreeViewConfig<T>['beforeDropCallback'];
@@ -641,10 +661,58 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get renderCompleteCallback() { return this._renderCompleteCallback; }
   set renderCompleteCallback(value: ((stats: any) => void) | undefined) { this._renderCompleteCallback = value; }
 
+  // Data-driven per-row class hooks
+  get nodeClass() { return this._nodeClass; }
+  set nodeClass(value: ((node: LTreeNode<T>) => string | null | undefined) | undefined) {
+    this._nodeClass = value;
+    this._scheduleUpdate();
+  }
+
+  get nodeContentClass() { return this._nodeContentClass; }
+  set nodeContentClass(value: ((node: LTreeNode<T>) => string | null | undefined) | undefined) {
+    this._nodeContentClass = value;
+    this._scheduleUpdate();
+  }
+
   // Event callbacks
   get nodeClickedCallback() { return this._nodeClickedCallback; }
   set nodeClickedCallback(value: ((node: LTreeNode<T>) => void) | undefined) {
     this._nodeClickedCallback = value;
+  }
+
+  get onNodeDoubleClick() { return this._onNodeDoubleClick; }
+  set onNodeDoubleClick(value: ((node: LTreeNode<T>) => void) | undefined) {
+    this._onNodeDoubleClick = value;
+  }
+
+  get beforeCopyCallback() { return this._beforeCopyCallback; }
+  set beforeCopyCallback(value: TreeViewConfig<T>['beforeCopyCallback']) {
+    this._beforeCopyCallback = value;
+  }
+
+  get beforeCutCallback() { return this._beforeCutCallback; }
+  set beforeCutCallback(value: TreeViewConfig<T>['beforeCutCallback']) {
+    this._beforeCutCallback = value;
+  }
+
+  get beforePasteCallback() { return this._beforePasteCallback; }
+  set beforePasteCallback(value: TreeViewConfig<T>['beforePasteCallback']) {
+    this._beforePasteCallback = value;
+  }
+
+  get onCopy() { return this._onCopy; }
+  set onCopy(value: ((paths: string[]) => void) | undefined) {
+    this._onCopy = value;
+  }
+
+  get onCut() { return this._onCut; }
+  set onCut(value: ((paths: string[]) => void) | undefined) {
+    this._onCut = value;
+  }
+
+  get onPaste() { return this._onPaste; }
+  set onPaste(value: ((result: PasteResult<T>) => void) | undefined) {
+    this._onPaste = value;
   }
 
   get nodeDragStartCallback() { return this._nodeDragStartCallback; }
@@ -1045,6 +1113,48 @@ export class WebTreeViewElement<T = any> extends BaseElement {
         bubbles: true,
         composed: true,
         detail: { node }
+      }));
+    };
+
+    // Wrap user's onNodeDoubleClick to also dispatch DOM event
+    const userOnNodeDoubleClick = config.onNodeDoubleClick;
+    config.onNodeDoubleClick = (node) => {
+      userOnNodeDoubleClick?.(node);
+      this.dispatchEvent(new CustomEvent('node-double-click', {
+        bubbles: true,
+        composed: true,
+        detail: { node }
+      }));
+    };
+
+    // Wrap clipboard events to also dispatch DOM events
+    const userOnCopy = config.onCopy;
+    config.onCopy = (paths) => {
+      userOnCopy?.(paths);
+      this.dispatchEvent(new CustomEvent('copy', {
+        bubbles: true,
+        composed: true,
+        detail: { paths }
+      }));
+    };
+
+    const userOnCut = config.onCut;
+    config.onCut = (paths) => {
+      userOnCut?.(paths);
+      this.dispatchEvent(new CustomEvent('cut', {
+        bubbles: true,
+        composed: true,
+        detail: { paths }
+      }));
+    };
+
+    const userOnPaste = config.onPaste;
+    config.onPaste = (result) => {
+      userOnPaste?.(result);
+      this.dispatchEvent(new CustomEvent('paste', {
+        bubbles: true,
+        composed: true,
+        detail: { result }
       }));
     };
 

@@ -78,7 +78,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     dropZoneMaxWidth: 120,
     isCopyAllowed: false,
     iconMember: undefined,
-    shouldShowCheckboxes: false
+    shouldShowCheckboxes: false,
+    nodeClass: undefined,
+    nodeContentClass: undefined
   };
 
   get nodeConfig(): NodeConfig { return this._nodeConfig; }
@@ -129,6 +131,18 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     | ((paths: Set<string>, nodes: LTreeNode<T>[]) => void)
     | undefined;
   private nodeClickedCb: ((node: LTreeNode<T>) => void) | undefined;
+  private onNodeDoubleClickCb: ((node: LTreeNode<T>) => void) | undefined;
+  private beforeCopyCb: TreeControllerConfig<T>['beforeCopyCallback'];
+  private beforeCutCb: TreeControllerConfig<T>['beforeCutCallback'];
+  private beforePasteCb: TreeControllerConfig<T>['beforePasteCallback'];
+  private onCopyCb: ((paths: string[]) => void) | undefined;
+  private onCutCb: ((paths: string[]) => void) | undefined;
+  private onPasteCb: ((result: PasteResult<T>) => void) | undefined;
+  // Manual double-click detection — the flat diff reconciler patches a row's
+  // attributes on the first click (focus/highlight bumps _rev), which makes the
+  // browser's native dblclick unreliable. Tracks the last plain UI click.
+  private _lastClickPath: string | null = null;
+  private _lastClickTime: number = 0;
   private nodeDragStartCb: ((node: LTreeNode<T>, event: DragEvent) => void) | undefined;
   private nodeDragOverCb: ((node: LTreeNode<T>, event: DragEvent) => void) | undefined;
   private beforeDropCallbackCb: TreeControllerConfig<T>['beforeDropCallback'];
@@ -163,6 +177,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _iconMember: string | null | undefined = undefined;
   private _iconCallback: ((node: LTreeNode<T>) => string | null) | undefined = undefined;
   private _shouldAlignNodeIcons: boolean = true;
+
+  // Data-driven per-row class hooks
+  private _nodeClass: ((node: LTreeNode<T>) => string | null | undefined) | undefined = undefined;
+  private _nodeContentClass: ((node: LTreeNode<T>) => string | null | undefined) | undefined = undefined;
 
   // ── Internal mutable state ──────────────────────────────────────────
 
@@ -603,11 +621,20 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._iconMember = props.iconMember ?? undefined;
     this._iconCallback = props.iconCallback;
     this._shouldAlignNodeIcons = props.shouldAlignNodeIcons ?? true;
+    this._nodeClass = props.nodeClass;
+    this._nodeContentClass = props.nodeContentClass;
 
     // Store callbacks
     this.selectionChangeCb = props.selectionChangeCallback;
     this.highlightChangeCb = props.highlightChangeCallback;
     this.nodeClickedCb = props.nodeClickedCallback;
+    this.onNodeDoubleClickCb = props.onNodeDoubleClick;
+    this.beforeCopyCb = props.beforeCopyCallback;
+    this.beforeCutCb = props.beforeCutCallback;
+    this.beforePasteCb = props.beforePasteCallback;
+    this.onCopyCb = props.onCopy;
+    this.onCutCb = props.onCut;
+    this.onPasteCb = props.onPaste;
     this.nodeDragStartCb = props.nodeDragStartCallback;
     this.nodeDragOverCb = props.nodeDragOverCallback;
     this.beforeDropCallbackCb = props.beforeDropCallback;
@@ -1710,8 +1737,16 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   /** Copy selected nodes (or specified paths) to clipboard. */
   copyNodes(paths?: string[]): void {
-    const targetPaths = paths ?? [...this._highlightedPaths];
+    let targetPaths = paths ?? [...this._highlightedPaths];
     if (targetPaths.length === 0) return;
+
+    // Interceptor: can override the paths or block the copy.
+    if (this.beforeCopyCb) {
+      const result = this.beforeCopyCb(targetPaths);
+      if (result === false) return;
+      if (Array.isArray(result)) targetPaths = result;
+      if (targetPaths.length === 0) return;
+    }
 
     const entries = targetPaths
       .map(p => this._collectClipboardEntry(p))
@@ -1719,13 +1754,22 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     if (entries.length > 0) {
       setClipboard('copy', entries);
+      this.onCopyCb?.(entries.map(e => e.sourcePath));
     }
   }
 
   /** Cut selected nodes (or specified paths) to clipboard. */
   cutNodes(paths?: string[]): void {
-    const targetPaths = paths ?? [...this._highlightedPaths];
+    let targetPaths = paths ?? [...this._highlightedPaths];
     if (targetPaths.length === 0) return;
+
+    // Interceptor: can override the paths or block the cut.
+    if (this.beforeCutCb) {
+      const result = this.beforeCutCb(targetPaths);
+      if (result === false) return;
+      if (Array.isArray(result)) targetPaths = result;
+      if (targetPaths.length === 0) return;
+    }
 
     const entries = targetPaths
       .map(p => this._collectClipboardEntry(p))
@@ -1747,6 +1791,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       }
       this.tree.refresh();
       this._scheduleNotify();
+      this.onCutCb?.(entries.map(e => e.sourcePath));
     }
   }
 
@@ -1759,6 +1804,18 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     const clipboard = getClipboard<T>();
     if (!clipboard || clipboard.entries.length === 0) {
       return { success: false, pastedCount: 0, error: 'Clipboard is empty' };
+    }
+
+    // Interceptor: can override target/position or block the paste.
+    if (this.beforePasteCb) {
+      const result = this.beforePasteCb(targetPath, clipboard.operation, clipboard.entries);
+      if (result === false) {
+        return { success: false, pastedCount: 0, error: 'Paste blocked by beforePasteCallback' };
+      }
+      if (result && typeof result === 'object') {
+        if (result.targetPath !== undefined) targetPath = result.targetPath;
+        if (result.position !== undefined) position = result.position;
+      }
     }
 
     const targetNode = this.tree?.getNodeByPath(targetPath);
@@ -1805,7 +1862,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     queueMicrotask(() => { this._skipInsertArray = false; });
     this.tree.refresh();
     this._scheduleNotify();
-    return { success: true, pastedCount };
+    const result: PasteResult<T> = { success: true, pastedCount };
+    this.onPasteCb?.(result);
+    return result;
   }
 
   /** Cancel cut operation, clear cut visual state. */
@@ -2345,6 +2404,15 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     // Callbacks
     if (updates.nodeClickedCallback !== undefined) this.nodeClickedCb = updates.nodeClickedCallback;
+    if (updates.onNodeDoubleClick !== undefined) this.onNodeDoubleClickCb = updates.onNodeDoubleClick;
+    if (updates.beforeCopyCallback !== undefined) this.beforeCopyCb = updates.beforeCopyCallback;
+    if (updates.beforeCutCallback !== undefined) this.beforeCutCb = updates.beforeCutCallback;
+    if (updates.beforePasteCallback !== undefined) this.beforePasteCb = updates.beforePasteCallback;
+    if (updates.onCopy !== undefined) this.onCopyCb = updates.onCopy;
+    if (updates.onCut !== undefined) this.onCutCb = updates.onCut;
+    if (updates.onPaste !== undefined) this.onPasteCb = updates.onPaste;
+    if (updates.nodeClass !== undefined) { this._nodeClass = updates.nodeClass; this._updateNodeConfig(); }
+    if (updates.nodeContentClass !== undefined) { this._nodeContentClass = updates.nodeContentClass; this._updateNodeConfig(); }
     if (updates.nodeDragStartCallback !== undefined) this.nodeDragStartCb = updates.nodeDragStartCallback;
     if (updates.nodeDragOverCallback !== undefined) this.nodeDragOverCb = updates.nodeDragOverCallback;
     if (updates.beforeDropCallback !== undefined) this.beforeDropCallbackCb = updates.beforeDropCallback;
@@ -2654,7 +2722,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       dropZoneMaxWidth: this._dropZoneMaxWidth,
       isCopyAllowed: this._isCopyAllowed,
       iconMember: this._iconMember,
-      shouldShowCheckboxes: this._shouldShowCheckboxes
+      shouldShowCheckboxes: this._shouldShowCheckboxes,
+      nodeClass: this._nodeClass,
+      nodeContentClass: this._nodeContentClass
     };
     this.emit('config-change', this._nodeConfig);
   }
@@ -2764,6 +2834,38 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     });
 
     this.nodeClickedCb?.(node);
+  }
+
+  /**
+   * Manual double-click detection, called by the renderer for every genuine
+   * plain (no Ctrl/Shift) UI click. The flat diff reconciler patches a row's
+   * attributes on the first click (focus/highlight bumps `_rev`), so the
+   * browser's native `dblclick` can't be trusted. Returns `true` when this
+   * click completes a double within the 400ms window — the caller then
+   * consumes the click (returns early) so the gesture reads as a single open
+   * rather than a re-toggle. Fires `onNodeDoubleClick` for every clickBehavior;
+   * `select` mode additionally toggles expand/collapse on the double (the other
+   * modes already toggle on single click).
+   */
+  detectDoubleClick(node: LTreeNode<T>): boolean {
+    const now = Date.now();
+    const isDouble =
+      this._lastClickPath === node.path && now - this._lastClickTime < 400;
+    if (isDouble) {
+      this._lastClickPath = null;
+      this._lastClickTime = 0;
+      this.onNodeDoubleClickCb?.(node);
+      if (this._clickBehavior === 'select') {
+        const canonical = this.tree?.getNodeByPath(node.path) ?? node;
+        if (canonical.hasChildren && this.getNodeIsCollapsible(canonical)) {
+          this.toggleNodeExpanded(canonical.path);
+        }
+      }
+      return true;
+    }
+    this._lastClickPath = node.path;
+    this._lastClickTime = now;
+    return false;
   }
 
   private _onNodeRightClicked(node: LTreeNode<T>, event: MouseEvent) {

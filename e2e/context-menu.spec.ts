@@ -136,6 +136,26 @@ test.describe('Callback approach', () => {
     await expect(activityLog(card)).toContainText('Copied "Documents"');
   });
 
+  test('shouldCloseOnClick:false keeps the menu open so the item can be clicked repeatedly', async ({ page }) => {
+    await gotoContextMenu(page);
+    const card = callbackCard(page);
+
+    await rightClick(card, '1'); // Documents
+    const bump = menuItem(card, 'Bump (stays open)');
+
+    await bump.click();
+    await expect(menuIn(card)).toBeVisible();
+    await expect(activityLog(card)).toContainText('Bump ×1 on "Documents"');
+
+    await bump.click();
+    await expect(menuIn(card)).toBeVisible();
+    await expect(activityLog(card)).toContainText('Bump ×2 on "Documents"');
+
+    // A normal item still dismisses the menu afterward.
+    await menuItem(card, 'Copy').click();
+    await expect(menuIn(card)).toBeHidden();
+  });
+
   test('clicking a disabled item does not fire the callback', async ({ page }) => {
     await gotoContextMenu(page);
     const card = callbackCard(page);

@@ -44,7 +44,7 @@ import type { LTreeNode } from './ltree/ltree-node';
 import type { DropPosition } from './ltree/ltree-node';
 import type { DragDropMode, DropOperation, ContextMenuItem, ContextMenuEntry } from './ltree/types';
 import type { ClickBehavior, RangeSelectionMode, HighlightMode, TreeMutationOptions } from './controller/types';
-import type { PasteResult } from './clipboard';
+import type { PasteResult, ClipboardEntry, ClipboardOperation } from './clipboard';
 import type { RenderStats } from './renderer/render-coordinator';
 
 export interface TreeViewConfig<T = any> {
@@ -126,6 +126,13 @@ export interface TreeViewConfig<T = any> {
   iconCallback?: (node: LTreeNode<T>) => string | null;
   shouldAlignNodeIcons?: boolean | null;
 
+  // Data-driven per-row class hooks
+  /** Returns class(es) applied to the node's outer `.wtv__node` element.
+   *  Recomputes per render (on the node's `data-rev` bump). */
+  nodeClass?: (node: LTreeNode<T>) => string | null | undefined;
+  /** Returns class(es) applied to the node's inner `.wtv__node-content`. */
+  nodeContentClass?: (node: LTreeNode<T>) => string | null | undefined;
+
   // Bindable properties
   searchText?: string | null;
   /** Single focused node (click, arrow keys). Distinct from the multi-select
@@ -205,6 +212,29 @@ export interface TreeViewConfig<T = any> {
 
   // Event handlers
   nodeClickedCallback?: (node: LTreeNode<T>) => void;
+  /** Fires on a detected node double-click. Uses manual detection (last path +
+   *  timestamp, 400ms) rather than the native `dblclick`, which is unreliable
+   *  under the flat diff reconciler. Fires for every `clickBehavior`. */
+  onNodeDoubleClick?: (node: LTreeNode<T>) => void;
+  /** Interceptor invoked before `copyNodes`. Return `false` to block the copy,
+   *  or a `string[]` to override which paths are copied. */
+  beforeCopyCallback?: (paths: string[]) => string[] | false | void;
+  /** Interceptor invoked before `cutNodes`. Return `false` to block the cut,
+   *  or a `string[]` to override which paths are cut. */
+  beforeCutCallback?: (paths: string[]) => string[] | false | void;
+  /** Interceptor invoked before `pasteNodes`. Return `false` to block, or an
+   *  object to override the paste target / position. */
+  beforePasteCallback?: (
+    targetPath: string,
+    operation: ClipboardOperation,
+    entries: ClipboardEntry<T>[]
+  ) => { targetPath?: string; position?: DropPosition } | false | void;
+  /** Fires after `copyNodes` succeeds, with the copied paths. */
+  onCopy?: (paths: string[]) => void;
+  /** Fires after `cutNodes` succeeds, with the cut paths. */
+  onCut?: (paths: string[]) => void;
+  /** Fires after `pasteNodes` succeeds, with the paste result. */
+  onPaste?: (result: PasteResult<T>) => void;
   nodeDragStartCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
   nodeDragOverCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
   beforeDropCallback?: (
@@ -331,6 +361,10 @@ export interface TreeViewMethods<T = any> {
 
 export interface TreeEventMap<T = any> {
   'node-clicked': CustomEvent<{ node: LTreeNode<T> }>;
+  'node-double-click': CustomEvent<{ node: LTreeNode<T> }>;
+  'copy': CustomEvent<{ paths: string[] }>;
+  'cut': CustomEvent<{ paths: string[] }>;
+  'paste': CustomEvent<{ result: PasteResult<T> }>;
   'node-drag-start': CustomEvent<{ node: LTreeNode<T>; event: DragEvent }>;
   'node-drag-over': CustomEvent<{ node: LTreeNode<T>; event: DragEvent }>;
   'node-drop': CustomEvent<{ node: LTreeNode<T>; draggedNode: LTreeNode<T>; event: DragEvent }>;
