@@ -62,8 +62,11 @@
 
   /* ==========================================================================
      FONT FAMILY (set at :host so all shadow DOM content inherits)
+     Default is a system sans-serif stack (matches svelte-treeview) rather than
+     `inherit`, so the tree doesn't pick up the host page's default (often a
+     serif). Still overridable via --wtv-font-family or --base-font-family.
      ========================================================================== */
-  font-family: var(--wtv-font-family, var(--base-font-family, inherit));
+  font-family: var(--wtv-font-family, var(--base-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif));
 
   /* ==========================================================================
      COLORS & THEME (Strategy B: light-dark() + color-scheme flipping)
@@ -146,16 +149,18 @@
      knob now, independent of the toggle column — set it alone to tune nesting
      density (mirrors svelte-treeview's --stv-node-indent-per-level). */
   --wtv-indent-size: calc(var(--wtv-rem) * 1.6); /* 16px */
-  /* Node row padding (mirrors svelte-treeview's --stv-node-content-padding, which
-     IS consumed there — web-treeview declared this but never wired it). Left is 0
-     so the highlight/hover background hugs the label; override the whole token to
-     re-introduce left padding. Applied on .wtv__node-content. */
-  --wtv-node-padding: var(--wtv-spacing-sm) var(--wtv-spacing-md) var(--wtv-spacing-sm) 0;
-  /* Uniform row height, applied as min-height on .wtv__node-content. Keep it in
-     sync with the virtual scroller's default row height (resolvedRowHeight falls
-     back to 32 before it can measure a real row). Raising this to allow taller
-     rows also needs the label ellipsis relaxed (see .wtv__node-label). */
-  --wtv-node-height: calc(var(--wtv-rem) * 3.2);  /* 32px */
+  /* Node row padding (mirrors svelte-treeview's --stv-node-content-padding).
+     SYMMETRIC (was `… 0` on the left) so the highlight/hover/focus background —
+     painted on .wtv__node-content — insets evenly like svelte's rounded pill,
+     instead of a flush-left block hard against the toggle. Applied on
+     .wtv__node-content. */
+  --wtv-node-padding: var(--wtv-spacing-sm) var(--wtv-spacing-md);
+  /* Minimum row height, applied as min-height on the ROW (.wtv__node). Compact by
+     default (matches svelte-treeview's ~natural row height) so it doesn't inflate
+     the highlight, which is painted on the centered .wtv__node-content. Raise it
+     for roomier / touch-friendly rows. Keep roughly in sync with the virtual
+     scroller's pre-measurement fallback (resolvedRowHeight ?? 24). */
+  --wtv-node-height: calc(var(--wtv-rem) * 2.4);  /* 24px */
   --wtv-icon-size: calc(var(--wtv-rem) * 1.6);    /* 16px */
 
   /* Node transition */

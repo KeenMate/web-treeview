@@ -40,6 +40,13 @@
   overflow: visible;
   transition: var(--wtv-node-transition);
   cursor: pointer;
+  /* Row-height floor lives on the ROW, not on .wtv__node-content — the content is
+     what paints the highlight/hover background, so a min-height there inflated the
+     selected block into a tall padded box (svelte-treeview keeps it snug to the
+     text). Here it just guarantees a minimum clickable row; the centered content
+     keeps its natural height so the highlight hugs the label. Rows can't grow past
+     it either (label is nowrap), so virtual scroll stays uniform. */
+  min-height: var(--wtv-node-height);
 }
 
 .wtv__node .wtv__node-row {
@@ -53,18 +60,17 @@
   display: flex;
   align-items: center;
   padding: var(--wtv-node-padding);
-  border-radius: 0;
+  /* Rounded on the base (mirrors svelte-treeview's .stv__node-content) so hover
+     AND the state modifiers all render as a rounded, content-hugging pill rather
+     than a square block. Also fixes a specificity trap: this base rule is 2-class
+     (.wtv__node .wtv__node-content) and the old `border-radius: 0` here out-
+     specified the single-class --highlighted/--focused modifiers, squaring them. */
+  border-radius: var(--wtv-border-radius-sm);
   transition: var(--wtv-node-transition);
   flex: 1;
   /* min-width:0 lets the label flex-shrink so text-overflow:ellipsis can engage
      (a flex item's default min-width:auto would otherwise refuse to shrink). */
   min-width: 0;
-  /* Row height is now driven by the --wtv-node-height token (was emergent from
-     padding + line-height, leaving the token dead). A live minimum keeps rows a
-     uniform height — required for virtual scroll, whose translateY math assumes
-     index × rowHeight. Combined with the label ellipsis below, rows can no longer
-     grow by wrapping. */
-  min-height: var(--wtv-node-height);
   position: relative;
   overflow: visible;
   -webkit-user-select: none;
@@ -72,7 +78,10 @@
   -webkit-touch-callout: none;
 }
 
-.wtv__node:hover {
+/* Hover paints on the CONTENT (mirrors svelte-treeview's .stv__node-content:hover),
+   so it hugs the label as a rounded, inset pill — not a flat full-width bar across
+   the whole row (indent + toggle included) as it did when it was on .wtv__node. */
+.wtv__node .wtv__node-content:hover {
   background: var(--wtv-node-bg-hover);
 }
 

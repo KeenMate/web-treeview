@@ -543,9 +543,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     }
   }
 
-  /** Resolved row height: explicit > measured > 32px default */
+  /** Resolved row height: explicit > measured > 24px default (matches the
+   *  --wtv-node-height token; only used before a real row can be measured). */
   get resolvedRowHeight(): number {
-    return this._virtualRowHeight ?? this._vsMeasuredRowHeight ?? 32;
+    return this._virtualRowHeight ?? this._vsMeasuredRowHeight ?? 24;
   }
 
   /** Resolved container height string: explicit > detected > '400px' */
