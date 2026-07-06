@@ -306,9 +306,15 @@
 
         // ── Helpers ───────────────────────────────────────────────────────
 
+        // Always hand each tree its OWN fresh copy of the seed data. The seed
+        // arrays above are module-level consts; assigning them directly would let
+        // in-place tree mutations (moves/removes) pollute the shared const, so a
+        // hot-module reload — which re-runs interaction state but NOT the const
+        // literals — could resurrect a previous session's edits. structuredClone
+        // guarantees a clean start on every (re)init.
         function initTree(id, data, opts = {}) {
             const el = document.getElementById(id);
-            el.data = data;
+            el.data = structuredClone(data);
             el.idMember = 'id';
             el.pathMember = 'path';
             el.displayValueMember = 'name';
@@ -432,7 +438,12 @@
 
         // ── Cross-Tree Drop Handler ──────────────────────────────────────
 
-        function handleTargetDrop(dropNode, draggedNode, position, event, operation) {
+        function handleTargetDrop(ctx) {
+            const dropNode = ctx.target?.node ?? null;
+            const draggedNode = ctx.source?.node ?? null;
+            const position = ctx.position;
+            const operation = ctx.operation;
+            const event = ctx.event;
             // Same-tree operations are auto-handled by the library - just log
             const isSameTreeDrag = draggedNode.treeId === 'target-tree';
             if (isSameTreeDrag) {
@@ -483,7 +494,12 @@
             }
         }
 
-        function handleSourceDrop(dropNode, draggedNode, position, event, operation) {
+        function handleSourceDrop(ctx) {
+            const dropNode = ctx.target?.node ?? null;
+            const draggedNode = ctx.source?.node ?? null;
+            const position = ctx.position;
+            const operation = ctx.operation;
+            const event = ctx.event;
             if (!dropNode) {
                 addLog('Cannot drop at root level in source tree');
                 return;
@@ -505,7 +521,7 @@
                 isCopyAllowed: document.getElementById('ctrl-allow-copy').checked,
                 shouldAutoHandleCopy: true
             });
-            sourceTreeEl.nodeDropCallback = handleSourceDrop;
+            sourceTreeEl.onNodeDrop = handleSourceDrop;
 
             // Target tree (always accepts drops)
             targetTreeEl = initTree('target-tree', [], {
@@ -514,7 +530,7 @@
                 isCopyAllowed: document.getElementById('ctrl-allow-copy').checked,
                 shouldAutoHandleCopy: true
             });
-            targetTreeEl.nodeDropCallback = handleTargetDrop;
+            targetTreeEl.onNodeDrop = handleTargetDrop;
 
             // Apply all settings from controls
             applySettings();
@@ -538,7 +554,10 @@
             const restrictedLogEl = document.getElementById('restricted-log');
             const restrictedOutputEl = document.getElementById('restricted-output');
             let restrictedLogEntries = [];
-            restrictedTree.nodeDropCallback = (dropNode, draggedNode, position) => {
+            restrictedTree.onNodeDrop = (ctx) => {
+                const dropNode = ctx.target?.node ?? null;
+                const draggedNode = ctx.source?.node ?? null;
+                const position = ctx.position;
                 const posLabel = dropNode?.data?.allowedDropPositions?.length === 1
                     ? `(only ${dropNode.data.allowedDropPositions[0]} allowed)`
                     : '';
@@ -555,7 +574,7 @@
             multiTreeEl.pathMember = 'path';
             multiTreeEl.displayValueMember = 'name';
             multiTreeEl.orderMember = 'sortOrder';
-            multiTreeEl.data = multiSeedData;
+            multiTreeEl.data = structuredClone(multiSeedData);
 
             const multiHighlightEl = document.getElementById('multi-highlight');
             const multiFocusedEl = document.getElementById('multi-focused');
@@ -563,12 +582,12 @@
             const multiDropEl = document.getElementById('multi-drop');
 
             multiTreeEl.addEventListener('highlight-change', (e) => {
-                const paths = [...e.detail.highlightedPaths].sort();
+                const paths = [...e.detail.paths].sort();
                 if (paths.length === 0) {
                     multiHighlightEl.textContent = '(none)';
                     return;
                 }
-                const names = e.detail.highlightedNodes.map(n => n.data?.name).join(', ');
+                const names = e.detail.nodes.map(n => n.data?.name).join(', ');
                 multiHighlightEl.textContent = `${paths.length} highlighted — ${names}`;
             });
 
@@ -578,16 +597,20 @@
             });
 
             multiTreeEl.addEventListener('selection-change', (e) => {
-                const paths = [...e.detail.selectedPaths].sort();
+                const paths = [...e.detail.paths].sort();
                 if (paths.length === 0) {
                     multiSelectedEl.textContent = multiTreeEl.shouldShowCheckboxes ? '(none)' : '(checkboxes off)';
                     return;
                 }
-                const names = e.detail.selectedNodes.map(n => n.data?.name).join(', ');
+                const names = e.detail.nodes.map(n => n.data?.name).join(', ');
                 multiSelectedEl.textContent = `${paths.length} selected — ${names}`;
             });
 
-            multiTreeEl.nodeDropCallback = (dropNode, draggedNode, position, _ev, op) => {
+            multiTreeEl.onNodeDrop = (ctx) => {
+                const dropNode = ctx.target?.node ?? null;
+                const draggedNode = ctx.source?.node ?? null;
+                const position = ctx.position;
+                const op = ctx.operation;
                 multiDropEl.textContent =
                     `[${op.toUpperCase()}] "${draggedNode.data?.name}" ${position} "${dropNode?.data?.name ?? 'root'}"`;
             };
@@ -609,7 +632,7 @@
             };
 
             window.resetMultiTree = function () {
-                multiTreeEl.data = multiSeedData;
+                multiTreeEl.data = structuredClone(multiSeedData);
                 multiTreeEl.clearHighlight?.();
                 multiTreeEl.deselectAll?.({ silent: true });
                 multiHighlightEl.textContent = '(none)';

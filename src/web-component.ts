@@ -4,7 +4,7 @@ import type { LTreeNode } from './ltree/ltree-node';
 import type { DropPosition } from './ltree/ltree-node';
 import type { Ltree, ContextMenuItem, ContextMenuEntry, DragDropMode, DropOperation } from './ltree/types';
 import type { TreeViewRenderer, RendererConfig } from './renderer/types';
-import type { RangeSelectionMode, HighlightMode, TreeMutationOptions } from './controller/types';
+import type { RangeSelectionMode, HighlightMode, TreeMutationOptions, NodeTransformContext } from './controller/types';
 import type { PasteResult } from './clipboard';
 import type { TreeController } from './controller/tree-controller';
 import { initLogger } from './logger';
@@ -117,8 +117,12 @@ const ATTRIBUTE_TABLE: readonly AttrSpec[] = [
   { attr: 'drop-zone-max-width',  configKey: 'dropZoneMaxWidth',   field: '_dropZoneMaxWidth', parse: { kind: 'number', parser: 'int' } },
   { attr: 'allow-copy',           configKey: 'isCopyAllowed',      field: '_isCopyAllowed',  parse: { kind: 'boolean' } },
   { attr: 'auto-handle-copy',     configKey: 'shouldAutoHandleCopy', field: '_shouldAutoHandleCopy', parse: { kind: 'boolean' } },
+  { attr: 'auto-handle-paste',    configKey: 'shouldAutoHandlePaste', field: '_shouldAutoHandlePaste', parse: { kind: 'boolean' } },
+  { attr: 'handle-keyboard-shortcuts', configKey: 'shouldHandleKeyboardShortcuts', field: '_shouldHandleKeyboardShortcuts', parse: { kind: 'boolean' } },
 
   // ── Rendering ──────────────────────────────────────────────────────
+  { attr: 'no-data-text',         configKey: 'noDataText',          field: '_noDataText',      parse: { kind: 'string' } },
+  { attr: 'show-drop-placeholder-when-empty', configKey: 'shouldShowDropPlaceholderWhenEmpty', field: '_shouldShowDropPlaceholderWhenEmpty', parse: { kind: 'boolean' } },
   { attr: 'use-flat-rendering',   configKey: 'isFlatRenderingEnabled',                       parse: { kind: 'boolean' } },
   { attr: 'flat-indent-size',     configKey: 'flatIndentSize',                               parse: { kind: 'string' } },
   { attr: 'progressive-render',   configKey: 'isProgressiveRender',                          parse: { kind: 'boolean' } },
@@ -149,9 +153,14 @@ const JS_CALLBACK_FIELDS: readonly { field: string; configKey: string }[] = [
   { field: '_beforeCopyCallback',           configKey: 'beforeCopyCallback' },
   { field: '_beforeCutCallback',            configKey: 'beforeCutCallback' },
   { field: '_beforePasteCallback',          configKey: 'beforePasteCallback' },
+  { field: '_beforeDeleteCallback',         configKey: 'beforeDeleteCallback' },
+  { field: '_copyNodeTransformationCallback', configKey: 'copyNodeTransformationCallback' },
+  { field: '_pasteNodeTransformationCallback', configKey: 'pasteNodeTransformationCallback' },
   { field: '_onCopy',                       configKey: 'onCopy' },
   { field: '_onCut',                        configKey: 'onCut' },
   { field: '_onPaste',                      configKey: 'onPaste' },
+  { field: '_onDelete',                     configKey: 'onDelete' },
+  { field: '_onTreeKeydown',                configKey: 'onTreeKeydown' },
   { field: '_getDisplayValueCallback',      configKey: 'getDisplayValueCallback' },
   { field: '_getSearchValueCallback',       configKey: 'getSearchValueCallback' },
   { field: '_getIsDraggableCallback',       configKey: 'getIsDraggableCallback' },
@@ -168,12 +177,13 @@ const JS_CALLBACK_FIELDS: readonly { field: string; configKey: string }[] = [
   { field: '_renderFooterCallback',         configKey: 'renderFooterCallback' },
   { field: '_renderContextMenuCallback',    configKey: 'renderContextMenuCallback' },
   { field: '_renderContextMenuItemCallback', configKey: 'renderContextMenuItemCallback' },
-  { field: '_selectionChangeCallback',      configKey: 'selectionChangeCallback' },
-  { field: '_nodeClickedCallback',          configKey: 'nodeClickedCallback' },
-  { field: '_nodeDragStartCallback',        configKey: 'nodeDragStartCallback' },
-  { field: '_nodeDragOverCallback',         configKey: 'nodeDragOverCallback' },
+  { field: '_onSelectionChange',            configKey: 'onSelectionChange' },
+  { field: '_onHighlightChange',            configKey: 'onHighlightChange' },
+  { field: '_onNodeClick',                  configKey: 'onNodeClick' },
+  { field: '_onNodeDragStart',              configKey: 'onNodeDragStart' },
+  { field: '_onNodeDragOver',               configKey: 'onNodeDragOver' },
   { field: '_beforeDropCallback',           configKey: 'beforeDropCallback' },
-  { field: '_nodeDropCallback',             configKey: 'nodeDropCallback' },
+  { field: '_onNodeDrop',                   configKey: 'onNodeDrop' },
   { field: '_renderStartCallback',          configKey: 'renderStartCallback' },
   { field: '_renderProgressCallback',       configKey: 'renderProgressCallback' },
   { field: '_renderCompleteCallback',       configKey: 'renderCompleteCallback' },
@@ -295,12 +305,17 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _dropZoneMaxWidth?: number;
   private _isCopyAllowed?: boolean;
   private _shouldAutoHandleCopy?: boolean;
+  private _shouldAutoHandlePaste?: boolean;
+  private _shouldHandleKeyboardShortcuts?: boolean;
+  private _noDataText?: string;
+  private _shouldShowDropPlaceholderWhenEmpty?: boolean;
   private _contextMenuXOffset?: number;
   private _contextMenuYOffset?: number;
 
   // Multi-select
   private _rangeSelectionMode?: RangeSelectionMode;
-  private _selectionChangeCallback?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
+  private _onSelectionChange?: TreeViewConfig<T>['onSelectionChange'];
+  private _onHighlightChange?: TreeViewConfig<T>['onHighlightChange'];
 
   // Callback properties
   private _getDisplayValueCallback?: (node: LTreeNode<T>) => string;
@@ -332,19 +347,24 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   private _nodeClass?: (node: LTreeNode<T>) => string | null | undefined;
   private _nodeContentClass?: (node: LTreeNode<T>) => string | null | undefined;
 
-  // Event callbacks
-  private _nodeClickedCallback?: (node: LTreeNode<T>) => void;
-  private _onNodeDoubleClick?: (node: LTreeNode<T>) => void;
+  // Event callbacks (ctx-object signatures — rc07 parity)
+  private _onNodeClick?: TreeViewConfig<T>['onNodeClick'];
+  private _onNodeDoubleClick?: TreeViewConfig<T>['onNodeDoubleClick'];
   private _beforeCopyCallback?: TreeViewConfig<T>['beforeCopyCallback'];
   private _beforeCutCallback?: TreeViewConfig<T>['beforeCutCallback'];
   private _beforePasteCallback?: TreeViewConfig<T>['beforePasteCallback'];
-  private _onCopy?: (paths: string[]) => void;
-  private _onCut?: (paths: string[]) => void;
-  private _onPaste?: (result: PasteResult<T>) => void;
-  private _nodeDragStartCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
-  private _nodeDragOverCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
+  private _beforeDeleteCallback?: TreeViewConfig<T>['beforeDeleteCallback'];
+  private _copyNodeTransformationCallback?: TreeViewConfig<T>['copyNodeTransformationCallback'];
+  private _pasteNodeTransformationCallback?: TreeViewConfig<T>['pasteNodeTransformationCallback'];
+  private _onCopy?: TreeViewConfig<T>['onCopy'];
+  private _onCut?: TreeViewConfig<T>['onCut'];
+  private _onPaste?: TreeViewConfig<T>['onPaste'];
+  private _onDelete?: TreeViewConfig<T>['onDelete'];
+  private _onNodeDragStart?: TreeViewConfig<T>['onNodeDragStart'];
+  private _onNodeDragOver?: TreeViewConfig<T>['onNodeDragOver'];
   private _beforeDropCallback?: TreeViewConfig<T>['beforeDropCallback'];
-  private _nodeDropCallback?: TreeViewConfig<T>['nodeDropCallback'];
+  private _onNodeDrop?: TreeViewConfig<T>['onNodeDrop'];
+  private _onTreeKeydown?: TreeViewConfig<T>['onTreeKeydown'];
 
   // Render callbacks
   private _renderStartCallback?: () => void;
@@ -524,6 +544,18 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get shouldAutoHandleCopy(): boolean | undefined { return this._shouldAutoHandleCopy; }
   set shouldAutoHandleCopy(value: boolean | undefined) { this._shouldAutoHandleCopy = value; this._scheduleUpdate(); }
 
+  get shouldAutoHandlePaste(): boolean | undefined { return this._shouldAutoHandlePaste; }
+  set shouldAutoHandlePaste(value: boolean | undefined) { this._shouldAutoHandlePaste = value; this._scheduleUpdate(); }
+
+  get shouldHandleKeyboardShortcuts(): boolean | undefined { return this._shouldHandleKeyboardShortcuts; }
+  set shouldHandleKeyboardShortcuts(value: boolean | undefined) { this._shouldHandleKeyboardShortcuts = value; this._scheduleUpdate(); }
+
+  get noDataText(): string | undefined { return this._noDataText; }
+  set noDataText(value: string | undefined) { this._noDataText = value; this._scheduleUpdate(); }
+
+  get shouldShowDropPlaceholderWhenEmpty(): boolean | undefined { return this._shouldShowDropPlaceholderWhenEmpty; }
+  set shouldShowDropPlaceholderWhenEmpty(value: boolean | undefined) { this._shouldShowDropPlaceholderWhenEmpty = value; this._scheduleUpdate(); }
+
   get contextMenuXOffset(): number | undefined { return this._contextMenuXOffset; }
   set contextMenuXOffset(value: number | undefined) { this._contextMenuXOffset = value; this._scheduleUpdate(); }
 
@@ -534,9 +566,15 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get rangeSelectionMode(): RangeSelectionMode | undefined { return this._rangeSelectionMode; }
   set rangeSelectionMode(value: RangeSelectionMode | undefined) { this._rangeSelectionMode = value; this._scheduleUpdate(); }
 
-  get selectionChangeCallback(): ((selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void) | undefined { return this._selectionChangeCallback; }
-  set selectionChangeCallback(value: ((selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void) | undefined) {
-    this._selectionChangeCallback = value;
+  get onSelectionChange(): TreeViewConfig<T>['onSelectionChange'] { return this._onSelectionChange; }
+  set onSelectionChange(value: TreeViewConfig<T>['onSelectionChange']) {
+    this._onSelectionChange = value;
+    this._scheduleUpdate();
+  }
+
+  get onHighlightChange(): TreeViewConfig<T>['onHighlightChange'] { return this._onHighlightChange; }
+  set onHighlightChange(value: TreeViewConfig<T>['onHighlightChange']) {
+    this._onHighlightChange = value;
     this._scheduleUpdate();
   }
 
@@ -674,14 +712,14 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     this._scheduleUpdate();
   }
 
-  // Event callbacks
-  get nodeClickedCallback() { return this._nodeClickedCallback; }
-  set nodeClickedCallback(value: ((node: LTreeNode<T>) => void) | undefined) {
-    this._nodeClickedCallback = value;
+  // Event callbacks (ctx-object signatures — rc07 parity)
+  get onNodeClick() { return this._onNodeClick; }
+  set onNodeClick(value: TreeViewConfig<T>['onNodeClick']) {
+    this._onNodeClick = value;
   }
 
   get onNodeDoubleClick() { return this._onNodeDoubleClick; }
-  set onNodeDoubleClick(value: ((node: LTreeNode<T>) => void) | undefined) {
+  set onNodeDoubleClick(value: TreeViewConfig<T>['onNodeDoubleClick']) {
     this._onNodeDoubleClick = value;
   }
 
@@ -700,29 +738,49 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     this._beforePasteCallback = value;
   }
 
+  get beforeDeleteCallback() { return this._beforeDeleteCallback; }
+  set beforeDeleteCallback(value: TreeViewConfig<T>['beforeDeleteCallback']) {
+    this._beforeDeleteCallback = value;
+  }
+
+  get copyNodeTransformationCallback() { return this._copyNodeTransformationCallback; }
+  set copyNodeTransformationCallback(value: TreeViewConfig<T>['copyNodeTransformationCallback']) {
+    this._copyNodeTransformationCallback = value;
+  }
+
+  get pasteNodeTransformationCallback() { return this._pasteNodeTransformationCallback; }
+  set pasteNodeTransformationCallback(value: TreeViewConfig<T>['pasteNodeTransformationCallback']) {
+    this._pasteNodeTransformationCallback = value;
+  }
+
   get onCopy() { return this._onCopy; }
-  set onCopy(value: ((paths: string[]) => void) | undefined) {
+  set onCopy(value: TreeViewConfig<T>['onCopy']) {
     this._onCopy = value;
   }
 
   get onCut() { return this._onCut; }
-  set onCut(value: ((paths: string[]) => void) | undefined) {
+  set onCut(value: TreeViewConfig<T>['onCut']) {
     this._onCut = value;
   }
 
   get onPaste() { return this._onPaste; }
-  set onPaste(value: ((result: PasteResult<T>) => void) | undefined) {
+  set onPaste(value: TreeViewConfig<T>['onPaste']) {
     this._onPaste = value;
   }
 
-  get nodeDragStartCallback() { return this._nodeDragStartCallback; }
-  set nodeDragStartCallback(value: ((node: LTreeNode<T>, event: DragEvent) => void) | undefined) {
-    this._nodeDragStartCallback = value;
+  get onDelete() { return this._onDelete; }
+  set onDelete(value: TreeViewConfig<T>['onDelete']) {
+    this._onDelete = value;
   }
 
-  get nodeDragOverCallback() { return this._nodeDragOverCallback; }
-  set nodeDragOverCallback(value: ((node: LTreeNode<T>, event: DragEvent) => void) | undefined) {
-    this._nodeDragOverCallback = value;
+  get onNodeDragStart() { return this._onNodeDragStart; }
+  set onNodeDragStart(value: TreeViewConfig<T>['onNodeDragStart']) {
+    this._onNodeDragStart = value;
+  }
+
+  get onNodeDragOver() { return this._onNodeDragOver; }
+  set onNodeDragOver(value: TreeViewConfig<T>['onNodeDragOver']) {
+    this._onNodeDragOver = value;
   }
 
   get beforeDropCallback() { return this._beforeDropCallback; }
@@ -730,9 +788,14 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     this._beforeDropCallback = value;
   }
 
-  get nodeDropCallback() { return this._nodeDropCallback; }
-  set nodeDropCallback(value: TreeViewConfig<T>['nodeDropCallback'] | undefined) {
-    this._nodeDropCallback = value;
+  get onNodeDrop() { return this._onNodeDrop; }
+  set onNodeDrop(value: TreeViewConfig<T>['onNodeDrop']) {
+    this._onNodeDrop = value;
+  }
+
+  get onTreeKeydown() { return this._onTreeKeydown; }
+  set onTreeKeydown(value: TreeViewConfig<T>['onTreeKeydown']) {
+    this._onTreeKeydown = value;
   }
 
   // ── Public methods (proxy to engine) ───────────────────────────────
@@ -978,12 +1041,20 @@ export class WebTreeViewElement<T = any> extends BaseElement {
     this.treeview?.cutNodes(paths);
   }
 
-  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: DropPosition): PasteResult<T> {
-    return this.treeview?.pasteNodes(targetPath, transformData, position) ?? { success: false, pastedCount: 0, error: 'Not initialized' };
+  pasteNodes(
+    targetPath: string,
+    transformData?: ((data: T, ctx: NodeTransformContext<T>) => T | null) | null,
+    position?: DropPosition
+  ): PasteResult<T> {
+    return this.treeview?.pasteNodes(targetPath, transformData, position) ?? { success: false, count: 0, skipped: 0, error: 'Not initialized' };
   }
 
   cancelCut(): void {
     this.treeview?.cancelCut();
+  }
+
+  deleteNodes(paths?: string[]): { removed: number; blocked: number } {
+    return this.treeview?.deleteNodes(paths) ?? { removed: 0, blocked: 0 };
   }
 
   hasClipboardContent(): boolean {
@@ -1105,92 +1176,79 @@ export class WebTreeViewElement<T = any> extends BaseElement {
       dataLength: config.data?.length ?? 0
     });
 
-    // Wrap user's nodeClickedCallback to also dispatch DOM event
-    const userOnNodeClicked = config.nodeClickedCallback;
-    config.nodeClickedCallback = (node) => {
-      userOnNodeClicked?.(node);
-      this.dispatchEvent(new CustomEvent('node-clicked', {
-        bubbles: true,
-        composed: true,
-        detail: { node }
-      }));
+    // Every on* callback is wrapped so it ALSO dispatches a DOM CustomEvent whose
+    // `detail` IS the ctx object the callback received (rc07 ctx-object parity).
+
+    const userOnNodeClick = config.onNodeClick;
+    config.onNodeClick = (ctx) => {
+      userOnNodeClick?.(ctx);
+      this.dispatchEvent(new CustomEvent('node-clicked', { bubbles: true, composed: true, detail: ctx }));
     };
 
-    // Wrap user's onNodeDoubleClick to also dispatch DOM event
     const userOnNodeDoubleClick = config.onNodeDoubleClick;
-    config.onNodeDoubleClick = (node) => {
-      userOnNodeDoubleClick?.(node);
-      this.dispatchEvent(new CustomEvent('node-double-click', {
-        bubbles: true,
-        composed: true,
-        detail: { node }
-      }));
+    config.onNodeDoubleClick = (ctx) => {
+      userOnNodeDoubleClick?.(ctx);
+      this.dispatchEvent(new CustomEvent('node-double-click', { bubbles: true, composed: true, detail: ctx }));
     };
 
-    // Wrap clipboard events to also dispatch DOM events
+    // Clipboard / delete events
     const userOnCopy = config.onCopy;
-    config.onCopy = (paths) => {
-      userOnCopy?.(paths);
-      this.dispatchEvent(new CustomEvent('copy', {
-        bubbles: true,
-        composed: true,
-        detail: { paths }
-      }));
+    config.onCopy = (ctx) => {
+      userOnCopy?.(ctx);
+      this.dispatchEvent(new CustomEvent('copy', { bubbles: true, composed: true, detail: ctx }));
     };
 
     const userOnCut = config.onCut;
-    config.onCut = (paths) => {
-      userOnCut?.(paths);
-      this.dispatchEvent(new CustomEvent('cut', {
-        bubbles: true,
-        composed: true,
-        detail: { paths }
-      }));
+    config.onCut = (ctx) => {
+      userOnCut?.(ctx);
+      this.dispatchEvent(new CustomEvent('cut', { bubbles: true, composed: true, detail: ctx }));
     };
 
     const userOnPaste = config.onPaste;
     config.onPaste = (result) => {
       userOnPaste?.(result);
-      this.dispatchEvent(new CustomEvent('paste', {
-        bubbles: true,
-        composed: true,
-        detail: { result }
-      }));
+      this.dispatchEvent(new CustomEvent('paste', { bubbles: true, composed: true, detail: { result } }));
     };
 
-    // Wrap user's nodeDropCallback to also dispatch DOM event
-    const userOnNodeDrop = config.nodeDropCallback;
-    config.nodeDropCallback = (dropNode, draggedNode, position, event, operation) => {
-      userOnNodeDrop?.(dropNode, draggedNode, position, event, operation);
-      this.dispatchEvent(new CustomEvent('node-drop', {
-        bubbles: true,
-        composed: true,
-        detail: { node: dropNode, draggedNode, position, event, operation }
-      }));
+    const userOnDelete = config.onDelete;
+    config.onDelete = (ctx) => {
+      userOnDelete?.(ctx);
+      this.dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true, detail: ctx }));
+    };
+
+    // Drag / drop events
+    const userOnNodeDragStart = config.onNodeDragStart;
+    config.onNodeDragStart = (ctx) => {
+      userOnNodeDragStart?.(ctx);
+      this.dispatchEvent(new CustomEvent('node-drag-start', { bubbles: true, composed: true, detail: ctx }));
+    };
+
+    const userOnNodeDragOver = config.onNodeDragOver;
+    config.onNodeDragOver = (ctx) => {
+      userOnNodeDragOver?.(ctx);
+      this.dispatchEvent(new CustomEvent('node-drag-over', { bubbles: true, composed: true, detail: ctx }));
+    };
+
+    const userOnNodeDrop = config.onNodeDrop;
+    config.onNodeDrop = (ctx) => {
+      userOnNodeDrop?.(ctx);
+      this.dispatchEvent(new CustomEvent('node-drop', { bubbles: true, composed: true, detail: ctx }));
     };
 
     // Wire highlight-change / selection-change through the controller's
     // callbacks (not state-change snapshot diff), so the `silent: true`
     // option on highlightNode / clearHighlight / clearSelection suppresses the
     // DOM event the same way it suppresses the user callback.
-    const userOnHighlightChange = config.highlightChangeCallback;
-    config.highlightChangeCallback = (highlightedPaths, highlightedNodes) => {
-      userOnHighlightChange?.(highlightedPaths, highlightedNodes);
-      this.dispatchEvent(new CustomEvent('highlight-change', {
-        bubbles: true,
-        composed: true,
-        detail: { highlightedPaths, highlightedNodes }
-      }));
+    const userOnHighlightChange = config.onHighlightChange;
+    config.onHighlightChange = (ctx) => {
+      userOnHighlightChange?.(ctx);
+      this.dispatchEvent(new CustomEvent('highlight-change', { bubbles: true, composed: true, detail: ctx }));
     };
 
-    const userOnSelectionChange = config.selectionChangeCallback;
-    config.selectionChangeCallback = (selectedNodes, selectedPaths) => {
-      userOnSelectionChange?.(selectedNodes, selectedPaths);
-      this.dispatchEvent(new CustomEvent('selection-change', {
-        bubbles: true,
-        composed: true,
-        detail: { selectedNodes, selectedPaths }
-      }));
+    const userOnSelectionChange = config.onSelectionChange;
+    config.onSelectionChange = (ctx) => {
+      userOnSelectionChange?.(ctx);
+      this.dispatchEvent(new CustomEvent('selection-change', { bubbles: true, composed: true, detail: ctx }));
     };
 
     this.treeview = new WebTreeView<T>(this.containerElement, config, this._renderer);

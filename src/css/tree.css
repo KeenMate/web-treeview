@@ -52,10 +52,19 @@
 .wtv__node .wtv__node-content {
   display: flex;
   align-items: center;
-  padding: var(--wtv-spacing-sm) var(--wtv-spacing-md) var(--wtv-spacing-sm) 0;
+  padding: var(--wtv-node-padding);
   border-radius: 0;
   transition: var(--wtv-node-transition);
   flex: 1;
+  /* min-width:0 lets the label flex-shrink so text-overflow:ellipsis can engage
+     (a flex item's default min-width:auto would otherwise refuse to shrink). */
+  min-width: 0;
+  /* Row height is now driven by the --wtv-node-height token (was emergent from
+     padding + line-height, leaving the token dead). A live minimum keeps rows a
+     uniform height — required for virtual scroll, whose translateY math assumes
+     index × rowHeight. Combined with the label ellipsis below, rows can no longer
+     grow by wrapping. */
+  min-height: var(--wtv-node-height);
   position: relative;
   overflow: visible;
   -webkit-user-select: none;
@@ -166,6 +175,16 @@
 .wtv__node .wtv__node-label {
   font-weight: var(--wtv-font-weight-medium);
   margin-right: var(--wtv-spacing-md);
+  /* Truncate instead of wrapping. web-treeview is the virtual-scroll package, so a
+     wrapping label (which grew the row past --wtv-node-height) would desync the
+     fixed-row-height scroll math. Ellipsis keeps every row single-line. Consumers
+     who want multi-line rows can override this hook + raise --wtv-node-height.
+     (svelte-treeview leaves .stv__node-label a bare hook because it isn't
+     virtual-scroll-first; web-treeview opts into truncation by default.) */
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .wtv__node .wtv__node-path {
@@ -183,6 +202,10 @@
 
 .wtv__toggle-icon--expand::before { content: '\25B6'; }
 .wtv__toggle-icon--collapse::before { content: '\25BC'; }
+/* Leaf marker is OPT-IN: the default leafIconClass is `--leaf-none` (no marker), so a
+   leaf row renders an empty toggle slot that still reserves --wtv-column-width, keeping
+   the leaf's label aligned under its expandable siblings. Set leafIconClass to
+   `wtv__toggle-icon--leaf` to bring back the bullet dot. Mirrors svelte-treeview. */
 .wtv__toggle-icon--leaf::before { content: '\2022'; }
 
 .wtv__toggle-icon--expand-alt::before { content: '\2BC8'; }
@@ -300,6 +323,13 @@
 .wtv__node-content--dragged {
   opacity: var(--wtv-dragged-opacity);
   transform: scale(0.95);
+  /* Anchor the shrink to the left edge. This class lands on the FULL-WIDTH
+     .wtv__node (web-treeview drags the outer element, unlike svelte-treeview which
+     scales the content-sized .stv__node-content), so a default center origin would
+     pull the row's left edge — and its highlight background — inward by ~2.5% of the
+     tree width, reading as a phantom indent on drag start. Left origin keeps the
+     lift/dim effect without shifting the row horizontally. */
+  transform-origin: left center;
   transition: opacity var(--wtv-transition-speed), transform var(--wtv-transition-speed);
 }
 

@@ -387,7 +387,12 @@ element.iconMember = 'icon';
             tree6.customStylesCallback = () => iconStyles;
             tree6.data = fileTreeWithIcons;
             tree6.displayValueMember = 'name';
-            tree6.nodeDropCallback = (dropNode, draggedNode, position, event, operation) => {
+            tree6.onNodeDrop = (ctx) => {
+                const dropNode = ctx.target?.node ?? null;
+                const draggedNode = ctx.source?.node ?? null;
+                const position = ctx.position;
+                const operation = ctx.operation;
+                const event = ctx.event;
                 document.getElementById('tree6-output').textContent = JSON.stringify({
                     dragged: draggedNode.data?.name,
                     droppedOn: dropNode?.data?.name ?? '(root)',

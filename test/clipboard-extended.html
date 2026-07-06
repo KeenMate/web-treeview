@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Clipboard Extended Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; max-width: 720px; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        .card { border: 1px solid #ccc; padding: 0.75rem; margin-bottom: 0.75rem; border-radius: 4px; }
+        .controls { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; flex-wrap: wrap; font-size: 0.85rem; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; max-width: 520px; }
+        .output { margin-top: 0.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 0.5rem; }
+        .output pre { margin: 0; font-size: 0.8rem; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Clipboard Extended Fixture</h1>
+
+        <div class="card">
+            <div class="controls">
+                <button id="btn-delete-api">deleteNodes(1.2)</button>
+                <button id="btn-copy-reports">Copy 1.1</button>
+                <button id="btn-paste-images">Paste into 2</button>
+                <label><input type="checkbox" id="block-delete"> beforeDelete → block</label>
+                <label><input type="checkbox" id="intercept-keys"> onTreeKeydown → suppress</label>
+            </div>
+            <div class="tree-container">
+                <web-treeview id="tree" expand-level="3" click-behavior="select"></web-treeview>
+            </div>
+            <div class="output"><pre id="del-log" data-testid="del-log"></pre></div>
+            <div class="output"><pre id="paste-log" data-testid="paste-log"></pre></div>
+            <div class="output"><pre id="key-log" data-testid="key-log"></pre></div>
+        </div>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const data = [
+            { id: 1, path: '1', name: 'Documents' },
+            { id: 2, path: '1.1', name: 'Reports' },
+            { id: 3, path: '1.1.1', name: 'Q1.txt' },
+            { id: 4, path: '1.1.2', name: 'Q2.txt' },
+            { id: 5, path: '1.2', name: 'Notes.txt' },
+            { id: 6, path: '2', name: 'Images' }
+        ];
+
+        const sortByName = (items) =>
+            [...items].sort((a, b) => (a.data?.name || '').localeCompare(b.data?.name || ''));
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByName;
+            tree.isSorted = true;
+            tree.selectionMode = 'multi';
+
+            const delLog = document.getElementById('del-log');
+            const pasteLog = document.getElementById('paste-log');
+            const keyLog = document.getElementById('key-log');
+            const del = (m) => { delLog.textContent = (delLog.textContent ? delLog.textContent + '\n' : '') + m; };
+            const plog = (m) => { pasteLog.textContent = (pasteLog.textContent ? pasteLog.textContent + '\n' : '') + m; };
+            const klog = (m) => { keyLog.textContent = (keyLog.textContent ? keyLog.textContent + '\n' : '') + m; };
+
+            // onDelete gets PRE-REMOVAL node snapshots.
+            tree.onDelete = (ctx) => del(`deleted ${ctx.nodes.map(n => n.data?.name).join(',')}`);
+
+            // beforeDeleteCallback can block the whole delete.
+            tree.beforeDeleteCallback = (ctx) =>
+                document.getElementById('block-delete').checked ? false : undefined;
+
+            // Paste transform: skip files named "Q2.txt" (return null → skipped),
+            // re-id everything else so pasted ids don't collide.
+            let nextId = 1000;
+            tree.pasteNodeTransformationCallback = (d, ctx) => {
+                if (d.name === 'Q2.txt') return null;
+                return { ...d, id: ++nextId };
+            };
+
+            // onTreeKeydown interceptor — when armed, suppress everything and log.
+            tree.onTreeKeydown = (ctx) => {
+                if (!document.getElementById('intercept-keys').checked) return;
+                klog(`intercept ${ctx.event.key}`);
+                return true;
+            };
+
+            document.getElementById('btn-delete-api').addEventListener('click', () => {
+                const r = tree.deleteNodes(['1.2']);
+                plog(`delete removed=${r.removed} blocked=${r.blocked}`);
+            });
+            document.getElementById('btn-copy-reports').addEventListener('click', () => tree.copyNodes(['1.1']));
+            document.getElementById('btn-paste-images').addEventListener('click', () => {
+                const r = tree.pasteNodes('2', undefined, 'child');
+                plog(`paste count=${r.count} skipped=${r.skipped}`);
+            });
+
+            tree.data = data;
+        });
+    </script>
+</body>
+</html>

@@ -54,7 +54,7 @@ tree.dropZoneStart = '50%';  // Child zone starts at 50% (default: 33%)
 
 ### Drop validation / coercion
 
-`beforeDropCallback` runs before the drop is applied. Return `false` to cancel, or an object to override `position` / `operation`:
+`beforeDropCallback` runs before the drop is applied. Return `false` to cancel, or an object to override `position` / `operation`. Unlike the migrated `on*` events, it deliberately keeps its 5-arg positional signature `(dropNode, draggedNode, position, event, operation)`:
 
 ```javascript
 tree.beforeDropCallback = (dropNode, draggedNode, position, event, operation) => {
@@ -72,7 +72,7 @@ tree.beforeDropCallback = (dropNode, draggedNode, position, event, operation) =>
 <web-treeview drag-drop-mode="both" allow-copy></web-treeview>
 ```
 
-Hold Ctrl while dragging to copy instead of move. `shouldAutoHandleCopy` (default `true`) means the tree applies the copy itself; set `false` to receive the `nodeDropCallback` and apply your own.
+Hold Ctrl while dragging to copy instead of move. `shouldAutoHandleCopy` (default `true`) means the tree applies the copy itself; set `false` to receive `onNodeDrop` (`ctx.dropped === null`) and apply your own.
 
 ## Multi-select
 
@@ -94,7 +94,7 @@ const paths = tree.getHighlightedPaths(); // Set<string>
 
 // Listen for changes
 tree.addEventListener('highlight-change', (e) => {
-  console.log('Highlighted:', e.detail.highlightedPaths);
+  console.log('Highlighted:', e.detail.paths);
 });
 ```
 
@@ -132,13 +132,65 @@ See `examples-multiselect.html` for interactive demos.
 ```javascript
 tree.copyNodes();             // Copy highlighted nodes
 tree.cutNodes();              // Cut (dimmed via --wtv-cut-opacity)
-tree.pasteNodes('1.2');       // Paste at target
+const result = tree.pasteNodes('1.2'); // Paste at target
+// result = { success, count, skipped, error?, entries?, operation? }
+tree.deleteNodes();           // Delete highlighted (or specified) nodes
 tree.cancelCut();             // Cancel a pending cut
 
-// Keyboard shortcuts when the tree has focus: Ctrl+C, Ctrl+X, Ctrl+V, Escape
+// Built-in keyboard shortcuts when the tree has focus:
+// Ctrl/Cmd+C, Ctrl/Cmd+X, Ctrl/Cmd+V, Delete / Shift+Delete, Escape (cancel cut)
+// Set should-handle-keyboard-shortcuts="false" (shouldHandleKeyboardShortcuts) to opt out.
+//
+// onTreeKeydown runs first and can intercept any key — return true to suppress
+// both the default navigation and the built-in shortcuts:
+// tree.onTreeKeydown = (ctx) => { /* ctx = { event, focusedNode, highlightedNodes, controller } */ };
 ```
 
 Cross-tree paste: the clipboard sits at the package level, so `cutNodes` on one tree and `pasteNodes` on another moves the nodes between trees.
+
+### Clipboard events and interceptors
+
+```javascript
+// Fire-and-forget notifications (each gets one context object)
+tree.onCopy   = (ctx) => console.log('copied', ctx.paths, ctx.nodes);   // { operation, paths, nodes }
+tree.onCut    = (ctx) => console.log('cut', ctx.paths);                 // { operation, paths, nodes }
+tree.onPaste  = (result) => console.log('pasted', result.count, 'skipped', result.skipped);
+tree.onDelete = (ctx) => console.log('deleted', ctx.paths);            // { paths, nodes } (pre-removal snapshots)
+
+// Interceptors — rewrite (return path[]) or block (return false)
+tree.beforeCopyCallback   = (ctx) => ctx.paths;          // { operation, paths, nodes }
+tree.beforeDeleteCallback = (ctx) => ctx.paths;          // { paths, nodes }
+tree.beforePasteCallback  = (ctx) => ({ position: 'child' }); // { operation, target: { path, node }, entries }
+```
+
+### Paste transforms
+
+Derive fresh ids / names as nodes land, or skip a node by returning `null` (skipping a root skips its subtree):
+
+```javascript
+import { uniqueName } from '@keenmate/web-treeview';
+
+tree.copyNodeTransformationCallback = (data, ctx) => {
+  // phase 'copy' — clean/redact before the node hits the shared clipboard
+  const { internalToken, ...clean } = data;
+  return clean;
+};
+
+tree.pasteNodeTransformationCallback = (data, ctx) => {
+  // phase 'paste' — ctx = { operation, phase, isRoot, index, position, source, target }
+  if (data.kind === 'archived') return null; // skip this node (and its subtree if a root)
+  const landing = ctx.position === 'child' && ctx.target?.node
+    ? Object.values(ctx.target.node.children)
+    : (ctx.target?.siblings ?? []);
+  return { ...data, id: crypto.randomUUID(), name: uniqueName(data.name, landing.map((s) => s.data?.name)) };
+};
+```
+
+`uniqueName(base, taken, suffix?)` is an exported helper that returns a collision-free name (default `${base} Copy ${n}`).
+
+### Empty-tree paste
+
+Set `should-show-drop-placeholder-when-empty` to keep the empty drop zone visible and focusable, so a Ctrl/Cmd+V pastes into an empty tree after the user hovers or clicks the zone. Customize the empty-state text with `no-data-text`.
 
 ## Per-node icons
 

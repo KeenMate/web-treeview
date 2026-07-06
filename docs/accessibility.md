@@ -15,8 +15,11 @@ When the tree body has focus (click any node first), keyboard navigation is acti
 | `PageDown` / `PageUp` | _TODO — controller gap, tracked in e2e skips_ |
 | `Shift+ArrowDown / Up / Home / End` | _TODO — extend highlight range, controller gap_ |
 | `Ctrl+A` | Add every visible node to the highlight set |
-| `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / cut / paste |
+| `Ctrl/Cmd+C` / `Ctrl/Cmd+X` / `Ctrl/Cmd+V` | Copy / cut / paste |
+| `Delete` / `Shift+Delete` | Delete highlighted node(s) |
 | `Escape` | Cancel pending cut, or clear highlight |
+
+The clipboard and delete shortcuts (Ctrl/Cmd+C/X/V, Delete/Shift+Delete, Escape) are built-in and gated by `shouldHandleKeyboardShortcuts` (default `true`) — set it `false` to opt out entirely. The `onTreeKeydown` interceptor (`ctx = { event, focusedNode, highlightedNodes, controller }`) runs **first** on every keydown; returning `true` suppresses both the default navigation and the built-in shortcuts. Built-in delete honors `beforeDeleteCallback` and fires the `onDelete` event.
 
 Plain `Tab` moves focus *out of* the tree to the next focusable element on the page; the tree itself is a single tab stop with internal arrow-key navigation, per the WAI-ARIA tree pattern.
 
@@ -28,7 +31,7 @@ The tree maintains three independent state sets — see [usage.md](./usage.md) f
 - `highlightedPaths` — multi-select set. Driven by Ctrl / Shift + click and `Ctrl+A`. Renders `.wtv__node-content--highlighted` plus the optional `highlightedNodeClass`.
 - `selectedPaths` — checkbox / data-state set. Driven by checkbox clicks when `shouldShowCheckboxes` is on, or mirrored from `highlightedPaths` when checkboxes are off.
 
-`silent: true` on `highlightNode` / `clearHighlight` / `deselectAll` suppresses BOTH the user callback AND the corresponding DOM event — useful when restoring state from a URL parameter so consumers don't see a phantom "user interaction" event on page load.
+`silent: true` on `highlightNode` / `clearHighlight` / `clearSelection` suppresses BOTH the user callback AND the corresponding DOM event — useful when restoring state from a URL parameter so consumers don't see a phantom "user interaction" event on page load.
 
 ## ARIA
 
@@ -40,7 +43,7 @@ Native HTML5 drag-and-drop is not keyboard-accessible by default. The component 
 
 ## Touch
 
-Long-press (300 ms) initiates a drag from a touch device. The touch ghost element follows the finger and uses the same `nodeDropCallback` as desktop drag-and-drop. Moving > 10 px before the long-press timer fires cancels the drag (allows scrolling).
+Long-press (300 ms) initiates a drag from a touch device. The touch ghost element follows the finger and uses the same `onNodeDrop` event as desktop drag-and-drop. Moving > 10 px before the long-press timer fires cancels the drag (allows scrolling).
 
 ## Tested patterns
 

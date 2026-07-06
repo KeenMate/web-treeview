@@ -114,8 +114,9 @@ test.describe('Clipboard interceptors', () => {
     await page.getByRole('button', { name: 'Copy 1.1' }).click();
     await page.getByRole('button', { name: 'Paste into 2' }).click();
 
-    // Paste was blocked: no node added and onPaste never fired.
+    // Paste was blocked: no node added. onPaste still fires with the blocked
+    // result (success:false, count:0) — mirrors svelte-treeview parity.
     await expect(tree(page).locator('.wtv__node')).toHaveCount(before);
-    await expect(clipLog(page)).not.toContainText('paste');
+    await expect(clipLog(page)).toContainText('paste 0');
   });
 });

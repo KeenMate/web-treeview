@@ -171,10 +171,10 @@
                 setText('out-1-focused', node ? `${node.data?.name} (${node.path})` : '(none)');
             });
             tree1.addEventListener('highlight-change', (e) => {
-                setText('out-1-highlighted', pathsText(e.detail.highlightedPaths));
+                setText('out-1-highlighted', pathsText(e.detail.paths));
             });
             tree1.addEventListener('selection-change', (e) => {
-                setText('out-1-selected', pathsText(e.detail.selectedPaths));
+                setText('out-1-selected', pathsText(e.detail.paths));
             });
 
             document.getElementById('clear-1').addEventListener('click', () => {
@@ -193,7 +193,7 @@
                 setText('out-2-focused', node ? `${node.data?.name} (${node.path})` : '(none)');
             });
             tree2.addEventListener('highlight-change', (e) => {
-                setText('out-2-highlighted', pathsText(e.detail.highlightedPaths));
+                setText('out-2-highlighted', pathsText(e.detail.paths));
             });
 
             document.getElementById('clear-2').addEventListener('click', () => {

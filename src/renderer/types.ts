@@ -24,8 +24,13 @@ export interface RendererConfig<T> {
   renderNodeCallback?: (node: LTreeNode<T>, container: HTMLElement) => void;
   /** Informational display when the tree has no data (e.g. "No items to display"). */
   renderEmptyStateCallback?: (container: HTMLElement) => void;
+  /** Fallback text for an empty tree when no renderEmptyStateCallback is given. Default "No data". */
+  noDataText?: string | null;
   /** Drop zone rendered in an empty tree during drag operations. */
   renderEmptyZoneCallback?: (container: HTMLElement) => void;
+  /** Keep the empty drop zone visible whenever the tree is empty (not only during a
+   *  drag), and make it focusable + focus-on-hover so a Ctrl/Cmd+V pastes into it. */
+  shouldShowDropPlaceholderWhenEmpty?: boolean | null;
   /** Rendered when isLoading is true. */
   renderLoadingCallback?: (container: HTMLElement) => void;
   /** Rendered above the tree body. */

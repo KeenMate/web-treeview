@@ -68,20 +68,20 @@
             const dbl = (m) => { dblLines.push(m); dblLog.textContent = dblLines.join('\n'); };
             const clip = (m) => { clipLines.push(m); clipLog.textContent = clipLines.join('\n'); };
 
-            // Double-click event
-            tree.onNodeDoubleClick = (node) => dbl(`dblclick "${node.data?.name}"`);
+            // Double-click event (ctx = NodeRef)
+            tree.onNodeDoubleClick = (ctx) => dbl(`dblclick "${ctx.node?.data?.name}"`);
 
-            // Clipboard events
-            tree.onCopy = (paths) => clip(`copy ${paths.join(',')}`);
-            tree.onCut = (paths) => clip(`cut ${paths.join(',')}`);
-            tree.onPaste = (result) => clip(`paste ${result.pastedCount}`);
+            // Clipboard events (ctx = ClipboardEventContext { operation, paths, nodes })
+            tree.onCopy = (ctx) => clip(`copy ${ctx.paths.join(',')}`);
+            tree.onCut = (ctx) => clip(`cut ${ctx.paths.join(',')}`);
+            tree.onPaste = (result) => clip(`paste ${result.count}`);
 
             // Clipboard interceptors — gated on the checkboxes so the spec can
             // toggle them. beforeCopy overrides the copied paths; beforePaste
-            // blocks the paste entirely.
-            tree.beforeCopyCallback = (paths) =>
+            // blocks the paste entirely. (ctx-object signatures.)
+            tree.beforeCopyCallback = (ctx) =>
                 document.getElementById('copy-override').checked ? ['1.2'] : undefined;
-            tree.beforePasteCallback = () =>
+            tree.beforePasteCallback = (ctx) =>
                 document.getElementById('block-paste').checked ? false : undefined;
 
             let nextId = 1000;

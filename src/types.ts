@@ -25,7 +25,19 @@ export type {
   TreeMutationOptions,
   TreeControllerConfig,
   TreeControllerSnapshot,
-  TreeControllerEvents
+  TreeControllerEvents,
+  // ctx-object context types (rc07 parity with svelte-treeview)
+  NodeRef,
+  NodeEventContext,
+  NodeDragContext,
+  NodeDropContext,
+  ClipboardEventContext,
+  SelectionChangeContext,
+  TreeKeydownContext,
+  NodeTransformContext,
+  BeforeCopyContext,
+  BeforeDeleteContext,
+  BeforePasteContext
 } from './controller/types';
 
 // Re-export clipboard types
@@ -43,8 +55,23 @@ export type { RenderCoordinator, RenderStats, RenderCoordinatorCallbacks } from 
 import type { LTreeNode } from './ltree/ltree-node';
 import type { DropPosition } from './ltree/ltree-node';
 import type { DragDropMode, DropOperation, ContextMenuItem, ContextMenuEntry } from './ltree/types';
-import type { ClickBehavior, RangeSelectionMode, HighlightMode, TreeMutationOptions } from './controller/types';
-import type { PasteResult, ClipboardEntry, ClipboardOperation } from './clipboard';
+import type {
+  ClickBehavior,
+  RangeSelectionMode,
+  HighlightMode,
+  TreeMutationOptions,
+  NodeEventContext,
+  NodeDragContext,
+  NodeDropContext,
+  ClipboardEventContext,
+  SelectionChangeContext,
+  TreeKeydownContext,
+  NodeTransformContext,
+  BeforeCopyContext,
+  BeforeDeleteContext,
+  BeforePasteContext
+} from './controller/types';
+import type { PasteResult } from './clipboard';
 import type { RenderStats } from './renderer/render-coordinator';
 
 export interface TreeViewConfig<T = any> {
@@ -188,10 +215,10 @@ export interface TreeViewConfig<T = any> {
     affectedPaths: string[]
   ) => boolean | string[] | void;
   rangeSelectionMode?: RangeSelectionMode;
-  /** Fires on changes to the checkbox / data-state selection set. */
-  selectionChangeCallback?: (selectedNodes: LTreeNode<T>[], selectedPaths: Set<string>) => void;
+  /** Fires on changes to the checkbox / data-state selection set (selectedPaths). */
+  onSelectionChange?: (ctx: SelectionChangeContext<T>) => void;
   /** Fires on changes to the highlight set (Ctrl/Shift+click, arrow keys). */
-  highlightChangeCallback?: (highlightedPaths: Set<string>, highlightedNodes: LTreeNode<T>[]) => void;
+  onHighlightChange?: (ctx: SelectionChangeContext<T>) => void;
 
   // Debug
   shouldDisplayDebugInformation?: boolean | null;
@@ -206,37 +233,50 @@ export interface TreeViewConfig<T = any> {
   isCopyAllowed?: boolean;
   shouldAutoHandleCopy?: boolean;
   /** When `true` (default), drop operations with `move` semantics call
-   *  `moveNode` automatically. Set to `false` to receive the `nodeDropCallback`
+   *  `moveNode` automatically. Set to `false` to receive the `onNodeDrop`
    *  callback without mutating the tree (consumer handles the move). */
   shouldAutoHandleMove?: boolean;
+  /** When `true` (default), `pasteNodes` inserts into the tree. Set to `false`
+   *  to receive the cleaned entries via `PasteResult.entries` for manual placement. */
+  shouldAutoHandlePaste?: boolean;
 
-  // Event handlers
-  nodeClickedCallback?: (node: LTreeNode<T>) => void;
+  // Event handlers (on* = fire-and-forget; each takes ONE context object)
+  /** Fires on a plain node click. ctx = NodeRef of the clicked node. */
+  onNodeClick?: (ctx: NodeEventContext<T>) => void;
   /** Fires on a detected node double-click. Uses manual detection (last path +
    *  timestamp, 400ms) rather than the native `dblclick`, which is unreliable
    *  under the flat diff reconciler. Fires for every `clickBehavior`. */
-  onNodeDoubleClick?: (node: LTreeNode<T>) => void;
-  /** Interceptor invoked before `copyNodes`. Return `false` to block the copy,
-   *  or a `string[]` to override which paths are copied. */
-  beforeCopyCallback?: (paths: string[]) => string[] | false | void;
-  /** Interceptor invoked before `cutNodes`. Return `false` to block the cut,
-   *  or a `string[]` to override which paths are cut. */
-  beforeCutCallback?: (paths: string[]) => string[] | false | void;
-  /** Interceptor invoked before `pasteNodes`. Return `false` to block, or an
-   *  object to override the paste target / position. */
+  onNodeDoubleClick?: (ctx: NodeEventContext<T>) => void;
+  /** Interceptor before `copyNodes`. Return `false` to block, or a `string[]` to
+   *  override which paths are copied. */
+  beforeCopyCallback?: (ctx: BeforeCopyContext<T>) => string[] | false | void;
+  /** Interceptor before `cutNodes`. Return `false` to block, or a `string[]` to
+   *  override which paths are cut. */
+  beforeCutCallback?: (ctx: BeforeCopyContext<T>) => string[] | false | void;
+  /** Interceptor before `pasteNodes`. Return `false` to block, or `{ targetPath?,
+   *  position? }` to redirect the paste target / position. */
   beforePasteCallback?: (
-    targetPath: string,
-    operation: ClipboardOperation,
-    entries: ClipboardEntry<T>[]
+    ctx: BeforePasteContext<T>
   ) => { targetPath?: string; position?: DropPosition } | false | void;
-  /** Fires after `copyNodes` succeeds, with the copied paths. */
-  onCopy?: (paths: string[]) => void;
-  /** Fires after `cutNodes` succeeds, with the cut paths. */
-  onCut?: (paths: string[]) => void;
+  /** Narrow (return path[]) or block (false) the built-in Delete set. */
+  beforeDeleteCallback?: (ctx: BeforeDeleteContext<T>) => string[] | false | void;
+  /** Per-node transform at snapshot time (copy/cut) — clean/redact fields before
+   *  they hit the shared clipboard. */
+  copyNodeTransformationCallback?: (data: T, ctx: NodeTransformContext<T>) => T;
+  /** Per-node transform at insert time (paste) — derive ids/values/names; return
+   *  null to SKIP a node (skipping a root skips its subtree). */
+  pasteNodeTransformationCallback?: (data: T, ctx: NodeTransformContext<T>) => T | null;
+  /** Fires after `copyNodes` succeeds. ctx = { operation:'copy', paths, nodes }. */
+  onCopy?: (ctx: ClipboardEventContext<T>) => void;
+  /** Fires after `cutNodes` succeeds. ctx = { operation:'cut', paths, nodes }. */
+  onCut?: (ctx: ClipboardEventContext<T>) => void;
   /** Fires after `pasteNodes` succeeds, with the paste result. */
   onPaste?: (result: PasteResult<T>) => void;
-  nodeDragStartCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
-  nodeDragOverCallback?: (node: LTreeNode<T>, event: DragEvent) => void;
+  /** Fires after the built-in Delete (or `deleteNodes()`); nodes are pre-removal snapshots. */
+  onDelete?: (ctx: ClipboardEventContext<T>) => void;
+  onNodeDragStart?: (ctx: NodeDragContext<T>) => void;
+  onNodeDragOver?: (ctx: NodeDragContext<T>) => void;
+  /** Intercept — modify/block a drop. Deliberately kept 5-arg positional (asymmetric drop pair). */
   beforeDropCallback?: (
     dropNode: LTreeNode<T> | null,
     draggedNode: LTreeNode<T>,
@@ -252,13 +292,11 @@ export interface TreeViewConfig<T = any> {
         | { position?: DropPosition; operation?: DropOperation }
         | void
       >;
-  nodeDropCallback?: (
-    dropNode: LTreeNode<T> | null,
-    draggedNode: LTreeNode<T>,
-    position: DropPosition,
-    event: DragEvent | TouchEvent,
-    operation: DropOperation
-  ) => void;
+  onNodeDrop?: (ctx: NodeDropContext<T>) => void;
+  /** Interceptor — return `true` to suppress default + built-in shortcuts. Runs first. */
+  onTreeKeydown?: (ctx: TreeKeydownContext<T>) => boolean | void;
+  /** Opt out of the built-in Ctrl/Cmd+C/X/V + Delete + Esc shortcuts. Default `true`. */
+  shouldHandleKeyboardShortcuts?: boolean;
 
   // Render callbacks
   renderStartCallback?: () => void;
@@ -268,7 +306,12 @@ export interface TreeViewConfig<T = any> {
   // Render callbacks (for DomRenderer)
   renderNodeCallback?: (node: LTreeNode<T>, container: HTMLElement) => void;
   renderEmptyStateCallback?: (container: HTMLElement) => void;
+  /** Fallback text for an empty tree when no renderEmptyStateCallback is given. Default "No data". */
+  noDataText?: string | null;
   renderEmptyZoneCallback?: (container: HTMLElement) => void;
+  /** Keep the empty drop zone visible whenever the tree is empty (not only during a
+   *  drag), and focus it on hover/pointerdown so a Ctrl/Cmd+V pastes into an empty tree. */
+  shouldShowDropPlaceholderWhenEmpty?: boolean | null;
   renderLoadingCallback?: (container: HTMLElement) => void;
   renderHeaderCallback?: (container: HTMLElement) => void;
   renderFooterCallback?: (container: HTMLElement) => void;
@@ -349,30 +392,40 @@ export interface TreeViewMethods<T = any> {
   // Clipboard
   copyNodes(paths?: string[]): void;
   cutNodes(paths?: string[]): void;
-  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: DropPosition): PasteResult<T>;
+  pasteNodes(
+    targetPath: string,
+    transformData?: ((data: T, ctx: NodeTransformContext<T>) => T | null) | null,
+    position?: DropPosition
+  ): PasteResult<T>;
   cancelCut(): void;
   hasClipboardContent(): boolean;
   getClipboardOperation(): 'copy' | 'cut' | null;
+
+  // Delete (default = current selection). Fires beforeDeleteCallback + onDelete.
+  deleteNodes(paths?: string[]): { removed: number; blocked: number };
 
   destroy(): void;
 }
 
 // ── Events ─────────────────────────────────────────────────────────────
 
+// DOM CustomEvent details mirror the ctx object each on* callback receives — so
+// `event.detail` IS the NodeRef / NodeDropContext / SelectionChangeContext / etc.
 export interface TreeEventMap<T = any> {
-  'node-clicked': CustomEvent<{ node: LTreeNode<T> }>;
-  'node-double-click': CustomEvent<{ node: LTreeNode<T> }>;
-  'copy': CustomEvent<{ paths: string[] }>;
-  'cut': CustomEvent<{ paths: string[] }>;
+  'node-clicked': CustomEvent<NodeEventContext<T>>;
+  'node-double-click': CustomEvent<NodeEventContext<T>>;
+  'copy': CustomEvent<ClipboardEventContext<T>>;
+  'cut': CustomEvent<ClipboardEventContext<T>>;
   'paste': CustomEvent<{ result: PasteResult<T> }>;
-  'node-drag-start': CustomEvent<{ node: LTreeNode<T>; event: DragEvent }>;
-  'node-drag-over': CustomEvent<{ node: LTreeNode<T>; event: DragEvent }>;
-  'node-drop': CustomEvent<{ node: LTreeNode<T>; draggedNode: LTreeNode<T>; event: DragEvent }>;
+  'delete': CustomEvent<ClipboardEventContext<T>>;
+  'node-drag-start': CustomEvent<NodeDragContext<T>>;
+  'node-drag-over': CustomEvent<NodeDragContext<T>>;
+  'node-drop': CustomEvent<NodeDropContext<T>>;
   'data-changed': CustomEvent<{ data: T[] }>;
   'focused-node-changed': CustomEvent<{ focusedNode: LTreeNode<T> | null }>;
   'search-text-changed': CustomEvent<{ searchText: string }>;
-  'highlight-change': CustomEvent<{ highlightedNodes: LTreeNode<T>[]; highlightedPaths: Set<string> }>;
-  'selection-change': CustomEvent<{ selectedNodes: LTreeNode<T>[]; selectedPaths: Set<string> }>;
+  'highlight-change': CustomEvent<SelectionChangeContext<T>>;
+  'selection-change': CustomEvent<SelectionChangeContext<T>>;
   'tree-changed': CustomEvent<void>;
 }
 

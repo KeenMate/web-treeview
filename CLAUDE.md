@@ -138,3 +138,36 @@ The two packages render the same logical tree but have different DOM strategies.
 | **Highlight padding** | Symmetric (~8px both sides via `--stv-node-content-padding`) | `padding-left: 0` hardcoded → highlight hugs label |
 
 Neither is "more mature" — svelte-treeview is broader (two rendering modes, easier vertical guide lines via CSS on `.stv__children`); web-treeview is purpose-built for virtual scrolling over large datasets with a flatter DOM and dirty-attribute reconciliation.
+
+## Callback & event API (rc07 — ctx-object parity with svelte-treeview)
+
+Every fire-and-forget event callback takes ONE context object and uses `on*` naming.
+Interceptors keep `before*Callback` / data providers keep `get*Callback`. The shared
+shape is `NodeRef<T> = { path, node, parent, siblings }`, built by `controller.nodeRef()`.
+
+- Events: `onNodeClick(NodeRef)`, `onNodeDoubleClick(NodeRef)`, `onNodeDragStart` /
+  `onNodeDragOver(NodeDragContext = NodeRef + { event, dragged })`,
+  `onNodeDrop(NodeDropContext = { source, target, dragged, dropped, position, operation, event })`,
+  `onHighlightChange` / `onSelectionChange(SelectionChangeContext = { paths, nodes })`,
+  `onCopy` / `onCut` / `onDelete(ClipboardEventContext = { operation?, paths, nodes })`,
+  `onPaste(PasteResult)`.
+- Interceptors: `beforeCopyCallback` / `beforeCutCallback(BeforeCopyContext)`,
+  `beforePasteCallback(BeforePasteContext)`, `beforeDeleteCallback(BeforeDeleteContext)`,
+  `onTreeKeydown(TreeKeydownContext = { event, focusedNode, highlightedNodes, controller })` —
+  return `true` to suppress default + built-in shortcuts. **`beforeDropCallback` is
+  deliberately still 5-arg positional** `(dropNode, draggedNode, position, event, operation)`.
+- Transforms: `copyNodeTransformationCallback` / `pasteNodeTransformationCallback(data, ctx: NodeTransformContext)`;
+  the paste transform returning `null` skips a node.
+- DOM `CustomEvent` `detail` mirrors the ctx object (e.g. `highlight-change` detail is
+  `{ paths, nodes }`; `node-drop` detail is the `NodeDropContext`).
+
+New surface: `deleteNodes(paths?)` + Delete/Shift+Delete keys; `shouldHandleKeyboardShortcuts`
+(default `true`, opt-out); `noDataText`; `shouldShowDropPlaceholderWhenEmpty` (empty-tree
+Ctrl/Cmd+V paste — focusable empty zone); `shouldAutoHandlePaste`; `PasteResult` is now
+`{ success, count, skipped, error?, entries?, operation? }` (`count` was `pastedCount`);
+cross-tree cut removes the source via the clipboard registry
+(`registerClipboardTree` / `getClipboardTree`); `uniqueName(base, taken, suffix?)` helper.
+
+E2E: new features covered by `/test/clipboard-extended.html` + `e2e/clipboard-extended.spec.ts`
+(Delete, paste-transform null-skip + `skipped`, `onTreeKeydown` suppression). The ctx-object
+migration touched every `/test/*` fixture that read the old event-detail shapes.

@@ -4,7 +4,7 @@ import type { TreeViewRenderer, RendererConfig } from './renderer/types';
 import { DomRenderer } from './renderer/dom-renderer';
 import type { LTreeNode } from './ltree/ltree-node';
 import type { Ltree, DropPosition, TreeChange, ApplyChangesResult } from './ltree/types';
-import type { HighlightMode, TreeMutationOptions } from './controller/types';
+import type { HighlightMode, TreeMutationOptions, NodeTransformContext } from './controller/types';
 import type { PasteResult } from './clipboard';
 import type { TreeViewConfig, ScrollToPathOptions } from './types';
 import type { SearchOptions } from 'flexsearch';
@@ -303,7 +303,11 @@ export class WebTreeView<T = any> {
     this.controller.cutNodes(paths);
   }
 
-  pasteNodes(targetPath: string, transformData?: (data: T) => T, position?: DropPosition): PasteResult<T> {
+  pasteNodes(
+    targetPath: string,
+    transformData?: ((data: T, ctx: NodeTransformContext<T>) => T | null) | null,
+    position?: DropPosition
+  ): PasteResult<T> {
     return this.controller.pasteNodes(targetPath, transformData, position);
   }
 
@@ -317,6 +321,10 @@ export class WebTreeView<T = any> {
 
   getClipboardOperation(): 'copy' | 'cut' | null {
     return this.controller.getClipboardOperation();
+  }
+
+  deleteNodes(paths?: string[]): { removed: number; blocked: number } {
+    return this.controller.deleteNodes(paths);
   }
 
   // ── Renderer swap ───────────────────────────────────────────────────
@@ -404,19 +412,26 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     isCopyAllowed: options.isCopyAllowed,
     shouldAutoHandleCopy: options.shouldAutoHandleCopy,
     shouldAutoHandleMove: options.shouldAutoHandleMove,
+    shouldAutoHandlePaste: options.shouldAutoHandlePaste,
+    shouldHandleKeyboardShortcuts: options.shouldHandleKeyboardShortcuts,
 
-    nodeClickedCallback: options.nodeClickedCallback,
+    onNodeClick: options.onNodeClick,
     onNodeDoubleClick: options.onNodeDoubleClick,
     beforeCopyCallback: options.beforeCopyCallback,
     beforeCutCallback: options.beforeCutCallback,
     beforePasteCallback: options.beforePasteCallback,
+    beforeDeleteCallback: options.beforeDeleteCallback,
+    copyNodeTransformationCallback: options.copyNodeTransformationCallback,
+    pasteNodeTransformationCallback: options.pasteNodeTransformationCallback,
     onCopy: options.onCopy,
     onCut: options.onCut,
     onPaste: options.onPaste,
-    nodeDragStartCallback: options.nodeDragStartCallback,
-    nodeDragOverCallback: options.nodeDragOverCallback,
+    onDelete: options.onDelete,
+    onNodeDragStart: options.onNodeDragStart,
+    onNodeDragOver: options.onNodeDragOver,
     beforeDropCallback: options.beforeDropCallback,
-    nodeDropCallback: options.nodeDropCallback,
+    onNodeDrop: options.onNodeDrop,
+    onTreeKeydown: options.onTreeKeydown,
     contextMenuCallback: options.contextMenuCallback,
     hasContextMenuRenderer: !!(options.contextMenuCallback || options.renderContextMenuCallback),
 
@@ -448,8 +463,8 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     checkboxMode: options.checkboxMode,
     shouldClickToggleCheckbox: options.shouldClickToggleCheckbox,
     beforeCheckboxToggleCallback: options.beforeCheckboxToggleCallback,
-    selectionChangeCallback: options.selectionChangeCallback,
-    highlightChangeCallback: options.highlightChangeCallback,
+    onSelectionChange: options.onSelectionChange,
+    onHighlightChange: options.onHighlightChange,
   } as TreeControllerConfig<T>;
 }
 
@@ -457,7 +472,9 @@ function mapToRendererConfig<T>(options: Partial<TreeViewConfig<T>>): RendererCo
   const cfg: RendererConfig<T> = {
     renderNodeCallback: options.renderNodeCallback,
     renderEmptyStateCallback: options.renderEmptyStateCallback,
+    noDataText: options.noDataText,
     renderEmptyZoneCallback: options.renderEmptyZoneCallback,
+    shouldShowDropPlaceholderWhenEmpty: options.shouldShowDropPlaceholderWhenEmpty,
     renderLoadingCallback: options.renderLoadingCallback,
     renderHeaderCallback: options.renderHeaderCallback,
     renderFooterCallback: options.renderFooterCallback,

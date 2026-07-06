@@ -43,7 +43,7 @@ const tree = new WebTreeView(container, {
   pathMember: 'path',
   displayValueMember: 'name',
   expandLevel: 2,
-  nodeClickedCallback: (node) => console.log('Clicked:', node),
+  onNodeClick: (ctx) => console.log('Clicked:', ctx.node),
 });
 ```
 
@@ -125,6 +125,10 @@ All attributes use kebab-case. Equivalent camelCase property setters exist on th
 | `search-text` | `string` | — | Current search/filter text |
 | `theme` | `'dark' \| 'light'` | — | Per-instance theme override |
 | `is-loading` | `boolean` | `false` | Show loading overlay |
+| `should-handle-keyboard-shortcuts` | `boolean` | `true` | Opt out of built-in Ctrl/Cmd+C/X/V + Delete/Shift+Delete + Esc shortcuts (config key: `shouldHandleKeyboardShortcuts`) |
+| `should-auto-handle-paste` | `boolean` | `true` | Apply pastes automatically; set `false` to forward cleaned entries via `PasteResult.entries` for manual insert (config key: `shouldAutoHandlePaste`) |
+| `no-data-text` | `string` | `'No data'` | Fallback text shown for an empty tree (config key: `noDataText`) |
+| `should-show-drop-placeholder-when-empty` | `boolean` | `false` | Keep the empty drop zone visible + focusable so Ctrl/Cmd+V pastes into an empty tree (config key: `shouldShowDropPlaceholderWhenEmpty`) |
 
 ### Drag and drop
 
@@ -199,11 +203,12 @@ Set via JavaScript, not HTML attributes.
 |----------|------|-------------|
 | `data` | `T[]` | Array of data objects to display |
 | `renderer` | `TreeViewRenderer<T>` | Custom renderer (replaces default DomRenderer) |
-| `nodeClickedCallback` | `(node) => void` | Click handler |
-| `nodeDragStartCallback` | `(node, event) => void` | Drag start handler |
-| `nodeDragOverCallback` | `(node, event) => void` | Drag over handler |
-| `nodeDropCallback` | `(dropNode, draggedNode, position, event, operation) => void` | Drop handler |
-| `beforeDropCallback` | `(dropNode, draggedNode, position, event, operation) => boolean \| { position?, operation? } \| void` | Drop validation / coercion |
+| `onNodeClick` | `(ctx: NodeRef) => void` | Click handler. `ctx = { path, node, parent, siblings }` (clicked node = `ctx.node`) |
+| `onNodeDoubleClick` | `(ctx: NodeRef) => void` | Double-click handler. `ctx = { path, node, parent, siblings }` |
+| `onNodeDragStart` | `(ctx: NodeDragContext) => void` | Drag start handler. `ctx` = NodeRef of the grabbed node + `{ event, dragged }` |
+| `onNodeDragOver` | `(ctx: NodeDragContext) => void` | Drag over handler. `ctx` = NodeRef of the hovered node + `{ event, dragged }` |
+| `onNodeDrop` | `(ctx: NodeDropContext) => void` | Drop handler. `ctx = { source, target, dragged, dropped, position, operation, event }` (source = NodeRef of the dragged lead node, target = NodeRef\|null of the drop node, dragged = full NodeRef[] set, dropped = placed NodeRef[]\|null) |
+| `beforeDropCallback` | `(dropNode, draggedNode, position, event, operation) => boolean \| { position?, operation? } \| void` | Drop validation / coercion (deliberately 5-arg positional — not migrated) |
 | `contextMenuCallback` | `(node, close) => ContextMenuEntry[]` | Context menu items |
 | `renderContextMenuItemCallback` | `(item, node, container) => void` | Per-item custom rendering |
 | `iconCallback` | `(node) => string \| null` | Dynamic icon class resolution (overrides `iconMember`) |
@@ -213,8 +218,8 @@ Set via JavaScript, not HTML attributes.
 | `renderLoadingCallback` | `(container) => void` | Loading-state rendering |
 | `renderHeaderCallback` | `(container) => void` | Tree header rendering |
 | `renderFooterCallback` | `(container) => void` | Tree footer rendering |
-| `selectionChangeCallback` | `(selectedNodes, selectedPaths) => void` | Selection (checkbox / data) set changed |
-| `highlightChangeCallback` | `(highlightedPaths, highlightedNodes) => void` | Highlight (Ctrl/Shift+click) set changed |
+| `onSelectionChange` | `(ctx: { paths, nodes }) => void` | Selection (checkbox / data) set changed |
+| `onHighlightChange` | `(ctx: { paths, nodes }) => void` | Highlight (Ctrl/Shift+click) set changed |
 | `renderStartCallback` | `() => void` | First render batch starting |
 | `renderProgressCallback` | `(stats) => void` | Render batch progress tick |
 | `renderCompleteCallback` | `(stats) => void` | All render batches done |
@@ -230,6 +235,19 @@ Set via JavaScript, not HTML attributes.
 | `getAllowedDropPositionsCallback` | `(node) => DropPosition[] \| null` | Dynamic per-position constraint |
 | `indexingCompleteCallback` | `() => void` | FlexSearch indexer done |
 | `beforeCheckboxToggleCallback` | `(node, checked, affectedPaths) => boolean \| string[] \| void` | Intercept checkbox toggle |
+| `onCopy` | `(ctx: { operation, paths, nodes }) => void` | Fires after a copy; `nodes` live |
+| `onCut` | `(ctx: { operation, paths, nodes }) => void` | Fires after a cut; `nodes` still live (cut only dims until paste) |
+| `onPaste` | `(result: PasteResult) => void` | Fires after a paste; `result = { success, count, skipped, error?, entries?, operation? }` |
+| `onDelete` | `(ctx: { paths, nodes }) => void` | Fires after built-in Delete (or `deleteNodes()`); `nodes` are pre-removal snapshots |
+| `beforeCopyCallback` | `(ctx: { operation, paths, nodes }) => string[] \| false \| void` | Rewrite the copy set (new `path[]`) or block (`false`) |
+| `beforeCutCallback` | `(ctx: { operation, paths, nodes }) => string[] \| false \| void` | Rewrite the cut set or block (same shape as `beforeCopyCallback`) |
+| `beforePasteCallback` | `(ctx: { operation, target: { path, node }, entries }) => { targetPath?, position? } \| false \| void` | Batch-policy interceptor: redirect target/position or block |
+| `beforeDeleteCallback` | `(ctx: { paths, nodes }) => string[] \| false \| void` | Narrow (return `path[]`) or block (`false`) the built-in Delete set |
+| `copyNodeTransformationCallback` | `(data, ctx: NodeTransformContext) => T` | Per-node transform at snapshot time (clean/redact fields) |
+| `pasteNodeTransformationCallback` | `(data, ctx: NodeTransformContext) => T \| null` | Per-node transform at insert; return `null` to skip a node (skipping a root skips its subtree) |
+| `onTreeKeydown` | `(ctx: { event, focusedNode, highlightedNodes, controller }) => boolean \| void` | Keydown interceptor; return `true` to suppress default + built-in shortcuts. Runs before built-in handling |
+
+`NodeTransformContext` = `{ operation, phase: 'copy' \| 'paste', isRoot, index, position, source, target }`, where `source` and `target` are symmetric NodeRefs (`{ path, node, parent, siblings }`); `target` and `position` are `null` during phase `'copy'`.
 
 ## Methods
 
@@ -265,7 +283,8 @@ Set via JavaScript, not HTML attributes.
 | `clearFocus` | `(options?)` | Clear the focused node |
 | `copyNodes` | `(paths?)` | Copy highlighted/specified nodes to clipboard |
 | `cutNodes` | `(paths?)` | Cut highlighted/specified nodes to clipboard |
-| `pasteNodes` | `(targetPath, transformData?, position?): PasteResult` | Paste clipboard at target |
+| `pasteNodes` | `(targetPath, transformData?, position?): PasteResult` | Paste clipboard at target. `PasteResult.count` (formerly `pastedCount`) + `PasteResult.skipped` |
+| `deleteNodes` | `(paths?)` | Delete highlighted/specified nodes (honors `beforeDeleteCallback`, fires `onDelete`) |
 | `cancelCut` | `()` | Cancel pending cut |
 | `navTo` | `(path)` | Focus a specific node |
 | `navNext` / `navPrev` | `()` | Focus next / previous visible node |
@@ -287,10 +306,13 @@ Set via JavaScript, not HTML attributes.
 
 | Event | Detail | Description |
 |-------|--------|-------------|
-| `node-clicked` | `{ node }` | Node was clicked |
-| `node-drop` | `{ node, draggedNode, position, event, operation }` | Drop completed |
-| `highlight-change` | `{ highlightedNodes, highlightedPaths }` | Highlight (Ctrl/Shift+click) set changed |
-| `selection-change` | `{ selectedNodes, selectedPaths }` | Checkbox/data-state selection changed |
+| `node-clicked` | `{ path, node, parent, siblings }` | Node was clicked (NodeRef; `.node` = clicked node) |
+| `node-double-click` | `{ path, node, parent, siblings }` | Node was double-clicked (NodeRef) |
+| `node-drop` | `{ source, target, dragged, dropped, position, operation, event }` | Drop completed (NodeDropContext) |
+| `copy` | `{ operation, paths, nodes }` | Nodes copied to clipboard |
+| `cut` | `{ operation, paths, nodes }` | Nodes cut to clipboard |
+| `highlight-change` | `{ paths, nodes }` | Highlight (Ctrl/Shift+click) set changed |
+| `selection-change` | `{ paths, nodes }` | Checkbox/data-state selection changed |
 | `focused-node-changed` | `{ focusedNode }` | Single-focused node changed |
 | `search-text-changed` | `{ searchText }` | `searchText` config updated |
 | `tree-changed` | — | Tree state changed (expand, collapse, data) |

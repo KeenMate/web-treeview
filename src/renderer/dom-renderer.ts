@@ -292,6 +292,14 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (!this.controller) return;
     const ctrl = event.ctrlKey || event.metaKey;
 
+    // Consumer onTreeKeydown (can suppress everything) THEN the built-in
+    // Ctrl/Cmd+C/X/V + Delete + Esc-cancel-cut shortcuts. When this consumes the
+    // event, stop — the tree's own navigation below is skipped.
+    if (this.controller.handleKeydown(event)) {
+      event.preventDefault();
+      return;
+    }
+
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault();
@@ -332,35 +340,11 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           this.controller.highlightAll();
         }
         break;
-      case 'c':
-        if (ctrl) {
-          event.preventDefault();
-          this.controller.copyNodes();
-        }
-        break;
-      case 'x':
-        if (ctrl) {
-          event.preventDefault();
-          this.controller.cutNodes();
-        }
-        break;
-      case 'v':
-        if (ctrl) {
-          event.preventDefault();
-          const focused = this.controller.focusedNode;
-          if (focused) {
-            this.controller.pasteNodes(focused.path);
-          }
-        }
-        break;
       case 'Escape':
-        // Priority: pending cut → highlight set. Checkboxes are deliberate
-        // state (a chosen "yes I want this row") and shouldn't be wiped by a
-        // stray Escape; user can clear them with clearSelection() if needed.
-        // Mirrors svelte-treeview Tree.svelte handleTreeKeydown.
-        if (this.controller.cutPaths.size > 0) {
-          this.controller.cancelCut();
-        } else if (this.controller.getHighlightedPaths().size > 0) {
+        // handleKeydown already consumed Escape when a cut was pending
+        // (cancel-cut). Reaching here means no pending cut, so clear the
+        // highlight set. Checkboxes are deliberate state and stay put.
+        if (this.controller.getHighlightedPaths().size > 0) {
           this.controller.clearHighlight();
         }
         break;
@@ -892,9 +876,15 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       console.log('[DomRenderer] renderEmpty', { isDragInProgress: snapshot.isDragInProgress, isDropPlaceholderActive: snapshot.isDropPlaceholderActive, isLoading: snapshot.isLoading });
       this._lastEmptyState = emptyState;
     }
-    if (snapshot.isDragInProgress && snapshot.isDropPlaceholderActive) {
+    // Show the empty drop zone when a drag is over an empty tree, OR permanently
+    // when shouldShowDropPlaceholderWhenEmpty keeps it up so a Ctrl/Cmd+V can land.
+    const showZone =
+      (snapshot.isDragInProgress && snapshot.isDropPlaceholderActive) ||
+      !!this.config.shouldShowDropPlaceholderWhenEmpty;
+
+    if (showZone && !snapshot.isLoading) {
       target.style.minHeight = '';
-      let zone = target.querySelector('.wtv__empty-zone');
+      let zone = target.querySelector('.wtv__empty-zone') as HTMLElement | null;
       if (!zone) {
         const emptyState = target.querySelector('.wtv__empty-state');
         if (emptyState) emptyState.remove();
@@ -902,12 +892,20 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         zone = document.createElement('div');
         zone.className = 'wtv__empty-zone';
         if (this.config.renderEmptyZoneCallback) {
-          this.config.renderEmptyZoneCallback(zone as HTMLElement);
+          this.config.renderEmptyZoneCallback(zone);
         } else {
           const content = document.createElement('div');
           content.className = 'wtv__empty-zone-content';
           content.textContent = 'Drop here';
           zone.appendChild(content);
+        }
+        // Make the zone focus the tree body on hover/pointerdown so a Ctrl/Cmd+V
+        // (routed through the body keydown listener) pastes into the empty tree.
+        if (this.config.shouldShowDropPlaceholderWhenEmpty) {
+          zone.tabIndex = 0;
+          const grabFocus = () => this.bodyEl?.focus();
+          zone.addEventListener('pointerenter', grabFocus);
+          zone.addEventListener('pointerdown', grabFocus);
         }
         target.appendChild(zone);
       }
@@ -935,7 +933,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       if (this.config.renderEmptyStateCallback) {
         this.config.renderEmptyStateCallback(emptyState as HTMLElement);
       } else {
-        emptyState.textContent = 'No data';
+        emptyState.textContent = this.config.noDataText ?? 'No data';
       }
     }
   }
@@ -996,7 +994,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       if (nodeIcon) {
         addClasses(toggle, nodeIcon);
       } else {
-        addClasses(toggle, nodeConfig?.leafIconClass || 'wtv__toggle-icon--leaf');
+        addClasses(toggle, nodeConfig?.leafIconClass || 'wtv__toggle-icon--leaf-none');
       }
     }
 
@@ -1200,7 +1198,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         snapshot.activeDropPosition &&
         this.lastNodeConfig?.dropZoneMode === 'glow'
       ) {
-        content.classList.add(`wtv-glow-${snapshot.activeDropPosition}`);
+        content.classList.add(`wtv__node-content--glow-${snapshot.activeDropPosition}`);
         if (snapshot.currentDropOperation === 'copy') {
           content.classList.add('wtv__node-content--drop-copy');
         }
@@ -1260,7 +1258,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     const maxWidth = this.lastNodeConfig?.dropZoneMaxWidth ?? 120;
 
     const zones = document.createElement('div');
-    zones.className = `wtv__drop-zones wtv-drop-zones-${layout}`;
+    zones.className = `wtv__drop-zones wtv__drop-zones--${layout}`;
     zones.setAttribute('data-tree-path', snapshot.hoveredNodeForDropPath!);
     zones.style.position = 'fixed';
     zones.style.top = `${rect.top}px`;
@@ -1274,7 +1272,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     const positions: DropPosition[] = allowedPositions || ['before', 'after', 'child'];
     for (const pos of positions) {
       const zone = document.createElement('div');
-      zone.className = `wtv__drop-zone wtv-drop-${pos}`;
+      zone.className = `wtv__drop-zone wtv__drop-zone--${pos}`;
       zone.setAttribute('data-drop-position', pos);
       zone.textContent = pos.charAt(0).toUpperCase() + pos.slice(1);
       zones.appendChild(zone);

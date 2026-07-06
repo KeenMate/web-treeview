@@ -159,13 +159,15 @@
         const counters = { single: 0, rMember: 0, rCallback: 0, multi: 0 };
 
         function wireDrop(tree, prefix, counterKey) {
-            tree.nodeDropCallback = (dropNode, draggedNode, position, _event, operation) => {
+            // onNodeDrop receives ONE NodeDropContext:
+            //   { source, target, dragged, dropped, position, operation, event }
+            tree.onNodeDrop = (ctx) => {
                 counters[counterKey]++;
                 setText(`${prefix}-drop-count`, String(counters[counterKey]));
-                setText(`${prefix}-drop-dragged`, draggedNode?.data?.name ?? '');
-                setText(`${prefix}-drop-target`, dropNode?.data?.name ?? '');
-                setText(`${prefix}-drop-operation`, operation ?? '');
-                setText(`${prefix}-drop-position`, position ?? '');
+                setText(`${prefix}-drop-dragged`, ctx.source?.node?.data?.name ?? '');
+                setText(`${prefix}-drop-target`, ctx.target?.node?.data?.name ?? '');
+                setText(`${prefix}-drop-operation`, ctx.operation ?? '');
+                setText(`${prefix}-drop-position`, ctx.position ?? '');
             };
         }
 
@@ -221,7 +223,7 @@
             multi.isSorted = true;
             wireDrop(multi, 'multi', 'multi');
             multi.addEventListener('highlight-change', (e) => {
-                setText('multi-highlighted-size', String(e.detail.highlightedPaths.size));
+                setText('multi-highlighted-size', String(e.detail.paths.size));
             });
             multi.data = multiData;
 
@@ -243,7 +245,7 @@
             locked.getIsDraggableCallback = (node) => node.data?.draggable !== false;
             wireDrop(locked, 'locked', 'locked');
             locked.addEventListener('highlight-change', (e) => {
-                setText('locked-highlighted-size', String(e.detail.highlightedPaths.size));
+                setText('locked-highlighted-size', String(e.detail.paths.size));
             });
             locked.data = lockedData;
         });

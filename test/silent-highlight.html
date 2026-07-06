@@ -93,13 +93,13 @@
             });
             tree.addEventListener('highlight-change', (e) => {
                 bump('highlight');
-                const paths = [...e.detail.highlightedPaths].sort();
+                const paths = [...e.detail.paths].sort();
                 setText('highlight-size', String(paths.length));
                 setText('highlight-paths', paths.join(','));
             });
             tree.addEventListener('selection-change', (e) => {
                 bump('selection');
-                setText('selection-size', String(e.detail.selectedPaths.size));
+                setText('selection-size', String(e.detail.paths.size));
             });
 
             // Mirror the highlight set into the readout even when the change came

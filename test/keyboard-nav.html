@@ -78,7 +78,7 @@
             });
 
             tree.addEventListener('highlight-change', (e) => {
-                const paths = [...e.detail.highlightedPaths].sort();
+                const paths = [...e.detail.paths].sort();
                 sizeEl.textContent = String(paths.length);
                 sortedEl.textContent = paths.join(',');
             });

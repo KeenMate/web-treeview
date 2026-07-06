@@ -19,9 +19,25 @@
             <h2>Example 1: Simple File Tree</h2>
             <p>A basic tree with hierarchical data using path-based structure. Click nodes to select, click the toggle icon to expand/collapse.</p>
 
+            <div class="controls">
+                <span style="align-self:center; font-size:0.85rem; color:#475569;">Indentation:</span>
+                <button id="indent-condensed" onclick="setIndent('condensed', this)">Condensed</button>
+                <button id="indent-compact" onclick="setIndent('compact', this)">Compact</button>
+                <button id="indent-generous" onclick="setIndent('generous', this)">Generous</button>
+                <span id="indent-readout" style="align-self:center; font-size:0.8rem; color:#64748b;"></span>
+            </div>
+
             <div class="tree-container" id="tree1-container">
                 <web-treeview id="tree1"></web-treeview>
             </div>
+
+            <p style="font-size:0.85rem; color:#475569;">
+                Indent width is a single CSS variable — <code>--wtv-indent-size</code> (default <code>16px</code>),
+                the per-level step in flat mode (<code>paddingLeft = (level − 1) × --wtv-indent-size</code>). It's
+                <em>separate</em> from the toggle column (<code>--wtv-column-width</code>), so nesting density tunes
+                independently. The buttons set it inline on the <code>&lt;web-treeview&gt;</code> element; custom
+                properties inherit through the Shadow DOM, so the rows re-flow instantly.
+            </p>
 
             <div class="output">
                 <p class="output-label">Selected node:</p>
@@ -221,6 +237,21 @@ element.setAttribute('display-value-member', 'label');</code></pre>
             tree1.pathMember = 'path';
             tree1.displayValueMember = 'name';
             tree1.expandLevel = 1;
+
+            // Indentation demo: --wtv-indent-size is the per-level indent knob.
+            // Setting it inline on the host element inherits into the Shadow DOM
+            // and overrides the stylesheet default; rows re-flow with no re-render.
+            const INDENT_PRESETS = { condensed: '8px', compact: '16px', generous: '32px' };
+            window.setIndent = (preset, btn) => {
+                const value = INDENT_PRESETS[preset];
+                tree1.style.setProperty('--wtv-indent-size', value);
+                document.getElementById('indent-readout').textContent = `--wtv-indent-size: ${value}`;
+                for (const id of ['indent-condensed', 'indent-compact', 'indent-generous']) {
+                    document.getElementById(id).classList.toggle('secondary', document.getElementById(id) !== btn);
+                }
+            };
+            // Start on the default (compact / 16px).
+            setIndent('compact', document.getElementById('indent-compact'));
 
             tree1.addEventListener('node-clicked', (e) => {
                 const node = e.detail.node;

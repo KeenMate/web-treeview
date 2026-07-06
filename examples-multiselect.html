@@ -444,12 +444,12 @@
             });
 
             threeTree.addEventListener('highlight-change', (e) => {
-                const paths = [...e.detail.highlightedPaths].sort();
+                const paths = [...e.detail.paths].sort();
                 threeHighlightEl.textContent = paths.length > 0 ? paths.join(', ') : '(none)';
             });
 
             threeTree.addEventListener('selection-change', (e) => {
-                const paths = [...e.detail.selectedPaths].sort();
+                const paths = [...e.detail.paths].sort();
                 threeSelectedEl.textContent = paths.length > 0 ? paths.join(', ') : '(none)';
             });
 
@@ -472,11 +472,11 @@
             tree1.data = fileTree;
 
             tree1.addEventListener('selection-change', (e) => {
-                const paths = [...e.detail.selectedPaths];
+                const paths = [...e.detail.paths];
                 document.getElementById('select-count').textContent = paths.length;
                 document.getElementById('select-paths').textContent = paths.length > 0
                     ? paths.join(', ') : '';
-                const nodes = e.detail.selectedNodes.map(n => ({
+                const nodes = e.detail.nodes.map(n => ({
                     path: n.path,
                     name: n.data?.name
                 }));
@@ -598,7 +598,7 @@
             tree5.data = fileTree;
 
             tree5.addEventListener('selection-change', (e) => {
-                document.getElementById('range-count').textContent = e.detail.selectedPaths.size;
+                document.getElementById('range-count').textContent = e.detail.paths.size;
             });
 
             window.setRangeMode = (mode) => {

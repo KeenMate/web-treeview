@@ -95,7 +95,7 @@
                 setText('out-focused', node ? `${node.data?.name} (${node.path})` : '(none)');
             });
             tree.addEventListener('highlight-change', (e) => {
-                setText('out-highlighted', pathsText(e.detail.highlightedPaths));
+                setText('out-highlighted', pathsText(e.detail.paths));
             });
 
             document.getElementById('clear').addEventListener('click', () => {

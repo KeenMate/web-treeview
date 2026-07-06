@@ -101,9 +101,6 @@
   --wtv-node-bg-hover: var(--wtv-hover-bg);
   --wtv-node-bg-active: var(--wtv-active-bg);
 
-  /* Full border shorthand (DRP pattern) */
-  --wtv-border-width-base: 1px;
-  --wtv-border: var(--wtv-border-width-base) solid var(--wtv-border-color);
   --wtv-selected-border: 2px solid var(--wtv-selected-border-color);
 
   /* ==========================================================================
@@ -115,7 +112,6 @@
   /* Font Sizes (unitless multipliers × --wtv-rem) */
   --wtv-font-size-xs: calc(var(--base-font-size-xs, 1.2) * var(--wtv-rem));     /* 12px */
   --wtv-font-size-sm: calc(var(--base-font-size-sm, 1.4) * var(--wtv-rem));     /* 14px */
-  --wtv-font-size-base: calc(var(--base-font-size-base, 1.6) * var(--wtv-rem)); /* 16px */
   --wtv-font-size: var(--wtv-font-size-sm);
 
   /* Font Weights */
@@ -126,7 +122,6 @@
      BORDER RADIUS (unitless multipliers × --wtv-rem)
      ========================================================================== */
   --wtv-border-radius-sm: calc(var(--base-border-radius-sm, 0.4) * var(--wtv-rem));  /* 4px */
-  --wtv-border-radius-md: calc(var(--base-border-radius-md, 0.6) * var(--wtv-rem));  /* 6px */
   --wtv-border-radius-lg: calc(var(--base-border-radius-lg, 0.8) * var(--wtv-rem));  /* 8px */
 
   /* ==========================================================================
@@ -142,15 +137,24 @@
      TRANSITIONS & ANIMATIONS
      ========================================================================== */
   --wtv-transition-speed: 150ms;
-  --wtv-transition-normal: 200ms;
-  --wtv-easing: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ==========================================================================
      TREE-SPECIFIC LAYOUT
      ========================================================================== */
-  --wtv-column-width: calc(var(--wtv-rem) * 2.4); /* 24px — unified column for toggle, icon, indent step */
-  --wtv-indent-size: var(--wtv-column-width);
-  --wtv-node-padding: var(--wtv-spacing-sm) var(--wtv-spacing-md);
+  --wtv-column-width: calc(var(--wtv-rem) * 2.4); /* 24px — toggle/icon column width (the gutter reserved on every row) */
+  /* Per-level indent step in flat mode: paddingLeft = (level − 1) × this. Its OWN
+     knob now, independent of the toggle column — set it alone to tune nesting
+     density (mirrors svelte-treeview's --stv-node-indent-per-level). */
+  --wtv-indent-size: calc(var(--wtv-rem) * 1.6); /* 16px */
+  /* Node row padding (mirrors svelte-treeview's --stv-node-content-padding, which
+     IS consumed there — web-treeview declared this but never wired it). Left is 0
+     so the highlight/hover background hugs the label; override the whole token to
+     re-introduce left padding. Applied on .wtv__node-content. */
+  --wtv-node-padding: var(--wtv-spacing-sm) var(--wtv-spacing-md) var(--wtv-spacing-sm) 0;
+  /* Uniform row height, applied as min-height on .wtv__node-content. Keep it in
+     sync with the virtual scroller's default row height (resolvedRowHeight falls
+     back to 32 before it can measure a real row). Raising this to allow taller
+     rows also needs the label ellipsis relaxed (see .wtv__node-label). */
   --wtv-node-height: calc(var(--wtv-rem) * 3.2);  /* 32px */
   --wtv-icon-size: calc(var(--wtv-rem) * 1.6);    /* 16px */
 
@@ -158,7 +162,6 @@
   --wtv-node-transition: background var(--wtv-transition-speed), box-shadow var(--wtv-transition-speed) ease;
 
   /* Toggle Icon */
-  --wtv-toggle-size: var(--wtv-column-width);
   --wtv-toggle-color: var(--wtv-text-color-2);
 
   /* ==========================================================================

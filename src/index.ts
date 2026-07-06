@@ -27,7 +27,19 @@ export type {
   RangeSelectionMode,
   TreeControllerConfig,
   TreeControllerSnapshot,
-  TreeControllerEvents
+  TreeControllerEvents,
+  // ctx-object context types (rc07 parity with svelte-treeview)
+  NodeRef,
+  NodeEventContext,
+  NodeDragContext,
+  NodeDropContext,
+  ClipboardEventContext,
+  SelectionChangeContext,
+  TreeKeydownContext,
+  NodeTransformContext,
+  BeforeCopyContext,
+  BeforeDeleteContext,
+  BeforePasteContext
 } from './controller/types';
 
 // Clipboard
@@ -36,12 +48,20 @@ export {
   getClipboard,
   clearClipboard,
   hasClipboard,
-  getClipboardOperation
+  getClipboardOperation,
+  registerClipboardTree,
+  unregisterClipboardTree,
+  getClipboardTree,
+  setDragSet,
+  getDragSet,
+  clearDragSet,
+  uniqueName
 } from './clipboard';
 export type {
   ClipboardEntry,
   TreeClipboard,
   ClipboardOperation,
+  ClipboardSourceTree,
   PasteResult
 } from './clipboard';
 

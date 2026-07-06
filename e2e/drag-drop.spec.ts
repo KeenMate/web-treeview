@@ -48,7 +48,7 @@ async function dragNodeTo(
 // ── Section 1: single-tree drag ────────────────────────────────────────────
 
 test.describe('single-tree drag', () => {
-  test('drag fires nodeDropCallback with operation=move and dragged/target names', async ({ page }) => {
+  test('drag fires onNodeDrop with operation=move and dragged/target names', async ({ page }) => {
     await gotoFixture(page);
     const section = page.getByTestId('section-single');
 
