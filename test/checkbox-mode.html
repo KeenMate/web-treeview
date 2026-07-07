@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test — Checkbox Mode Fixture</title>
+    <style>
+        main { padding: 1rem; font-family: sans-serif; max-width: 700px; }
+        h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+        .tree-container { border: 1px solid #e2e8f0; padding: 0.5rem; max-width: 420px; }
+        .controls { margin: 0.5rem 0; display: flex; gap: 0.5rem; align-items: center; }
+        .readouts { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; margin-top: 0.5rem; font-family: monospace; font-size: 0.85rem; }
+        .readouts dt { font-weight: 600; }
+        .readouts dd { margin: 0; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Checkbox Mode Fixture</h1>
+
+        <div class="controls">
+            <button data-testid="mode-cascade">cascade</button>
+            <button data-testid="mode-independent">independent</button>
+        </div>
+
+        <div class="tree-container">
+            <web-treeview id="tree"
+                expand-level="3"
+                show-checkboxes="true"
+                checkbox-mode="cascade"
+                click-behavior="select"></web-treeview>
+        </div>
+
+        <dl class="readouts">
+            <dt>mode</dt><dd data-testid="mode">cascade</dd>
+            <dt>selection</dt><dd data-testid="selection"></dd>
+        </dl>
+    </main>
+
+    <script type="module">
+        import '/src/index.ts';
+
+        const data = [
+            { id: 1, path: '1', name: 'Documents', sortOrder: 10 },
+            { id: 2, path: '1.1', name: 'Resume', sortOrder: 10 },
+            { id: 3, path: '1.2', name: 'Cover Letter', sortOrder: 20 }
+        ];
+
+        const sortByOrder = (items) =>
+            [...items].sort((a, b) => {
+                if (a.parentPath !== b.parentPath) return (a.parentPath || '').localeCompare(b.parentPath || '');
+                return (a.data?.sortOrder ?? 0) - (b.data?.sortOrder ?? 0);
+            });
+
+        function setText(id, text) {
+            const el = document.querySelector(`[data-testid="${id}"]`);
+            if (el) el.textContent = text;
+        }
+
+        customElements.whenDefined('web-treeview').then(() => {
+            const tree = document.getElementById('tree');
+            tree.idMember = 'id';
+            tree.pathMember = 'path';
+            tree.displayValueMember = 'name';
+            tree.sortCallback = sortByOrder;
+            tree.isSorted = true;
+            tree.addEventListener('selection-change', (e) => {
+                setText('selection', [...e.detail.paths].sort().join(', '));
+            });
+            tree.data = data;
+
+            // Runtime mode switch via the attribute (the real web-component path →
+            // controller.updateProps → _reconcileVisualStatesForMode).
+            document.querySelector('[data-testid="mode-cascade"]').onclick = () => {
+                tree.setAttribute('checkbox-mode', 'cascade');
+                setText('mode', 'cascade');
+            };
+            document.querySelector('[data-testid="mode-independent"]').onclick = () => {
+                tree.setAttribute('checkbox-mode', 'independent');
+                setText('mode', 'independent');
+            };
+        });
+    </script>
+</body>
+</html>

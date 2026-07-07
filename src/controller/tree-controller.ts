@@ -338,7 +338,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   set shouldClickToggleCheckbox(v: boolean) { this._shouldClickToggleCheckbox = v; }
 
   get checkboxMode() { return this._checkboxMode; }
-  set checkboxMode(v: import('./types').CheckboxMode) { this._checkboxMode = v; }
+  set checkboxMode(v: import('./types').CheckboxMode) {
+    if (this._checkboxMode === v) return;
+    this._checkboxMode = v;
+    this._reconcileVisualStatesForMode();
+  }
 
   /** Bindable: the multi-select highlight set. */
   get highlightedPaths(): Set<string> { return this._highlightedPaths; }
@@ -771,8 +775,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this.flatRenderedIds = new Set();
       this.flatRenderQueue = [];
       this.currentBatchSize = 0;
+      const preservedExpanded = this._collectExpandedPaths();
       this._insertResult = this.tree.insertArray(this._data);
       this._seedSelectedPathsFromTree();
+      this._reapplyRuntimeSelection();
+      this._reapplyExpanded(preservedExpanded);
     }
 
     // Apply initial search filter
@@ -1628,6 +1635,61 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._scheduleNotify();
   }
 
+  /** Re-derive every node's visualState + isSelected when checkboxMode changes
+   *  at runtime. Switching to 'independent' PROMOTES an indeterminate [-] node to
+   *  fully checked; switching to 'cascade' recomputes parent dashes from their
+   *  descendants. Without this the indeterminate marker (an imperative DOM prop)
+   *  sticks after a mode flip. (svelte-treeview parity — guarded by the ported
+   *  e2e/checkbox-mode.spec.ts.) No-op before the tree is built. */
+  private _reconcileVisualStatesForMode(): void {
+    if (!this.tree?.root) return;
+    const cascade = this._checkboxMode === 'cascade';
+    const newPaths = new Set<string>(this._selectedPaths);
+    let anyChanged = false;
+    let selectionChanged = false;
+    const visit = (node: LTreeNode<T>) => {
+      let vs: VisualState;
+      let selectionTouched = false;
+      if (cascade) {
+        vs = this._computeVisualState(node);
+        // Sync isSelected with a definitive computed state (leave indeterminate as-is).
+        if (vs !== VisualState.indeterminate) {
+          const shouldBeSelected = vs === VisualState.selected;
+          if (node.isSelected !== shouldBeSelected) {
+            node.isSelected = shouldBeSelected;
+            if (shouldBeSelected) newPaths.add(node.path);
+            else newPaths.delete(node.path);
+            selectionTouched = true;
+          }
+        }
+      } else if (node.visualState === VisualState.indeterminate) {
+        // Independent mode has no partial state: promote [-] to fully checked.
+        if (!node.isSelected) {
+          node.isSelected = true;
+          selectionTouched = true;
+        }
+        newPaths.add(node.path);
+        vs = VisualState.selected;
+      } else {
+        vs = node.isSelected ? VisualState.selected : VisualState.notSelected;
+      }
+      if (node.visualState !== vs || selectionTouched) {
+        node.visualState = vs;
+        node._rev = (node._rev || 0) + 1;
+        anyChanged = true;
+        if (selectionTouched) selectionChanged = true;
+      }
+      for (const key in node.children) visit(node.children[key]!);
+    };
+    for (const key in this.tree.root.children) visit(this.tree.root.children[key]!);
+    if (selectionChanged) this._selectedPaths = newPaths;
+    if (anyChanged) {
+      this.tree.refresh();
+      if (selectionChanged) this._emitSelectionChange();
+      this._scheduleNotify();
+    }
+  }
+
   /** Collect every descendant path of a node (depth-first). */
   private _getDescendantPaths(node: LTreeNode<T>): string[] {
     const result: string[] = [];
@@ -2403,6 +2465,13 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       return;
     }
 
+    // Per-node opt-out gate. Mirrors the touch path so isDropAllowed:false
+    // rejects drops on desktop too (svelte-treeview parity).
+    if (!node.isDropAllowed) {
+      this._hoveredNodeForDrop = null;
+      return;
+    }
+
     const isValidDrop = effectiveDraggedNode
       ? isCrossTreeDrag || effectiveDraggedNode.path !== node.path
       : this._isDragInProgress;
@@ -2469,7 +2538,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         ? this._dragDropMode === 'both' || this._dragDropMode === 'cross'
         : this.isDropAllowedByMode(this._draggedNode.treeId);
 
-      if (dropAllowed && (isCrossTreeDrag || this._draggedNode.path !== node.path)) {
+      // Per-node opt-out gate (svelte-treeview parity): isDropAllowed:false
+      // rejects the drop even when the mode allows it.
+      if (dropAllowed && node.isDropAllowed && (isCrossTreeDrag || this._draggedNode.path !== node.path)) {
         const position = this._activeDropPosition || 'child';
         this._handleDrop(node, this._draggedNode, position, event);
       }
@@ -2755,8 +2826,15 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this._shouldShowCheckboxes = updates.shouldShowCheckboxes ?? false;
       this._updateNodeConfig();
     }
-    if (updates.checkboxMode !== undefined)
-      this._checkboxMode = updates.checkboxMode ?? 'independent';
+    if (updates.checkboxMode !== undefined) {
+      const nextMode = updates.checkboxMode ?? 'independent';
+      if (nextMode !== this._checkboxMode) {
+        this._checkboxMode = nextMode;
+        // Re-derive visual states so a runtime mode flip repaints indeterminate
+        // dashes (svelte-treeview parity). No-op before the tree is built.
+        this._reconcileVisualStatesForMode();
+      }
+    }
     if (updates.shouldClickToggleCheckbox !== undefined)
       this._shouldClickToggleCheckbox = updates.shouldClickToggleCheckbox ?? false;
     if (updates.beforeCheckboxToggleCallback !== undefined)
@@ -2859,6 +2937,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.renderCompleteCallback !== undefined) this.renderCompleteCb = updates.renderCompleteCallback;
 
     if (needsTreeRecreation) {
+      // Preserve the user's expand/collapse state across the re-insert — fresh
+      // nodes otherwise reset to the expandLevel default. Capture BEFORE the new
+      // tree replaces this.tree.
+      const preservedExpanded = this._collectExpandedPaths();
       // Recreate LTree with updated member mappings
       const resolvedIdMember = updates.idMember ?? this.tree.idMember;
       const resolvedPathMember = updates.pathMember ?? this.tree.pathMember;
@@ -2920,6 +3002,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         queueMicrotask(() => { this._skipInsertArray = false; });
         this._insertResult = this.tree.insertArray(data);
         this._seedSelectedPathsFromTree();
+        this._reapplyRuntimeSelection();
+        this._reapplyExpanded(preservedExpanded);
         const result = this._insertResult;
         initLogger.debug(`[${this._treeId}] insertArray result`, {
           successful: result.successful,
@@ -3016,8 +3100,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this.flatRenderedIds = new Set();
       this.flatRenderQueue = [];
       this.currentBatchSize = 0;
+      const preservedExpanded = this._collectExpandedPaths();
       this._insertResult = this.tree.insertArray(this._data);
       this._seedSelectedPathsFromTree();
+      this._reapplyRuntimeSelection();
+      this._reapplyExpanded(preservedExpanded);
     }
   }
 
@@ -3033,6 +3120,63 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
    *  after every `insertArray` so consumers reading `getSelectedPaths()`
    *  immediately reflect server-side initial selection.
    *  Mirrors svelte-treeview rc07's post-insert seeding walk. */
+  /** Re-apply the controller-owned runtime selection onto freshly (re)inserted
+   *  nodes. `_selectedPaths` is the source of truth and survives a data re-insert;
+   *  the per-node `isSelected` flag does NOT (fresh nodes default to false), and
+   *  the cascade `visualState` is derived. So after every insertArray we push
+   *  `_selectedPaths` back onto `node.isSelected` and recompute `visualState` from
+   *  it — otherwise a config-triggered re-insert silently drops the checkbox
+   *  selection + indeterminate dashes. (web-grid-style: primary state lives off
+   *  the nodes; derived state is recomputed.) The renderer reads `checked` straight
+   *  from `snapshot.selectedPaths`, so it's already rebuild-proof; this keeps the
+   *  cascade computation + the indeterminate marker correct too. */
+  private _reapplyRuntimeSelection(): void {
+    if (!this.tree?.root) return;
+    const cascade = this._checkboxMode === 'cascade';
+    // Pass 1: primary state — isSelected from the surviving set.
+    const applySelected = (node: LTreeNode<T>) => {
+      node.isSelected = this._selectedPaths.has(node.path);
+      for (const child of Object.values(node.children)) applySelected(child);
+    };
+    for (const child of Object.values(this.tree.root.children)) applySelected(child);
+    // Pass 2: derived visualState — needs pass 1's isSelected on all descendants.
+    const applyVisual = (node: LTreeNode<T>) => {
+      node.visualState = cascade
+        ? this._computeVisualState(node)
+        : (node.isSelected ? VisualState.selected : VisualState.notSelected);
+      for (const child of Object.values(node.children)) applyVisual(child);
+    };
+    for (const child of Object.values(this.tree.root.children)) applyVisual(child);
+  }
+
+  /** Snapshot which nodes are currently expanded — call BEFORE a data re-insert
+   *  (which resets isExpanded to the expandLevel default) so the user's manual
+   *  expand/collapse survives. Paths are stable across a re-insert. */
+  private _collectExpandedPaths(): Set<string> {
+    const out = new Set<string>();
+    if (!this.tree?.root) return out;
+    const visit = (node: LTreeNode<T>) => {
+      if (node.isExpanded) out.add(node.path);
+      for (const child of Object.values(node.children)) visit(child);
+    };
+    for (const child of Object.values(this.tree.root.children)) visit(child);
+    return out;
+  }
+
+  /** Re-apply a captured expansion set onto freshly (re)inserted nodes. Paths not
+   *  present in the new data are simply ignored. Unlike selection/highlight (whose
+   *  source of truth is a controller-owned set the renderer reads), expansion is
+   *  consumed by the LTree's own flattening, so it stays on the node — we just make
+   *  the re-insert lossless by restoring it. */
+  private _reapplyExpanded(expanded: Set<string>): void {
+    if (!this.tree?.root || expanded.size === 0) return;
+    const visit = (node: LTreeNode<T>) => {
+      if (node.hasChildren) node.isExpanded = expanded.has(node.path);
+      for (const child of Object.values(node.children)) visit(child);
+    };
+    for (const child of Object.values(this.tree.root.children)) visit(child);
+  }
+
   private _seedSelectedPathsFromTree(): void {
     if (!this.tree) return;
     if (!this.tree.isSelectedMember && !this.tree.getIsSelectedCallback) return;
@@ -3323,6 +3467,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private isDropAllowedByMode(draggedNodeTreeId: string | undefined): boolean {
     if (this._dragDropMode === 'none') return false;
     const isSameTree = draggedNodeTreeId === this._treeId;
+    // NOTE (parity gap): svelte-treeview also has a 'self' mode (same-tree only)
+    // that rejects cross-tree drops here. web-treeview's DragDropMode type is
+    // 'none' | 'cross' | 'both' — 'self' isn't supported yet. Adding it is a
+    // feature port (type + web-component enum + tests), tracked separately.
     if (this._dragDropMode === 'cross' && isSameTree) return false;
     return true;
   }
@@ -3630,6 +3778,13 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       return;
     }
 
+    // Per-node opt-out gate. Mirrors the touch path so isDropAllowed:false
+    // rejects drops on desktop too (svelte-treeview parity).
+    if (!node.isDropAllowed) {
+      this._hoveredNodeForDrop = null;
+      return;
+    }
+
     const isValidDrop = effectiveDraggedNode
       ? isCrossTreeDrag || effectiveDraggedNode.path !== node.path
       : this._isDragInProgress;
@@ -3676,6 +3831,14 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       return;
     }
 
+    // Per-node opt-out gate. The Node component calls event.preventDefault()
+    // before forwarding, so the drop event fires regardless of the dragover
+    // gate — it must be re-checked here (svelte-treeview parity).
+    if (!node.isDropAllowed) {
+      this._onNodeDragEnd(event);
+      return;
+    }
+
     if (this._draggedNode && (isCrossTreeDrag || this._draggedNode !== node)) {
       const position = this._activeDropPosition || 'child';
       this._handleDrop(node, this._draggedNode, position, event);
@@ -3706,6 +3869,12 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       : this.isDropAllowedByMode(this._draggedNode?.treeId);
 
     if (!dropAllowed) {
+      this._onNodeDragEnd(event);
+      return;
+    }
+
+    // Per-node opt-out gate (glow/zone equivalent of the _onNodeDrop gate).
+    if (!node.isDropAllowed) {
       this._onNodeDragEnd(event);
       return;
     }

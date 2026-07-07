@@ -259,6 +259,27 @@ test.describe('multi-drag (selectionMode=multi)', () => {
   });
 });
 
+// ── Section 7: node that rejects all drops (isDropAllowed=false) ────────────
+// Regression: web only gated node.isDropAllowed on the touch path; the desktop
+// dragOver/drop handlers accepted a drop onto a node with isDropAllowed=false.
+// svelte-treeview gates every desktop path; this asserts web now does too.
+test.describe('no-drop node (isDropAllowed=false)', () => {
+  test('a node with isDropAllowed=false rejects a drop; a normal node accepts it', async ({ page }) => {
+    await gotoFixture(page);
+    const section = page.getByTestId('section-no-drop');
+
+    // Drag CanDrop-A onto NoDrop-B as child — must be REJECTED (no drop fires).
+    await dragNodeTo(nodeRow(nodeByPath(section, '1')), nodeRow(nodeByPath(section, '2')), 'child');
+    await expect(page.getByTestId('no-drop-drop-count')).toHaveText('0');
+    await expect(nodeByPath(section, '1')).toBeVisible(); // A stays at root
+
+    // Control: dropping onto a normal node (CanDrop-C) still works.
+    await dragNodeTo(nodeRow(nodeByPath(section, '1')), nodeRow(nodeByPath(section, '3')), 'child');
+    await expect(page.getByTestId('no-drop-drop-count')).toHaveText('1');
+    await expect(page.getByTestId('no-drop-drop-target')).toHaveText('CanDrop-C');
+  });
+});
+
 // ── Sections NOT ported ───────────────────────────────────────────────────
 // Two-tree drag, Ctrl-drag copy, touch drag — kept as skipped placeholders
 // so future runs can plumb in their fixtures incrementally.

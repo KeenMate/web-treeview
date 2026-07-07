@@ -827,10 +827,18 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
           // Path changed — force full update regardless of _rev
           this._updateNodeElement(el, node, snapshot);
         } else {
-          // Update existing node if _rev or expanded state changed
+          // Update existing node if _rev, expanded, or hasChildren changed.
+          // hasChildren isn't captured by _rev (adding/removing a child doesn't
+          // bump the parent's _rev), so a leaf↔folder transition would otherwise
+          // be skipped and leave a stale toggle marker.
           const existingRev = el.getAttribute('data-rev');
           const existingExpanded = el.getAttribute('data-expanded');
-          if (existingRev !== String(node._rev) || existingExpanded !== String(!!node.isExpanded)) {
+          const existingHasChildren = el.getAttribute('data-has-children');
+          if (
+            existingRev !== String(node._rev) ||
+            existingExpanded !== String(!!node.isExpanded) ||
+            existingHasChildren !== String(!!node.hasChildren)
+          ) {
             this._updateNodeElement(el, node, snapshot);
           }
         }
@@ -938,43 +946,18 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     }
   }
 
-  private _createNodeElement(node: LTreeNode<T>, snapshot: TreeControllerSnapshot<T>): HTMLElement {
-    const el = document.createElement('div');
-    el.className = 'wtv__node';
-    el.setAttribute('data-tree-path', node.path);
-    el.setAttribute('data-rev', String(node._rev));
-    el.setAttribute('data-expanded', String(!!node.isExpanded));
-
-    if (this.controller && node.id) {
-      el.id = `${this.controller.treeId}-${node.id}`;
-    }
-
-    // Flat mode indent
-    if (snapshot.isFlatRenderingEnabled) {
-      el.style.paddingLeft = `calc((${node.level} - 1) * ${snapshot.flatIndentSize})`;
-    }
-
-    // Draggable — only when drag-drop is enabled
-    if (this.controller?.dragDropMode !== 'none' && this.controller?.getNodeIsDraggable(node)) {
-      el.setAttribute('draggable', 'true');
-      el.classList.add('wtv__node-content--draggable');
-    }
-
+  /**
+   * (Re)build the toggle-icon class list from scratch based on node.hasChildren.
+   * Called by BOTH _createNodeElement and updateNode so a node crossing the
+   * leaf↔folder line always gets the right marker. updateNode used to only touch
+   * the `expanded` class when hasChildren was already true, so a node that GAINED
+   * children (e.g. a cross-tree child-drop) kept its empty --leaf-none slot (no ▼),
+   * and a folder that LOST all its children (a move out) kept a stale --expand ▼.
+   * Resetting className first clears any stale icon/expanded classes.
+   */
+  private _applyToggleClasses(toggle: HTMLElement, node: LTreeNode<T>): void {
     const nodeConfig = this.lastNodeConfig;
-
-    // Cut dimming (whole-node fade)
-    if (snapshot.cutPaths.has(node.path)) {
-      el.classList.add('wtv__node-content--cut');
-    }
-
-    // Node row
-    const row = document.createElement('div');
-    row.className = 'wtv__node-row';
-
-    // Toggle icon
-    const toggle = document.createElement('span');
     toggle.className = 'wtv__toggle-icon';
-
     if (node.hasChildren) {
       const isSwap = nodeConfig?.toggleIconMode === 'swap';
       if (isSwap) {
@@ -991,12 +974,40 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     } else {
       // Leaf node: use per-node icon if available, otherwise fall back to leafIconClass
       const nodeIcon = this.controller?.hasIconSupport ? this.controller.getNodeIcon(node) : null;
-      if (nodeIcon) {
-        addClasses(toggle, nodeIcon);
-      } else {
-        addClasses(toggle, nodeConfig?.leafIconClass || 'wtv__toggle-icon--leaf-none');
-      }
+      addClasses(toggle, nodeIcon || nodeConfig?.leafIconClass || 'wtv__toggle-icon--leaf-none');
     }
+  }
+
+  private _createNodeElement(node: LTreeNode<T>, snapshot: TreeControllerSnapshot<T>): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'wtv__node';
+    el.setAttribute('data-tree-path', node.path);
+    el.setAttribute('data-rev', String(node._rev));
+    el.setAttribute('data-expanded', String(!!node.isExpanded));
+    // hasChildren is a DERIVED visual property not captured by _rev — adding/
+    // removing a child doesn't bump the parent's _rev. Track it like data-expanded
+    // so the reconcile-skip check (see updateNodes) re-renders a node that crossed
+    // the leaf↔folder line and its toggle marker gets rebuilt.
+    el.setAttribute('data-has-children', String(!!node.hasChildren));
+
+    if (this.controller && node.id) {
+      el.id = `${this.controller.treeId}-${node.id}`;
+    }
+
+    // Flat mode indent
+    if (snapshot.isFlatRenderingEnabled) {
+      el.style.paddingLeft = `calc((${node.level} - 1) * ${snapshot.flatIndentSize})`;
+    }
+
+    const nodeConfig = this.lastNodeConfig;
+
+    // Node row
+    const row = document.createElement('div');
+    row.className = 'wtv__node-row';
+
+    // Toggle icon
+    const toggle = document.createElement('span');
+    this._applyToggleClasses(toggle, node);
 
     row.appendChild(toggle);
 
@@ -1006,7 +1017,7 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.className = 'wtv__checkbox';
-      cb.checked = !!node.isSelected;
+      cb.checked = snapshot.selectedPaths.has(node.path);
       cb.indeterminate = node.visualState === 'indeterminate';
       row.appendChild(cb);
     }
@@ -1015,9 +1026,25 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     const content = document.createElement('div');
     content.className = 'wtv__node-content';
 
+    // Draggable + cut live on the CONTENT (the pill), not the outer .wtv__node.
+    // Keeps every wtv__node-content--* class on the element it's named for and
+    // matches svelte-treeview (draggable on .stv__node-content). The delegated
+    // dragstart/touch handlers still resolve the row via closest('.wtv__node'),
+    // so the grab handle is the content pill (excludes the indent gutter/toggle).
+    if (this.controller?.dragDropMode !== 'none' && this.controller?.getNodeIsDraggable(node)) {
+      content.setAttribute('draggable', 'true');
+      content.classList.add('wtv__node-content--draggable');
+    }
+    if (snapshot.cutPaths.has(node.path)) {
+      content.classList.add('wtv__node-content--cut');
+    }
+
     // Highlight / focus state — applied to the row content so the styling
     // affects only the visible row, not the children indentation area below.
-    if (node.isHighlighted) {
+    // Highlight is read from the controller-owned set (snapshot), NOT node.isHighlighted:
+    // the set survives a data rebuild, so highlighting isn't lost when a config change
+    // re-inserts the data (web-grid-style state-off-nodes).
+    if (snapshot.highlightedPaths.has(node.path)) {
       // `--highlighted` is a FALLBACK: only apply it when no highlightedNodeClass
       // is configured, so the marker's default look never fights a custom class.
       if (nodeConfig?.highlightedNodeClass) {
@@ -1077,23 +1104,24 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
   private _updateNodeElement(el: HTMLElement, node: LTreeNode<T>, snapshot: TreeControllerSnapshot<T>): void {
     el.setAttribute('data-rev', String(node._rev));
     el.setAttribute('data-expanded', String(!!node.isExpanded));
+    el.setAttribute('data-has-children', String(!!node.hasChildren));
     el.setAttribute('data-tree-path', node.path);
 
     const nodeConfig = this.lastNodeConfig;
 
-    // Cut dimming (whole-node fade)
-    el.classList.toggle('wtv__node-content--cut', snapshot.cutPaths.has(node.path));
-
-    // Highlight / focus state — applied to the row content so the styling
+    // Highlight / focus / cut state — applied to the row content so the styling
     // affects only the visible row, not the children indentation area below.
     const contentEl = el.querySelector(':scope > .wtv__node-row > .wtv__node-content') as HTMLElement | null;
     if (contentEl) {
+      // Cut dimming lives on the content pill (see _createNodeElement).
+      contentEl.classList.toggle('wtv__node-content--cut', snapshot.cutPaths.has(node.path));
       // Fallback marker only when no highlightedNodeClass is configured (see
       // _createNodeElement) — keeps the default look from fighting a custom class.
       const hasCustomHighlight = !!nodeConfig?.highlightedNodeClass;
-      contentEl.classList.toggle('wtv__node-content--highlighted', !!node.isHighlighted && !hasCustomHighlight);
+      const isHighlighted = snapshot.highlightedPaths.has(node.path);
+      contentEl.classList.toggle('wtv__node-content--highlighted', isHighlighted && !hasCustomHighlight);
       if (hasCustomHighlight) {
-        contentEl.classList.toggle(nodeConfig.highlightedNodeClass, !!node.isHighlighted);
+        contentEl.classList.toggle(nodeConfig.highlightedNodeClass, isHighlighted);
       }
       const isFocused = snapshot.focusedNode?.path === node.path;
       contentEl.classList.toggle('wtv__node-content--focused', isFocused);
@@ -1113,28 +1141,19 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         const toggle = el.querySelector('.wtv__toggle-icon');
         toggle?.after(cb);
       }
-      cb.checked = !!node.isSelected;
+      cb.checked = snapshot.selectedPaths.has(node.path);
       cb.indeterminate = node.visualState === 'indeterminate';
     } else {
       const cb = el.querySelector('.wtv__checkbox');
       cb?.remove();
     }
 
-    // Update toggle icon
+    // Update toggle icon — rebuild the full class list so leaf↔folder transitions
+    // (a node gaining/losing children via drop, move, or delete) swap the marker
+    // correctly, not just the `expanded` state of an already-a-folder node.
     const toggle = el.querySelector('.wtv__toggle-icon') as HTMLElement;
-    if (toggle && node.hasChildren) {
-      const isExpanded = node.isExpanded;
-
-      if (nodeConfig?.toggleIconMode === 'swap') {
-        const expandCls = nodeConfig?.expandIconClass || 'wtv__toggle-icon--expand';
-        const collapseCls = nodeConfig?.collapseIconClass || 'wtv__toggle-icon--collapse';
-        // Remove old classes first, then add new (avoids shared token conflict e.g. "fa-solid")
-        removeClasses(toggle, isExpanded ? expandCls : collapseCls);
-        addClasses(toggle, isExpanded ? collapseCls : expandCls);
-        toggle.classList.remove('expanded');
-      } else {
-        toggle.classList.toggle('expanded', !!isExpanded);
-      }
+    if (toggle) {
+      this._applyToggleClasses(toggle, node);
     }
 
     // Update content
@@ -1160,13 +1179,15 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       }
     }
 
-    // Update draggable — only when drag-drop is enabled
-    if (this.controller?.dragDropMode !== 'none' && this.controller?.getNodeIsDraggable(node)) {
-      el.setAttribute('draggable', 'true');
-      el.classList.add('wtv__node-content--draggable');
-    } else {
-      el.removeAttribute('draggable');
-      el.classList.remove('wtv__node-content--draggable');
+    // Update draggable — on the content pill (matches _createNodeElement)
+    if (content) {
+      if (this.controller?.dragDropMode !== 'none' && this.controller?.getNodeIsDraggable(node)) {
+        content.setAttribute('draggable', 'true');
+        content.classList.add('wtv__node-content--draggable');
+      } else {
+        content.removeAttribute('draggable');
+        content.classList.remove('wtv__node-content--draggable');
+      }
     }
 
     // Re-apply data-driven nodeClass / nodeContentClass (removes stale classes)
@@ -1183,12 +1204,12 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       if (!content) continue;
 
       // Clear previous drag classes
-      el.classList.remove('wtv__node-content--dragged');
+      content.classList.remove('wtv__node-content--dragged');
       content.classList.remove('wtv__node-content--glow-before', 'wtv__node-content--glow-after', 'wtv__node-content--glow-child', 'wtv__node-content--drop-copy');
 
       // Dragged node style
       if (path === snapshot.draggedNodePath) {
-        el.classList.add('wtv__node-content--dragged');
+        content.classList.add('wtv__node-content--dragged');
       }
 
       // Glow mode indicators on hovered node

@@ -85,7 +85,11 @@
   background: var(--wtv-node-bg-hover);
 }
 
-.wtv__node:active {
+/* Press feedback on the CONTENT, not the full-width outer .wtv__node — otherwise
+   mousedown floods the indent gutter + toggle column with the active background
+   (svelte-treeview has no row press-background at all; this stays as a scoped,
+   rounded press affordance on the pill). */
+.wtv__node .wtv__node-content:active {
   background: var(--wtv-node-bg-active);
 }
 
@@ -332,12 +336,12 @@
 .wtv__node-content--dragged {
   opacity: var(--wtv-dragged-opacity);
   transform: scale(0.95);
-  /* Anchor the shrink to the left edge. This class lands on the FULL-WIDTH
-     .wtv__node (web-treeview drags the outer element, unlike svelte-treeview which
-     scales the content-sized .stv__node-content), so a default center origin would
-     pull the row's left edge — and its highlight background — inward by ~2.5% of the
-     tree width, reading as a phantom indent on drag start. Left origin keeps the
-     lift/dim effect without shifting the row horizontally. */
+  /* Anchor the shrink to the left edge. This class lands on .wtv__node-content,
+     which is flex:1 (fills the row minus the toggle/indent), so a default center
+     origin would pull the content's left edge — and its highlight background —
+     inward by ~2.5%, reading as a phantom indent on drag start. Left origin keeps
+     the lift/dim effect without shifting the pill horizontally. (Mirrors
+     svelte-treeview, which also scales .stv__node-content.) */
   transform-origin: left center;
   transition: opacity var(--wtv-transition-speed), transform var(--wtv-transition-speed);
 }

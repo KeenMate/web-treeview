@@ -237,6 +237,47 @@ test.describe('failure cases', () => {
   });
 });
 
+// ── Toggle marker reconciles across leaf↔folder transitions ─────────────────
+// Regression: updateNode used to only flip the `expanded` class of an already-
+// a-folder node, and the reconcile-skip check keyed on _rev + isExpanded only.
+// hasChildren isn't captured by _rev (adding/removing a child doesn't bump the
+// PARENT's _rev), so a leaf that GAINED children kept its empty --leaf-none slot
+// (no ▼) and a folder that LOST all its children kept a stale --expand ▼.
+
+function toggleClass(scope: Locator | Page, path: string): Promise<string> {
+  return nodeByPath(scope, path)
+    .locator('.wtv__toggle-icon')
+    .first()
+    .getAttribute('class')
+    .then((c) => c ?? '');
+}
+
+test.describe('toggle marker reconciles across leaf↔folder transitions', () => {
+  test('leaf that gains children swaps its leaf slot for an expand toggle', async ({ page }) => {
+    // "3" is a leaf in the seed.
+    expect(await toggleClass(page, '3')).toContain('wtv__toggle-icon--leaf-none');
+
+    await page.getByTestId('btn-insert-under-3').click();
+    await expect(page.getByTestId('last-op-success')).toHaveText('true');
+
+    const cls = await toggleClass(page, '3');
+    expect(cls).toContain('wtv__toggle-icon--expand');
+    expect(cls).not.toContain('wtv__toggle-icon--leaf-none');
+  });
+
+  test('folder that loses all children falls back to a leaf slot (no stale arrow)', async ({ page }) => {
+    // "2.1" is a folder (children 2.1.1 / 2.1.2) in the seed.
+    expect(await toggleClass(page, '2.1')).toContain('wtv__toggle-icon--expand');
+
+    await page.getByTestId('btn-delete-2.1-keepParent').click();
+    await expect(page.getByTestId('last-op-success')).toHaveText('true');
+
+    const cls = await toggleClass(page, '2.1');
+    expect(cls).toContain('wtv__toggle-icon--leaf-none');
+    expect(cls).not.toContain('wtv__toggle-icon--expand');
+  });
+});
+
 // ── Reset ─────────────────────────────────────────────────────────────────
 
 test.describe('reset', () => {

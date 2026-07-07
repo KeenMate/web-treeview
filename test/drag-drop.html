@@ -100,6 +100,21 @@
                 <dt>dragged</dt><dd data-testid="locked-drop-dragged"></dd>
             </dl>
         </div>
+
+        <!-- Section 7: node that rejects ALL drops (isDropAllowed=false) -->
+        <div class="card" data-testid="section-no-drop">
+            <h2>No-drop node (isDropAllowed=false)</h2>
+            <div class="tree-container">
+                <web-treeview id="tree-no-drop"
+                    expand-level="2"
+                    drag-drop-mode="both"
+                    is-drop-allowed-member="canDrop"></web-treeview>
+            </div>
+            <dl class="readouts">
+                <dt>drop-count</dt><dd data-testid="no-drop-drop-count">0</dd>
+                <dt>target</dt><dd data-testid="no-drop-drop-target"></dd>
+            </dl>
+        </div>
     </main>
 
     <script type="module">
@@ -143,6 +158,14 @@
             { id: 2, path: '2', name: 'Lock-B', sortOrder: 20 },
             { id: 3, path: '3', name: 'Lock-C', sortOrder: 30, draggable: false },
             { id: 4, path: '4', name: 'Lock-D', sortOrder: 40 }
+        ];
+
+        // Section 7: NoDrop-B rejects ALL drops (canDrop:false → isDropAllowed=false).
+        // Every node carries the member so an unset value doesn't read as falsy.
+        const noDropData = [
+            { id: 1, path: '1', name: 'CanDrop-A', sortOrder: 10, canDrop: true },
+            { id: 2, path: '2', name: 'NoDrop-B', sortOrder: 20, canDrop: false },
+            { id: 3, path: '3', name: 'CanDrop-C', sortOrder: 30, canDrop: true }
         ];
 
         const sortByOrder = (items) =>
@@ -248,6 +271,21 @@
                 setText('locked-highlighted-size', String(e.detail.paths.size));
             });
             locked.data = lockedData;
+
+            // ── Section 7: no-drop node ──
+            counters.noDrop = 0;
+            const noDrop = document.getElementById('tree-no-drop');
+            noDrop.idMember = 'id';
+            noDrop.pathMember = 'path';
+            noDrop.displayValueMember = 'name';
+            noDrop.sortCallback = sortByOrder;
+            noDrop.isSorted = true;
+            noDrop.onNodeDrop = (ctx) => {
+                counters.noDrop++;
+                setText('no-drop-drop-count', String(counters.noDrop));
+                setText('no-drop-drop-target', ctx.target?.node?.data?.name ?? '');
+            };
+            noDrop.data = noDropData;
         });
     </script>
 </body>
