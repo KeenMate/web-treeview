@@ -627,6 +627,7 @@ export class WebTreeViewElement<T = any> extends BaseElement {
   get sortCallback() { return this._sortCallback; }
   set sortCallback(value: ((items: LTreeNode<T>[]) => LTreeNode<T>[]) | undefined) {
     this._sortCallback = value;
+    this._scheduleUpdate();
   }
 
   get contextMenuCallback() { return this._contextMenuCallback; }

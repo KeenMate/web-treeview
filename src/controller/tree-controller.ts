@@ -120,6 +120,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _initialBatchSize: number = 20;
   private _maxBatchSize: number = 500;
   private _bodyClass: string | null | undefined = undefined;
+  // Current expand-to-level. Tracked on the controller because the LTree bakes
+  // its expand level into a closure at construction — the only way to change it
+  // is to recreate the tree, so updateProps must know the previous value to
+  // detect a real change (buildConfig resends the attribute on every update).
+  private _expandLevel: number | null | undefined = undefined;
 
   // Drag and drop
   private _dragDropMode: DragDropMode = 'none';
@@ -620,6 +625,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._maxBatchSize = props.maxBatchSize ?? 500;
     this._bodyClass = props.bodyClass;
 
+    this._expandLevel = props.expandLevel ?? null;
     this._dragDropMode = props.dragDropMode ?? 'none';
     this._isCopyAllowed = props.isCopyAllowed ?? false;
     this._shouldAutoHandleCopy = props.shouldAutoHandleCopy ?? true;
@@ -2785,32 +2791,57 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   // ── updateProps (batch property updates) ────────────────────────────
 
   updateProps(updates: Partial<TreeControllerConfig<T>>) {
-    // Check if any LTree-baked member mappings changed — requires tree recreation
+    // Check if any LTree-baked member mapping / structural callback changed —
+    // only THAT requires tearing down and rebuilding the tree.
+    //
+    // A2 value-compare guard: the web-component's buildConfig() resends EVERY
+    // set member + callback on ANY property change (it has no per-key dirty
+    // tracking), so a plain `updates.X !== undefined` presence check fired a
+    // full LTree recreation + insertArray (fresh node objects, wasted work) on
+    // purely cosmetic changes like flipping a theme class. We instead compare
+    // each incoming value against the one currently baked into this.tree and
+    // only recreate on a real change. References are stable across resends
+    // (buildConfig copies the stored field, it does not rebuild closures), so
+    // identity compare is sound for callbacks and string compare for members.
+    // `changed(x, cur)` is false when x is undefined (key absent from updates).
+    const t = this.tree;
+    const changed = <V>(next: V | undefined, current: V): boolean =>
+      next !== undefined && next !== current;
     const needsTreeRecreation =
-      updates.idMember !== undefined ||
-      updates.pathMember !== undefined ||
-      updates.parentPathMember !== undefined ||
-      updates.levelMember !== undefined ||
-      updates.hasChildrenMember !== undefined ||
-      updates.isExpandedMember !== undefined ||
-      updates.isSelectedMember !== undefined ||
-      updates.isDraggableMember !== undefined ||
-      updates.isDropAllowedMember !== undefined ||
-      updates.allowedDropPositionsMember !== undefined ||
-      updates.displayValueMember !== undefined ||
-      updates.searchValueMember !== undefined ||
-      updates.isCollapsibleMember !== undefined ||
-      updates.orderMember !== undefined ||
-      updates.getDisplayValueCallback !== undefined ||
-      updates.getSearchValueCallback !== undefined ||
-      updates.getIsDraggableCallback !== undefined ||
-      updates.getIsExpandedCallback !== undefined ||
-      updates.getIsSelectableCallback !== undefined ||
-      updates.getIsSelectedCallback !== undefined ||
-      updates.getIsDropAllowedCallback !== undefined ||
-      updates.getIsCollapsibleCallback !== undefined ||
-      updates.getAllowedDropPositionsCallback !== undefined ||
-      updates.sortCallback !== undefined;
+      changed(updates.idMember, t.idMember) ||
+      changed(updates.pathMember, t.pathMember) ||
+      changed(updates.parentPathMember, t.parentPathMember) ||
+      changed(updates.levelMember, t.levelMember) ||
+      changed(updates.hasChildrenMember, t.hasChildrenMember) ||
+      changed(updates.isExpandedMember, t.isExpandedMember) ||
+      changed(updates.isSelectedMember, t.isSelectedMember) ||
+      changed(updates.isDraggableMember, t.isDraggableMember) ||
+      changed(updates.isDropAllowedMember, t.isDropAllowedMember) ||
+      changed(updates.allowedDropPositionsMember, t.allowedDropPositionsMember) ||
+      changed(updates.displayValueMember, t.displayValueMember) ||
+      changed(updates.searchValueMember, t.searchValueMember) ||
+      changed(updates.isCollapsibleMember, t.isCollapsibleMember) ||
+      changed(updates.orderMember, t.orderMember) ||
+      changed(updates.getDisplayValueCallback, t.getDisplayValueCallback) ||
+      changed(updates.getSearchValueCallback, t.getSearchValueCallback) ||
+      changed(updates.getIsDraggableCallback, t.getIsDraggableCallback) ||
+      changed(updates.getIsExpandedCallback, t.getIsExpandedCallback) ||
+      changed(updates.getIsSelectableCallback, t.getIsSelectableCallback) ||
+      changed(updates.getIsSelectedCallback, t.getIsSelectedCallback) ||
+      changed(updates.getIsDropAllowedCallback, t.getIsDropAllowedCallback) ||
+      changed(updates.getIsCollapsibleCallback, t.getIsCollapsibleCallback) ||
+      changed(updates.getAllowedDropPositionsCallback, t.getAllowedDropPositionsCallback) ||
+      changed(updates.sortCallback, t.sortCallback);
+
+    // expandLevel is baked into the LTree's construction closure, so a real
+    // change can only take effect by recreating the tree. Unlike a member
+    // change (where we PRESERVE the user's expand/collapse state across the
+    // rebuild), an explicit expandLevel change is a request to RE-SEED
+    // expansion at that level — so when it changes we let the fresh insert's
+    // seed stand instead of restoring the previous expanded set.
+    const expandLevelChanged =
+      updates.expandLevel !== undefined && (updates.expandLevel ?? null) !== (this._expandLevel ?? null);
+    if (updates.expandLevel !== undefined) this._expandLevel = updates.expandLevel ?? null;
 
     if (updates.treeId !== undefined) this._treeId = updates.treeId || this._treeId;
     if (updates.treePathSeparator !== undefined)
@@ -2936,10 +2967,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.renderProgressCallback !== undefined) this.renderProgressCb = updates.renderProgressCallback;
     if (updates.renderCompleteCallback !== undefined) this.renderCompleteCb = updates.renderCompleteCallback;
 
-    if (needsTreeRecreation) {
+    if (needsTreeRecreation || expandLevelChanged) {
       // Preserve the user's expand/collapse state across the re-insert — fresh
       // nodes otherwise reset to the expandLevel default. Capture BEFORE the new
-      // tree replaces this.tree.
+      // tree replaces this.tree. Skipped when the user explicitly changed
+      // expandLevel (then the new seed IS the desired expansion).
       const preservedExpanded = this._collectExpandedPaths();
       // Recreate LTree with updated member mappings
       const resolvedIdMember = updates.idMember ?? this.tree.idMember;
@@ -3003,7 +3035,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         this._insertResult = this.tree.insertArray(data);
         this._seedSelectedPathsFromTree();
         this._reapplyRuntimeSelection();
-        this._reapplyExpanded(preservedExpanded);
+        if (!expandLevelChanged) this._reapplyExpanded(preservedExpanded);
         const result = this._insertResult;
         initLogger.debug(`[${this._treeId}] insertArray result`, {
           successful: result.successful,
@@ -3467,10 +3499,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private isDropAllowedByMode(draggedNodeTreeId: string | undefined): boolean {
     if (this._dragDropMode === 'none') return false;
     const isSameTree = draggedNodeTreeId === this._treeId;
-    // NOTE (parity gap): svelte-treeview also has a 'self' mode (same-tree only)
-    // that rejects cross-tree drops here. web-treeview's DragDropMode type is
-    // 'none' | 'cross' | 'both' — 'self' isn't supported yet. Adding it is a
-    // feature port (type + web-component enum + tests), tracked separately.
+    // 'self' = same-tree only: reject anything coming from another tree.
+    if (this._dragDropMode === 'self' && !isSameTree) return false;
+    // 'cross' = cross-tree only: reject drops originating in this same tree.
     if (this._dragDropMode === 'cross' && isSameTree) return false;
     return true;
   }

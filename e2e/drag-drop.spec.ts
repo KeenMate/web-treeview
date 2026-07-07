@@ -280,6 +280,40 @@ test.describe('no-drop node (isDropAllowed=false)', () => {
   });
 });
 
+// ── Section: drag-drop-mode same-tree gate (self / cross) ──────────────────
+// isDropAllowedByMode gates drops by origin: 'self' = same-tree only, 'cross' =
+// cross-tree only, 'both' = either. We assert the SAME-TREE branch across modes
+// (reliable single-tree DnD): 'self' must ALLOW a same-tree drop, 'cross' must
+// REJECT it. The cross-tree branch stays under the skipped two-tree placeholder
+// (Chromium cross-tree native-drag synth is flaky).
+test.describe('drag-drop-mode same-tree gate', () => {
+  async function setMode(page: Page, mode: string) {
+    await page.evaluate((m) => {
+      document.getElementById('tree-single')!.setAttribute('drag-drop-mode', m);
+    }, mode);
+    await page.waitForTimeout(50);
+  }
+
+  test("mode='self' allows a same-tree drop", async ({ page }) => {
+    await gotoFixture(page);
+    const section = page.getByTestId('section-single');
+    await setMode(page, 'self');
+
+    await expect(page.getByTestId('single-drop-count')).toHaveText('0');
+    await dragNodeTo(nodeRow(nodeByPath(section, '1.1')), nodeRow(nodeByPath(section, '2')), 'after');
+    await expect(page.getByTestId('single-drop-count')).toHaveText('1');
+  });
+
+  test("mode='cross' rejects a same-tree drop", async ({ page }) => {
+    await gotoFixture(page);
+    const section = page.getByTestId('section-single');
+    await setMode(page, 'cross');
+
+    await dragNodeTo(nodeRow(nodeByPath(section, '1.1')), nodeRow(nodeByPath(section, '2')), 'after');
+    await expect(page.getByTestId('single-drop-count')).toHaveText('0'); // same-tree drop blocked
+  });
+});
+
 // ── Sections NOT ported ───────────────────────────────────────────────────
 // Two-tree drag, Ctrl-drag copy, touch drag — kept as skipped placeholders
 // so future runs can plumb in their fixtures incrementally.
