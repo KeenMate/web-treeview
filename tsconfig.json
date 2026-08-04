@@ -30,11 +30,6 @@
   "include": ["src"],
   "exclude": [
     "node_modules",
-    "dist",
-    // Original UMD distributions kept for reference only — the code imports the
-    // `-esm.js` variants via index.js/prefix.js. The UMD IIFE form can't be
-    // represented in declaration emit (TS9005 on the wrapper's private `Logger`).
-    "src/vendor/loglevel/loglevel.js",
-    "src/vendor/loglevel/loglevel-plugin-prefix.js"
+    "dist"
   ]
 }

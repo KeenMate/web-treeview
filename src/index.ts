@@ -1,8 +1,9 @@
-// Import styles
+// Import styles (produces the shipped dist/web-treeview.css via Vite)
 import './css/main.css';
 
-// Import for export and global API
-import { getAllInstances, WebTreeViewElement } from './web-component';
+import { registerComponent } from '@keenmate/web-components-core';
+import { WebTreeViewElement } from './web-component';
+import { logging } from './logger';
 
 // Export the web component
 export { WebTreeViewElement };
@@ -92,8 +93,20 @@ export type {
   DropOperation
 } from './types';
 
-// Logging
-export { enableLogging, disableLogging, setLogLevel, setCategoryLevel, LOGGING_CATEGORIES } from './logger';
+// Logging — now a thin shim over @keenmate/web-components-core (SPEC §12.1).
+export {
+  enableLogging,
+  disableLogging,
+  setLogLevel,
+  setCategoryLevel,
+  LOGGING_CATEGORIES,
+  initLogger,
+  dataLogger,
+  indexLogger,
+  uiLogger,
+  dragLogger,
+  renderLogger,
+} from './logger';
 export { enablePerfLogging, disablePerfLogging, setPerfThreshold } from './perf-logger';
 
 // Auto-register the custom element
@@ -107,51 +120,29 @@ declare const __LICENSE__: string;
 declare const __REPOSITORY__: string;
 declare const __HOMEPAGE__: string;
 
-// Global API interface
-export interface GlobalTreeViewAPI {
-  version: () => string;
+// The whole hand-rolled `window.components['web-treeview'] = { … }` block —
+// version/config/register/getInstances — collapses to one core call.
+// registerComponent defines the element, publishes build metadata + the
+// flattened logging controls, and wires getInstances() to the live-instance
+// registry that BlissElement maintains automatically (add on connect / remove on
+// disconnect).
+//
+//   window.components['web-treeview'].getInstances()
+//   window.components['web-treeview'].logging.enableLogging()
+registerComponent('web-treeview', WebTreeViewElement as unknown as CustomElementConstructor, {
   config: {
-    name: string;
-    version: string;
-    author: string;
-    license: string;
-    repository: string;
-    homepage: string;
-  };
-  register: () => void;
-  getInstances: () => HTMLElement[];
-}
+    name: typeof __PACKAGE_NAME__ !== 'undefined' ? __PACKAGE_NAME__ : '@keenmate/web-treeview',
+    version: typeof __VERSION__ !== 'undefined' ? __VERSION__ : '0.0.0',
+    author: typeof __AUTHOR__ !== 'undefined' ? __AUTHOR__ : 'KeenMate',
+    license: typeof __LICENSE__ !== 'undefined' ? __LICENSE__ : 'MIT',
+    repository: typeof __REPOSITORY__ !== 'undefined' ? __REPOSITORY__ : '',
+    homepage: typeof __HOMEPAGE__ !== 'undefined' ? __HOMEPAGE__ : '',
+  },
+  logging,
+});
 
-// Declare global namespace
 declare global {
   interface HTMLElementTagNameMap {
     'web-treeview': WebTreeViewElement;
   }
-  interface Window {
-    components?: {
-      'web-treeview'?: GlobalTreeViewAPI;
-    };
-  }
-}
-
-// Initialize global API
-if (typeof window !== 'undefined') {
-  window.components = window.components || {};
-  window.components['web-treeview'] = {
-    version: () => __VERSION__,
-    config: {
-      name: __PACKAGE_NAME__,
-      version: __VERSION__,
-      author: __AUTHOR__,
-      license: __LICENSE__,
-      repository: __REPOSITORY__,
-      homepage: __HOMEPAGE__
-    },
-    register: () => {
-      if (typeof customElements !== 'undefined' && !customElements.get('web-treeview')) {
-        customElements.define('web-treeview', WebTreeViewElement);
-      }
-    },
-    getInstances: () => getAllInstances()
-  };
 }

@@ -1,0 +1,552 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vscode-css-languageservice/main/docs/customData.schema.json",
+  "version": 1.1,
+  "properties": [
+    {
+      "name": "--wtv-rem",
+      "description": "Base sizing unit for proportional scaling (default: 10px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-spacing-xs",
+      "description": "Extra small spacing (2px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-spacing-sm",
+      "description": "Small spacing (4px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-spacing-md",
+      "description": "Medium spacing (8px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-spacing-lg",
+      "description": "Large spacing (12px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-spacing-xl",
+      "description": "Extra large spacing (16px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-font-family",
+      "description": "Component font family (overrides --base-font-family)",
+      "values": []
+    },
+    {
+      "name": "--wtv-font-size-xs",
+      "description": "Extra small font (12px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-font-size-sm",
+      "description": "Small font (14px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-font-size-base",
+      "description": "Base font (16px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-font-size",
+      "description": "Default font size (= tv-font-size-sm)",
+      "values": []
+    },
+    {
+      "name": "--wtv-font-weight-medium",
+      "description": "Medium font weight",
+      "values": []
+    },
+    {
+      "name": "--wtv-font-weight-semibold",
+      "description": "Semibold font weight",
+      "values": []
+    },
+    {
+      "name": "--wtv-accent-color",
+      "description": "Primary accent color",
+      "values": []
+    },
+    {
+      "name": "--wtv-accent-color-hover",
+      "description": "Accent color on hover",
+      "values": []
+    },
+    {
+      "name": "--wtv-text-color",
+      "description": "Primary text color",
+      "values": []
+    },
+    {
+      "name": "--wtv-text-color-2",
+      "description": "Secondary/muted text color",
+      "values": []
+    },
+    {
+      "name": "--wtv-text-color-on-accent",
+      "description": "Text on accent backgrounds",
+      "values": []
+    },
+    {
+      "name": "--wtv-bg-color",
+      "description": "Main background color",
+      "values": []
+    },
+    {
+      "name": "--wtv-border-color",
+      "description": "Default border color",
+      "values": []
+    },
+    {
+      "name": "--wtv-success-color",
+      "description": "Success/valid drop color",
+      "values": []
+    },
+    {
+      "name": "--wtv-danger-color",
+      "description": "Danger/invalid drop color",
+      "values": []
+    },
+    {
+      "name": "--wtv-light-bg",
+      "description": "Elevated/subtle surface background",
+      "values": []
+    },
+    {
+      "name": "--wtv-hover-bg",
+      "description": "Hover background",
+      "values": []
+    },
+    {
+      "name": "--wtv-active-bg",
+      "description": "Active/pressed background",
+      "values": []
+    },
+    {
+      "name": "--wtv-selected-bg",
+      "description": "Selected node background",
+      "values": []
+    },
+    {
+      "name": "--wtv-selected-border-color",
+      "description": "Selected node border color",
+      "values": []
+    },
+    {
+      "name": "--wtv-selected-border",
+      "description": "Selected node border shorthand (2px solid accent)",
+      "values": []
+    },
+    {
+      "name": "--wtv-border-width-base",
+      "description": "Base border width (1px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-border",
+      "description": "Full border shorthand (1px solid border-color)",
+      "values": []
+    },
+    {
+      "name": "--wtv-node-bg-hover",
+      "description": "Node hover background (aliases tv-hover-bg)",
+      "values": []
+    },
+    {
+      "name": "--wtv-node-bg-active",
+      "description": "Node active/pressed background (aliases tv-active-bg)",
+      "values": []
+    },
+    {
+      "name": "--wtv-node-transition",
+      "description": "Node content transition (set to 'none' to disable hover animation)",
+      "values": []
+    },
+    {
+      "name": "--wtv-border-radius-sm",
+      "description": "Small border radius (4px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-border-radius-md",
+      "description": "Medium border radius (6px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-border-radius-lg",
+      "description": "Large border radius (8px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-transition-speed",
+      "description": "Fast transition duration (150ms)",
+      "values": []
+    },
+    {
+      "name": "--wtv-transition-normal",
+      "description": "Normal transition duration (200ms)",
+      "values": []
+    },
+    {
+      "name": "--wtv-easing",
+      "description": "Default easing curve",
+      "values": []
+    },
+    {
+      "name": "--wtv-column-width",
+      "description": "Unified column width for toggle, icon, and indent step (24px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-indent-size",
+      "description": "Tree node indent per level (= tv-column-width)",
+      "values": []
+    },
+    {
+      "name": "--wtv-node-padding",
+      "description": "Node content padding",
+      "values": []
+    },
+    {
+      "name": "--wtv-node-height",
+      "description": "Node row height (32px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-icon-size",
+      "description": "Node icon size (16px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-toggle-size",
+      "description": "Toggle icon column size (= tv-column-width)",
+      "values": []
+    },
+    {
+      "name": "--wtv-toggle-color",
+      "description": "Toggle icon color",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-before-color",
+      "description": "Drop-before glow indicator color",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-after-color",
+      "description": "Drop-after glow indicator color",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-child-color",
+      "description": "Drop-as-child glow indicator color",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-before-bg",
+      "description": "Drop-before zone background",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-after-bg",
+      "description": "Drop-after zone background",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-child-bg",
+      "description": "Drop-as-child zone background",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-before-bg-active",
+      "description": "Drop-before zone active background",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-after-bg-active",
+      "description": "Drop-after zone active background",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-child-bg-active",
+      "description": "Drop-as-child zone active background",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-before-color-active",
+      "description": "Drop-before zone active text color",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-after-color-active",
+      "description": "Drop-after zone active text color",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-child-color-active",
+      "description": "Drop-as-child zone active text color",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-before-shadow",
+      "description": "Drop-before zone active box shadow",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-after-shadow",
+      "description": "Drop-after zone active box shadow",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-child-shadow",
+      "description": "Drop-as-child zone active box shadow",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-before-text",
+      "description": "Drop-before zone default text color",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-after-text",
+      "description": "Drop-after zone default text color",
+      "values": []
+    },
+    {
+      "name": "--wtv-glow-child-text",
+      "description": "Drop-as-child zone default text color",
+      "values": []
+    },
+    {
+      "name": "--wtv-drag-over-bg",
+      "description": "Drag-over node background",
+      "values": []
+    },
+    {
+      "name": "--wtv-drag-over-border",
+      "description": "Drag-over node border",
+      "values": []
+    },
+    {
+      "name": "--wtv-drag-over-glow-shadow",
+      "description": "Drag-over glow box shadow",
+      "values": []
+    },
+    {
+      "name": "--wtv-drop-valid-bg",
+      "description": "Valid drop target background",
+      "values": []
+    },
+    {
+      "name": "--wtv-drop-valid-border-color",
+      "description": "Valid drop target border color",
+      "values": []
+    },
+    {
+      "name": "--wtv-drop-invalid-bg",
+      "description": "Invalid drop target background",
+      "values": []
+    },
+    {
+      "name": "--wtv-drop-invalid-border-color",
+      "description": "Invalid drop target border color",
+      "values": []
+    },
+    {
+      "name": "--wtv-dragover-highlight-bg",
+      "description": "Dragover highlight background",
+      "values": []
+    },
+    {
+      "name": "--wtv-dragover-highlight-border",
+      "description": "Dragover highlight border",
+      "values": []
+    },
+    {
+      "name": "--wtv-touch-ghost-bg",
+      "description": "Touch drag ghost background",
+      "values": []
+    },
+    {
+      "name": "--wtv-touch-ghost-shadow",
+      "description": "Touch drag ghost box shadow",
+      "values": []
+    },
+    {
+      "name": "--wtv-scroll-highlight-bg",
+      "description": "Scroll-to-node highlight background",
+      "values": []
+    },
+    {
+      "name": "--wtv-scroll-highlight-shadow",
+      "description": "Scroll-to-node highlight box shadow",
+      "values": []
+    },
+    {
+      "name": "--wtv-dragged-opacity",
+      "description": "Opacity of dragged node (0.5)",
+      "values": []
+    },
+    {
+      "name": "--wtv-cut-opacity",
+      "description": "Opacity of cut nodes pending paste (0.4)",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-bg",
+      "description": "Context menu background",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-bg-hover",
+      "description": "Context menu item hover background",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-text-color",
+      "description": "Context menu text color",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-border",
+      "description": "Context menu border",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-border-radius",
+      "description": "Context menu border radius",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-shadow",
+      "description": "Context menu box shadow",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-min-width",
+      "description": "Context menu minimum width (~150px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-padding",
+      "description": "Context menu padding",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-font-size",
+      "description": "Context menu font size",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-item-padding",
+      "description": "Context menu item padding",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-item-gap",
+      "description": "Gap between icon, label, shortcut",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-icon-width",
+      "description": "Icon column width in context menu",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-icon-font-size",
+      "description": "Icon font size in context menu",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-arrow-font-size",
+      "description": "Submenu arrow font size",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-danger-color",
+      "description": "Danger item text color",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-danger-bg-hover",
+      "description": "Danger item hover background",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-divider-color",
+      "description": "Divider line color",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-divider-margin",
+      "description": "Divider margin",
+      "values": []
+    },
+    {
+      "name": "--wtv-context-menu-disabled-opacity",
+      "description": "Disabled item opacity",
+      "values": []
+    },
+    {
+      "name": "--wtv-spinner-size",
+      "description": "Loading spinner size (32px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-spinner-track",
+      "description": "Spinner track color",
+      "values": []
+    },
+    {
+      "name": "--wtv-spinner-color",
+      "description": "Spinner accent color",
+      "values": []
+    },
+    {
+      "name": "--wtv-loading-bg",
+      "description": "Loading overlay background",
+      "values": []
+    },
+    {
+      "name": "--wtv-tree-min-height",
+      "description": "Min height for empty and loading states (60px)",
+      "values": []
+    },
+    {
+      "name": "--wtv-empty-zone-border",
+      "description": "Empty tree drop zone border",
+      "values": []
+    },
+    {
+      "name": "--wtv-empty-zone-bg",
+      "description": "Empty tree drop zone background",
+      "values": []
+    },
+    {
+      "name": "--wtv-empty-zone-radius",
+      "description": "Empty tree drop zone border radius",
+      "values": []
+    },
+    {
+      "name": "--wtv-z-index-dropdown",
+      "description": "Context menu z-index (1000)",
+      "values": []
+    },
+    {
+      "name": "--wtv-z-index-ghost",
+      "description": "Drag ghost z-index (10000)",
+      "values": []
+    },
+    {
+      "name": "--wtv-z-index-overlay",
+      "description": "Loading overlay z-index (10)",
+      "values": []
+    }
+  ],
+  "pseudoElements": []
+}

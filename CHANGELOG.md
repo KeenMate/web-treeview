@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0-rc08] - 2026-08-04
+
+Migrated onto **`@keenmate/web-components-core`** (`BlissElement` + the reactive
+input model), following `@keenmate/web-multiselect` and
+`@keenmate/web-daterangepicker`. The `WebTreeView` engine (`treeview.ts`,
+`controller/`, `renderer/`, `ltree/`) and ALL CSS are UNCHANGED — only the
+custom-element plumbing was replaced. No consumer-facing attribute/event/method
+changes.
+
+### Changed
+
+- **`web-component.ts`: the hand-coded plumbing is gone.** The `ATTRIBUTE_TABLE`,
+  `JS_CALLBACK_FIELDS`, `observedAttributes`, `attributeChangedCallback`,
+  `readAttrValue`, the `_scheduleUpdate` microtask batcher, and ~100
+  property/callback getters/setters collapse into one `static inputs` table +
+  `static events` on `BlissElement`. Core owns parsing, validation, reactivity
+  coalescing, reflection, and the per-input accessors. The element keeps only the
+  treeview-specific bridge to the engine (`reinit`/`update`/`connect`/`disconnect`
+  hooks), the DOM-event wrappers, and the custom-styles (`@import`/`@font-face`)
+  injection. The public imperative `update(props)` is preserved (it widens core's
+  `update` hook). The 13 DOM events (`node-clicked`, `node-double-click`, `copy`,
+  `cut`, `paste`, `delete`, `node-drag-*`, `highlight-change`, `selection-change`,
+  `tree-changed`, `focused-node-changed`) are declared in `static events` with
+  `property: false` (no managed `on<Name>` handler property — their names would
+  collide with the identically-named engine callbacks, and the old API always used
+  `addEventListener`). Event-bridge wrappers read `this.config` lazily, so
+  assigning a bridged callback after connect now takes effect without breaking the
+  DOM-event dispatch (the old wrappers captured the callback at build time).
+- **`logger.ts` / `perf-logger.ts`: thin shims over core logging (SPEC §12.1).**
+  The vendored `loglevel` + `loglevel-plugin-prefix` copies under `src/vendor/`
+  are deleted. `logger.ts` builds its `TREEVIEW:{INIT,DATA,INDEX,UI,DRAG,RENDER}`
+  loggers from core `createLoggers('TREEVIEW', …)`; `perf-logger.ts` keeps its rich
+  timing API (threshold, items/sec, metadata, per-tree summaries — core's minimal
+  `createPerfLogger` doesn't cover it) but sources its `TREEVIEW:PERF` logger from
+  core too.
+- **`index.ts`: the `window.components['web-treeview']` block → `registerComponent()`.**
+  One core call publishes build metadata + the flattened logging controls and
+  wires `getInstances()` to the live-instance registry BlissElement maintains.
+- **CEM tooling added.** `custom-elements-manifest.config.mjs =
+  blissAnalyzerConfig({ … })` with `cssVariablesFromManifestPlugin` + the VS Code /
+  JetBrains editor-integration generators. `npm run build` now runs `cem analyze`
+  first; the manifest (`custom-elements.json`), `web-types.json`, and the VS Code
+  custom-data files ship from the `static inputs` / `static events` tables
+  (67 attributes / 13 events).
+- **Depends on `@keenmate/web-components-core@1.0.0-rc01`** (exact pin).
+  `@floating-ui/dom` and `flexsearch` stay direct dependencies (the engine keeps
+  its own positioning + search).
+
 ## [2.0.0-rc07] - 2026-07-05
 
 Structural parity port of the `@keenmate/svelte-treeview` rc11–rc13 wave: every

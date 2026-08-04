@@ -1,165 +1,85 @@
 /**
- * Logging configuration using loglevel with categorized loggers
+ * Categorized loggers for @keenmate/web-treeview — now a thin shim over the core
+ * logging module (`@keenmate/web-components-core`, SPEC §12.1). Core owns the
+ * `loglevel` dependency and the colour-coded `%c` prefix (built in a
+ * `methodFactory`, ordering-safe), so the previously vendored `loglevel` +
+ * `loglevel-plugin-prefix` copies under `src/vendor/` are gone.
  *
- * Categories:
- * - TREEVIEW:DATA: Data insertion, tree manipulation, node operations
- * - TREEVIEW:INDEX: Search indexing operations
- * - TREEVIEW:PERF: Performance timing (via perf-logger.ts)
+ * The engine (`treeview.ts`, `controller/`, `renderer/`, `ltree/`) imports the
+ * category loggers by name, so this module keeps that surface:
  *
- * Usage:
- * - By default, all logging is disabled (silent mode) for production
- * - Enable logging in browser console:
- *   ```javascript
- *   import { enableLogging, setLogLevel, setCategoryLevel } from '@keenmate/web-treeview';
+ * Categories (`TREEVIEW:*`):
+ * - INIT   — component initialization and configuration
+ * - DATA   — data insertion, tree manipulation, node operations
+ * - INDEX  — search indexing operations
+ * - UI     — rendering, context-menu, interaction
+ * - DRAG   — drag-and-drop
+ * - RENDER — progressive/virtual render coordination
  *
- *   // Enable all logging at debug level
- *   enableLogging();
+ * Enable from the console (or `window.components['web-treeview'].logging`):
  *
- *   // Or set a specific log level for all categories
- *   setLogLevel('info');  // 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'silent'
- *
- *   // Or enable/disable specific categories
- *   disableLogging();  // First disable all
- *   setCategoryLevel('TREEVIEW:INDEX', 'debug');  // Enable only index logs
- *   ```
+ * ```js
+ * import { enableLogging, setLogLevel, setCategoryLevel } from '@keenmate/web-treeview';
+ * enableLogging();                              // all categories → debug
+ * setLogLevel('info');                          // all categories → info
+ * setCategoryLevel('TREEVIEW:INDEX', 'debug');  // one category (bare or 'TREEVIEW:INDEX')
+ * ```
  */
+import { createLoggers, type Logger, type LogLevelDesc } from '@keenmate/web-components-core';
 
-// Import vendored libraries via ES module wrappers
-import log from './vendor/loglevel/index.js';
-import prefix from './vendor/loglevel/prefix.js';
-
-type Logger = typeof log;
-
-// Define color scheme
-const COLORS: Record<string, string> = {
-    trace: '#9ca3af',  // Gray
-    debug: '#0ea5e9',  // Blue
-    info: '#10b981',   // Green
-    warn: '#f59e0b',   // Orange
-    error: '#ef4444'   // Red
-};
-
-// Register prefix plugin with the root logger
-prefix.reg(log);
-
-// Set default log level to silent (production mode)
-log.setLevel('silent');
-
-// Prefix format options that include %c markers
-const prefixOptions = {
-    format(level: string, name: string | undefined, timestamp: string) {
-        return `%c[${timestamp}]%c %c[${level.toUpperCase()}]%c %c[${name}]%c`;
-    },
-    timestampFormatter(date: Date) {
-        return date.toTimeString().split(' ')[0] + '.' + date.getMilliseconds().toString().padStart(3, '0');
-    }
-};
+const CATEGORIES = ['INIT', 'DATA', 'INDEX', 'UI', 'DRAG', 'RENDER'] as const;
+type Category = (typeof CATEGORIES)[number];
 
 /**
- * Create a color-aware method factory that intercepts %c codes and adds CSS styles
+ * The single core logger bundle for this component. Exported so the element
+ * registration (`index.ts` → `registerComponent`) can expose its controls on
+ * `window.components['web-treeview'].logging` and `BlissElement` can build the
+ * per-instance `this.log` loggers from it.
  */
-function createColorMethodFactory(originalFactory: any) {
-    return function(methodName: string, logLevel: number, loggerName: string) {
-        const rawMethod = originalFactory(methodName, logLevel, loggerName);
+export const logging = createLoggers('TREEVIEW', CATEGORIES);
 
-        return function(...args: any[]) {
-            // If first arg contains %c color codes, inject the color styles
-            if (args.length > 0 && typeof args[0] === 'string' && args[0].includes('%c')) {
-                const color = COLORS[methodName] || '#666';
-                // Count how many %c markers we have (should be 6 for our format)
-                const numMarkers = (args[0].match(/%c/g) || []).length;
-                const colorStyles: string[] = [];
-                for (let i = 0; i < numMarkers; i++) {
-                    // Alternate between color and reset
-                    colorStyles.push(i % 2 === 0 ? `color: ${color}; font-weight: bold;` : 'color: inherit;');
-                }
-                rawMethod(args[0], ...colorStyles, ...args.slice(1));
-            } else {
-                rawMethod(...args);
-            }
-        };
-    };
+// The category loggers, by their historical names. Each is a `loglevel` Logger,
+// so `dataLogger.debug(...)` etc. work exactly as before.
+export const initLogger: Logger = logging.loggers.INIT;
+export const dataLogger: Logger = logging.loggers.DATA;
+export const indexLogger: Logger = logging.loggers.INDEX;
+export const uiLogger: Logger = logging.loggers.UI;
+export const dragLogger: Logger = logging.loggers.DRAG;
+export const renderLogger: Logger = logging.loggers.RENDER;
+
+/** Full (namespaced) category names, kept for back-compat introspection. */
+export const LOGGING_CATEGORIES = CATEGORIES.map((c) => `TREEVIEW:${c}`);
+
+/** Enable all logging (debug level). */
+export function enableLogging(): void {
+  logging.enableLogging();
 }
 
-// Create category-specific loggers
-export const initLogger: Logger = log.getLogger('TREEVIEW:INIT');
-export const dataLogger: Logger = log.getLogger('TREEVIEW:DATA');
-export const indexLogger: Logger = log.getLogger('TREEVIEW:INDEX');
-export const uiLogger: Logger = log.getLogger('TREEVIEW:UI');
-export const dragLogger: Logger = log.getLogger('TREEVIEW:DRAG');
-export const renderLogger: Logger = log.getLogger('TREEVIEW:RENDER');
+/** Disable all logging (silent). */
+export function disableLogging(): void {
+  logging.disableLogging();
+}
 
-// Apply prefix and color styling to all category loggers
-const allLoggers: Logger[] = [
-    initLogger,
-    dataLogger,
-    indexLogger,
-    uiLogger,
-    dragLogger,
-    renderLogger
-];
+/** Set the same level on every category. */
+export function setLogLevel(level: LogLevelDesc): void {
+  logging.setLogLevel(level);
+}
 
-allLoggers.forEach(logger => {
-    const originalFactory = logger.methodFactory;
-    logger.methodFactory = createColorMethodFactory(originalFactory);
-    prefix.apply(logger, prefixOptions);
-    logger.setLevel('silent');
-});
+/**
+ * Set the level of one category. Accepts the full prefixed name
+ * (`TREEVIEW:INDEX`) or the bare suffix (`INDEX`) — both normalize to the
+ * category key the core bundle expects.
+ */
+export function setCategoryLevel(category: string, level: LogLevelDesc = 'debug'): void {
+  const bare = (category.includes(':') ? category.split(':').pop()! : category) as Category;
+  logging.setCategoryLevel(bare, level);
+}
 
-// INIT logger is enabled by default at debug level
+// Start silent — matches the historical production default; enable via the API.
+logging.disableLogging();
+// INIT stayed enabled at debug by default historically (init diagnostics).
 initLogger.setLevel('debug');
 
-// Export the default logger
-export default log;
-
-/**
- * List of all logging categories
- */
-export const LOGGING_CATEGORIES = [
-    'TREEVIEW:INIT',
-    'TREEVIEW:DATA',
-    'TREEVIEW:INDEX',
-    'TREEVIEW:UI',
-    'TREEVIEW:DRAG',
-    'TREEVIEW:RENDER'
-];
-
-/**
- * Enable logging for all loggers
- */
-export const setLogLevel = (level: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'silent') => {
-    log.setLevel(level);
-    allLoggers.forEach(logger => logger.setLevel(level));
-};
-
-/**
- * Enable all logging (set to debug level)
- */
-export const enableLogging = () => {
-    setLogLevel('debug');
-};
-
-/**
- * Disable all logging (set to silent level)
- */
-export const disableLogging = () => {
-    setLogLevel('silent');
-};
-
-/**
- * Set log level for a specific category
- */
-export const setCategoryLevel = (
-    category: 'TREEVIEW:INIT' | 'TREEVIEW:DATA' | 'TREEVIEW:INDEX' | 'TREEVIEW:UI' | 'TREEVIEW:DRAG' | 'TREEVIEW:RENDER',
-    level: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'silent' = 'debug'
-) => {
-    const loggerMap: Record<string, Logger> = {
-        'TREEVIEW:INIT': initLogger,
-        'TREEVIEW:DATA': dataLogger,
-        'TREEVIEW:INDEX': indexLogger,
-        'TREEVIEW:UI': uiLogger,
-        'TREEVIEW:DRAG': dragLogger,
-        'TREEVIEW:RENDER': renderLogger
-    };
-    loggerMap[category]?.setLevel(level);
-};
+// Back-compat default export: modules that did `import log from './logger'` use
+// it as a general sink → the INIT logger.
+export default initLogger;

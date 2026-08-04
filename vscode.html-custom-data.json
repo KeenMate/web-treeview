@@ -1,0 +1,358 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vscode-html-languageservice/main/docs/customData.schema.json",
+  "version": 1.1,
+  "tags": [
+    {
+      "name": "web-treeview",
+      "description": "\n---\n\n\n### **Events:**\n - **node-clicked** - A node was clicked. `detail` is the node context (NodeRef).\n- **node-double-click** - A node was double-clicked. `detail` is the node context.\n- **copy** - A copy operation ran. `detail` is `{ operation, paths, nodes }`.\n- **cut** - A cut operation ran. `detail` is `{ operation, paths, nodes }`.\n- **paste** - A paste operation ran. `detail.result` is the PasteResult.\n- **delete** - A delete operation ran. `detail` is the delete context.\n- **node-drag-start** - A node drag started. `detail` is the drag context.\n- **node-drag-over** - A node was dragged over. `detail` is the drag context.\n- **node-drop** - A drop completed. `detail` is the NodeDropContext.\n- **highlight-change** - The highlight set changed. `detail` is `{ paths, nodes }`.\n- **selection-change** - The selection (checkbox) set changed. `detail` is `{ paths, nodes }`.\n- **tree-changed** - The tree state changed (bulk notification; no detail).\n- **focused-node-changed** - The focused node changed. `detail` is `{ focusedNode }`.\n\n### **Methods:**\n \n- **update(partial: _Partial<TreeViewConfig<T>>_): _void_** - Cosmetic/structural change — forward the changed keys to the live engine.\nAlso serves as the PUBLIC imperative `el.update(props)` method (the old API),\nsince \"apply these config props to the engine in place\" is the same operation.\n\n\n- **getTree(): _Ltree<T> | undefined_** - Access the underlying LTree for advanced programmatic usage.\n- **getController(): _TreeController<T> | undefined_** - Access the TreeController directly.\n- **getInsertResult()** - Result of the most recent insertArray (successful / failed / failedDetails).\n\n### **CSS Properties:**\n - **--wtv-rem** - Base sizing unit for proportional scaling (default: 10px) _(default: undefined)_\n- **--wtv-spacing-xs** - Extra small spacing (2px) _(default: undefined)_\n- **--wtv-spacing-sm** - Small spacing (4px) _(default: undefined)_\n- **--wtv-spacing-md** - Medium spacing (8px) _(default: undefined)_\n- **--wtv-spacing-lg** - Large spacing (12px) _(default: undefined)_\n- **--wtv-spacing-xl** - Extra large spacing (16px) _(default: undefined)_\n- **--wtv-font-family** - Component font family (overrides --base-font-family) _(default: undefined)_\n- **--wtv-font-size-xs** - Extra small font (12px) _(default: undefined)_\n- **--wtv-font-size-sm** - Small font (14px) _(default: undefined)_\n- **--wtv-font-size-base** - Base font (16px) _(default: undefined)_\n- **--wtv-font-size** - Default font size (= tv-font-size-sm) _(default: undefined)_\n- **--wtv-font-weight-medium** - Medium font weight _(default: undefined)_\n- **--wtv-font-weight-semibold** - Semibold font weight _(default: undefined)_\n- **--wtv-accent-color** - Primary accent color _(default: undefined)_\n- **--wtv-accent-color-hover** - Accent color on hover _(default: undefined)_\n- **--wtv-text-color** - Primary text color _(default: undefined)_\n- **--wtv-text-color-2** - Secondary/muted text color _(default: undefined)_\n- **--wtv-text-color-on-accent** - Text on accent backgrounds _(default: undefined)_\n- **--wtv-bg-color** - Main background color _(default: undefined)_\n- **--wtv-border-color** - Default border color _(default: undefined)_\n- **--wtv-success-color** - Success/valid drop color _(default: undefined)_\n- **--wtv-danger-color** - Danger/invalid drop color _(default: undefined)_\n- **--wtv-light-bg** - Elevated/subtle surface background _(default: undefined)_\n- **--wtv-hover-bg** - Hover background _(default: undefined)_\n- **--wtv-active-bg** - Active/pressed background _(default: undefined)_\n- **--wtv-selected-bg** - Selected node background _(default: undefined)_\n- **--wtv-selected-border-color** - Selected node border color _(default: undefined)_\n- **--wtv-selected-border** - Selected node border shorthand (2px solid accent) _(default: undefined)_\n- **--wtv-border-width-base** - Base border width (1px) _(default: undefined)_\n- **--wtv-border** - Full border shorthand (1px solid border-color) _(default: undefined)_\n- **--wtv-node-bg-hover** - Node hover background (aliases tv-hover-bg) _(default: undefined)_\n- **--wtv-node-bg-active** - Node active/pressed background (aliases tv-active-bg) _(default: undefined)_\n- **--wtv-node-transition** - Node content transition (set to 'none' to disable hover animation) _(default: undefined)_\n- **--wtv-border-radius-sm** - Small border radius (4px) _(default: undefined)_\n- **--wtv-border-radius-md** - Medium border radius (6px) _(default: undefined)_\n- **--wtv-border-radius-lg** - Large border radius (8px) _(default: undefined)_\n- **--wtv-transition-speed** - Fast transition duration (150ms) _(default: undefined)_\n- **--wtv-transition-normal** - Normal transition duration (200ms) _(default: undefined)_\n- **--wtv-easing** - Default easing curve _(default: undefined)_\n- **--wtv-column-width** - Unified column width for toggle, icon, and indent step (24px) _(default: undefined)_\n- **--wtv-indent-size** - Tree node indent per level (= tv-column-width) _(default: undefined)_\n- **--wtv-node-padding** - Node content padding _(default: undefined)_\n- **--wtv-node-height** - Node row height (32px) _(default: undefined)_\n- **--wtv-icon-size** - Node icon size (16px) _(default: undefined)_\n- **--wtv-toggle-size** - Toggle icon column size (= tv-column-width) _(default: undefined)_\n- **--wtv-toggle-color** - Toggle icon color _(default: undefined)_\n- **--wtv-glow-before-color** - Drop-before glow indicator color _(default: undefined)_\n- **--wtv-glow-after-color** - Drop-after glow indicator color _(default: undefined)_\n- **--wtv-glow-child-color** - Drop-as-child glow indicator color _(default: undefined)_\n- **--wtv-glow-before-bg** - Drop-before zone background _(default: undefined)_\n- **--wtv-glow-after-bg** - Drop-after zone background _(default: undefined)_\n- **--wtv-glow-child-bg** - Drop-as-child zone background _(default: undefined)_\n- **--wtv-glow-before-bg-active** - Drop-before zone active background _(default: undefined)_\n- **--wtv-glow-after-bg-active** - Drop-after zone active background _(default: undefined)_\n- **--wtv-glow-child-bg-active** - Drop-as-child zone active background _(default: undefined)_\n- **--wtv-glow-before-color-active** - Drop-before zone active text color _(default: undefined)_\n- **--wtv-glow-after-color-active** - Drop-after zone active text color _(default: undefined)_\n- **--wtv-glow-child-color-active** - Drop-as-child zone active text color _(default: undefined)_\n- **--wtv-glow-before-shadow** - Drop-before zone active box shadow _(default: undefined)_\n- **--wtv-glow-after-shadow** - Drop-after zone active box shadow _(default: undefined)_\n- **--wtv-glow-child-shadow** - Drop-as-child zone active box shadow _(default: undefined)_\n- **--wtv-glow-before-text** - Drop-before zone default text color _(default: undefined)_\n- **--wtv-glow-after-text** - Drop-after zone default text color _(default: undefined)_\n- **--wtv-glow-child-text** - Drop-as-child zone default text color _(default: undefined)_\n- **--wtv-drag-over-bg** - Drag-over node background _(default: undefined)_\n- **--wtv-drag-over-border** - Drag-over node border _(default: undefined)_\n- **--wtv-drag-over-glow-shadow** - Drag-over glow box shadow _(default: undefined)_\n- **--wtv-drop-valid-bg** - Valid drop target background _(default: undefined)_\n- **--wtv-drop-valid-border-color** - Valid drop target border color _(default: undefined)_\n- **--wtv-drop-invalid-bg** - Invalid drop target background _(default: undefined)_\n- **--wtv-drop-invalid-border-color** - Invalid drop target border color _(default: undefined)_\n- **--wtv-dragover-highlight-bg** - Dragover highlight background _(default: undefined)_\n- **--wtv-dragover-highlight-border** - Dragover highlight border _(default: undefined)_\n- **--wtv-touch-ghost-bg** - Touch drag ghost background _(default: undefined)_\n- **--wtv-touch-ghost-shadow** - Touch drag ghost box shadow _(default: undefined)_\n- **--wtv-scroll-highlight-bg** - Scroll-to-node highlight background _(default: undefined)_\n- **--wtv-scroll-highlight-shadow** - Scroll-to-node highlight box shadow _(default: undefined)_\n- **--wtv-dragged-opacity** - Opacity of dragged node (0.5) _(default: undefined)_\n- **--wtv-cut-opacity** - Opacity of cut nodes pending paste (0.4) _(default: undefined)_\n- **--wtv-context-menu-bg** - Context menu background _(default: undefined)_\n- **--wtv-context-menu-bg-hover** - Context menu item hover background _(default: undefined)_\n- **--wtv-context-menu-text-color** - Context menu text color _(default: undefined)_\n- **--wtv-context-menu-border** - Context menu border _(default: undefined)_\n- **--wtv-context-menu-border-radius** - Context menu border radius _(default: undefined)_\n- **--wtv-context-menu-shadow** - Context menu box shadow _(default: undefined)_\n- **--wtv-context-menu-min-width** - Context menu minimum width (~150px) _(default: undefined)_\n- **--wtv-context-menu-padding** - Context menu padding _(default: undefined)_\n- **--wtv-context-menu-font-size** - Context menu font size _(default: undefined)_\n- **--wtv-context-menu-item-padding** - Context menu item padding _(default: undefined)_\n- **--wtv-context-menu-item-gap** - Gap between icon, label, shortcut _(default: undefined)_\n- **--wtv-context-menu-icon-width** - Icon column width in context menu _(default: undefined)_\n- **--wtv-context-menu-icon-font-size** - Icon font size in context menu _(default: undefined)_\n- **--wtv-context-menu-arrow-font-size** - Submenu arrow font size _(default: undefined)_\n- **--wtv-context-menu-danger-color** - Danger item text color _(default: undefined)_\n- **--wtv-context-menu-danger-bg-hover** - Danger item hover background _(default: undefined)_\n- **--wtv-context-menu-divider-color** - Divider line color _(default: undefined)_\n- **--wtv-context-menu-divider-margin** - Divider margin _(default: undefined)_\n- **--wtv-context-menu-disabled-opacity** - Disabled item opacity _(default: undefined)_\n- **--wtv-spinner-size** - Loading spinner size (32px) _(default: undefined)_\n- **--wtv-spinner-track** - Spinner track color _(default: undefined)_\n- **--wtv-spinner-color** - Spinner accent color _(default: undefined)_\n- **--wtv-loading-bg** - Loading overlay background _(default: undefined)_\n- **--wtv-tree-min-height** - Min height for empty and loading states (60px) _(default: undefined)_\n- **--wtv-empty-zone-border** - Empty tree drop zone border _(default: undefined)_\n- **--wtv-empty-zone-bg** - Empty tree drop zone background _(default: undefined)_\n- **--wtv-empty-zone-radius** - Empty tree drop zone border radius _(default: undefined)_\n- **--wtv-z-index-dropdown** - Context menu z-index (1000) _(default: undefined)_\n- **--wtv-z-index-ghost** - Drag ghost z-index (10000) _(default: undefined)_\n- **--wtv-z-index-overlay** - Loading overlay z-index (10) _(default: undefined)_",
+      "attributes": [
+        {
+          "name": "tree-id",
+          "description": "Stable identifier for this tree (clipboard / cross-tree operations).",
+          "values": []
+        },
+        {
+          "name": "id-member",
+          "description": "Property name on a node object that holds its id.",
+          "values": []
+        },
+        {
+          "name": "path-member",
+          "description": "Property name that holds a node materialized tree path.",
+          "values": []
+        },
+        {
+          "name": "display-value-member",
+          "description": "Property name that holds a node display label.",
+          "values": []
+        },
+        {
+          "name": "parent-path-member",
+          "description": "Property name holding a node parent path.",
+          "values": []
+        },
+        {
+          "name": "level-member",
+          "description": "Property name holding a node depth level.",
+          "values": []
+        },
+        {
+          "name": "is-expanded-member",
+          "description": "Property name flagging whether a node is expanded.",
+          "values": []
+        },
+        {
+          "name": "is-selected-member",
+          "description": "Property name flagging whether a node is selected (checkbox).",
+          "values": []
+        },
+        {
+          "name": "is-draggable-member",
+          "description": "Property name flagging whether a node is draggable.",
+          "values": []
+        },
+        {
+          "name": "is-drop-allowed-member",
+          "description": "Property name flagging whether a drop is allowed onto a node.",
+          "values": []
+        },
+        {
+          "name": "has-children-member",
+          "description": "Property name flagging that a node has children (lazy trees).",
+          "values": []
+        },
+        {
+          "name": "search-value-member",
+          "description": "Property name a node is searched against.",
+          "values": []
+        },
+        {
+          "name": "is-selectable-member",
+          "description": "Property name flagging whether a node can be selected.",
+          "values": []
+        },
+        {
+          "name": "is-collapsible-member",
+          "description": "Property name flagging whether a node can be collapsed.",
+          "values": []
+        },
+        {
+          "name": "order-member",
+          "description": "Property name used to order sibling nodes.",
+          "values": []
+        },
+        {
+          "name": "allowed-drop-positions-member",
+          "description": "Property name listing the drop positions allowed on a node.",
+          "values": []
+        },
+        {
+          "name": "icon-member",
+          "description": "Property name that holds a per-node icon.",
+          "values": []
+        },
+        {
+          "name": "expand-level",
+          "description": "Depth to auto-expand on load (0 = roots only).",
+          "values": []
+        },
+        {
+          "name": "tree-path-separator",
+          "description": "Separator between segments in a materialized tree path.",
+          "values": []
+        },
+        {
+          "name": "click-behavior",
+          "description": "What a node click does: select, expand, or expand-and-focus.",
+          "values": [
+            { "name": "select" },
+            { "name": "expand" },
+            { "name": "expand-and-focus" }
+          ]
+        },
+        {
+          "name": "accordion-expand",
+          "description": "Accordion mode: expanding a node collapses its siblings.",
+          "values": []
+        },
+        {
+          "name": "is-sorted",
+          "description": "Keep siblings sorted (by orderMember / sortCallback).",
+          "values": []
+        },
+        {
+          "name": "should-use-internal-search-index",
+          "description": "Build an internal FlexSearch index for search.",
+          "values": []
+        },
+        {
+          "name": "indexer-batch-size",
+          "description": "Nodes indexed per batch when building the search index.",
+          "values": []
+        },
+        {
+          "name": "indexer-timeout",
+          "description": "Idle timeout (ms) between search-index batches.",
+          "values": []
+        },
+        {
+          "name": "search-text",
+          "description": "Active search/filter term.",
+          "values": []
+        },
+        {
+          "name": "theme",
+          "description": "Force a `dark` / `light` theme (unset → follow host).",
+          "values": [{ "name": "dark" }, { "name": "light" }]
+        },
+        {
+          "name": "body-class",
+          "description": "Extra class on the tree body container.",
+          "values": []
+        },
+        {
+          "name": "highlighted-node-class",
+          "description": "Class applied to highlighted nodes.",
+          "values": []
+        },
+        {
+          "name": "focused-node-class",
+          "description": "Class applied to the focused node.",
+          "values": []
+        },
+        {
+          "name": "drag-over-node-class",
+          "description": "Class applied to a node being dragged over.",
+          "values": []
+        },
+        {
+          "name": "expand-icon-class",
+          "description": "Icon class for the expand toggle.",
+          "values": []
+        },
+        {
+          "name": "collapse-icon-class",
+          "description": "Icon class for the collapse toggle.",
+          "values": []
+        },
+        {
+          "name": "leaf-icon-class",
+          "description": "Icon class for leaf nodes.",
+          "values": []
+        },
+        {
+          "name": "toggle-icon-mode",
+          "description": "Whether the toggle icon rotates or swaps between expand/collapse.",
+          "values": [{ "name": "rotate" }, { "name": "swap" }]
+        },
+        {
+          "name": "scroll-highlight-class",
+          "description": "Class flashed on a node after scrollToPath().",
+          "values": []
+        },
+        {
+          "name": "scroll-highlight-timeout",
+          "description": "How long (ms) the scroll highlight stays before clearing.",
+          "values": []
+        },
+        {
+          "name": "align-node-icons",
+          "description": "Reserve a fixed icon column so node labels align.",
+          "values": []
+        },
+        {
+          "name": "context-menu-x-offset",
+          "description": "Horizontal offset (px) of the context menu from the pointer.",
+          "values": []
+        },
+        {
+          "name": "context-menu-y-offset",
+          "description": "Vertical offset (px) of the context menu from the pointer.",
+          "values": []
+        },
+        {
+          "name": "should-display-debug-information",
+          "description": "Render in-tree debug diagnostics.",
+          "values": []
+        },
+        {
+          "name": "is-loading",
+          "description": "Show the loading state.",
+          "values": []
+        },
+        {
+          "name": "drag-drop-mode",
+          "description": "Drag-drop mode (e.g. off / internal / self / …).",
+          "values": []
+        },
+        {
+          "name": "drop-zone-mode",
+          "description": "Drop-zone visual style: floating indicator or glow.",
+          "values": [{ "name": "floating" }, { "name": "glow" }]
+        },
+        {
+          "name": "drop-zone-layout",
+          "description": "Where drop zones render relative to a node.",
+          "values": [
+            { "name": "around" },
+            { "name": "above" },
+            { "name": "below" },
+            { "name": "wave" },
+            { "name": "wave2" }
+          ]
+        },
+        {
+          "name": "drop-zone-start",
+          "description": "Indent (px) where drop zones begin.",
+          "values": []
+        },
+        {
+          "name": "drop-zone-max-width",
+          "description": "Maximum drop-zone width (px).",
+          "values": []
+        },
+        {
+          "name": "allow-copy",
+          "description": "Allow the copy clipboard operation.",
+          "values": []
+        },
+        {
+          "name": "auto-handle-copy",
+          "description": "Let the tree perform the copy itself (vs delegating to onCopy).",
+          "values": []
+        },
+        {
+          "name": "auto-handle-paste",
+          "description": "Let the tree perform the paste itself (vs delegating to onPaste).",
+          "values": []
+        },
+        {
+          "name": "handle-keyboard-shortcuts",
+          "description": "Handle copy/cut/paste/delete keyboard shortcuts.",
+          "values": []
+        },
+        {
+          "name": "no-data-text",
+          "description": "Text shown when the tree is empty.",
+          "values": []
+        },
+        {
+          "name": "show-drop-placeholder-when-empty",
+          "description": "Show a drop placeholder when the tree is empty.",
+          "values": []
+        },
+        {
+          "name": "use-flat-rendering",
+          "description": "Render the visible nodes as a flat list (perf).",
+          "values": []
+        },
+        {
+          "name": "flat-indent-size",
+          "description": "Indent size (CSS length) per level in flat rendering.",
+          "values": []
+        },
+        {
+          "name": "progressive-render",
+          "description": "Render large trees in progressive batches.",
+          "values": []
+        },
+        {
+          "name": "initial-batch-size",
+          "description": "Rows rendered in the first progressive batch.",
+          "values": []
+        },
+        {
+          "name": "max-batch-size",
+          "description": "Maximum rows per progressive batch.",
+          "values": []
+        },
+        {
+          "name": "virtual-scroll",
+          "description": "Enable virtual scrolling.",
+          "values": []
+        },
+        {
+          "name": "virtual-row-height",
+          "description": "Fixed row height (px) used by virtual scrolling.",
+          "values": []
+        },
+        {
+          "name": "virtual-overscan",
+          "description": "Extra rows rendered above/below the viewport when virtualizing.",
+          "values": []
+        },
+        {
+          "name": "virtual-container-height",
+          "description": "Height (CSS length) of the virtual-scroll viewport.",
+          "values": []
+        },
+        {
+          "name": "range-selection-mode",
+          "description": "How Shift+click range selection walks the tree.",
+          "values": [{ "name": "visual" }, { "name": "logical" }]
+        },
+        {
+          "name": "selection-mode",
+          "description": "Single- or multi-node selection.",
+          "values": [{ "name": "single" }, { "name": "multi" }]
+        },
+        {
+          "name": "show-checkboxes",
+          "description": "Show a checkbox on each node.",
+          "values": []
+        },
+        {
+          "name": "checkbox-mode",
+          "description": "Checkbox interaction: `independent` toggles one node; `cascade` toggles the subtree with a tristate box on branches.",
+          "values": [{ "name": "independent" }, { "name": "cascade" }]
+        },
+        {
+          "name": "click-toggles-checkbox",
+          "description": "A node-row click also toggles its checkbox.",
+          "values": []
+        }
+      ],
+      "references": []
+    }
+  ]
+}
