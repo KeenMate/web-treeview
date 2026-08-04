@@ -378,7 +378,8 @@ element.iconMember = 'icon';
             tree5.displayValueMember = 'name';
             tree5.iconMember = 'icon';
             tree5.renderNodeCallback = (node, container) => {
-                const badge = node.hasChildren ? `<span style="background:#059669;color:#fff;padding:0 6px;border-radius:10px;font-size:0.7rem;margin-left:8px">${node.childrenCount || '?'}</span>` : '';
+                const childCount = node.children ? Object.keys(node.children).length : 0;
+                const badge = node.hasChildren ? `<span style="background:#059669;color:#fff;padding:0 6px;border-radius:10px;font-size:0.7rem;margin-left:8px">${childCount || '?'}</span>` : '';
                 container.innerHTML = `<span style="font-weight:500">${node.data.name}</span>${badge}<span style="color:#999;margin-left:auto;font-size:0.75rem">${node.path}</span>`;
             };
 

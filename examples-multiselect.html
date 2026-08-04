@@ -127,7 +127,7 @@
                     Click row toggles checkbox
                 </label>
                 <button class="secondary" onclick="document.getElementById('three-tree').clearHighlight()">Clear highlight</button>
-                <button class="secondary" onclick="document.getElementById('three-tree').deselectAll()">Clear checked</button>
+                <button class="secondary" onclick="document.getElementById('three-tree').clearSelection()">Clear checked</button>
             </div>
 
             <div class="two-trees">
@@ -190,7 +190,7 @@
             <div class="controls">
                 <button onclick="tree1Select(['1.1.1', '1.1.3', '1.2.1'])">Select specific nodes</button>
                 <button onclick="document.getElementById('tree1').selectAll()">Select all</button>
-                <button class="secondary" onclick="document.getElementById('tree1').deselectAll()">Deselect all</button>
+                <button class="secondary" onclick="document.getElementById('tree1').clearSelection()">Deselect all</button>
             </div>
 
             <div class="output">
@@ -604,7 +604,7 @@
             window.setRangeMode = (mode) => {
                 tree5.rangeSelectionMode = mode;
                 document.getElementById('range-mode').textContent = mode;
-                tree5.deselectAll();
+                tree5.clearSelection();
             };
 
             // Restore click behavior from localStorage

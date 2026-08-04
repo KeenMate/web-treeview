@@ -753,7 +753,7 @@
                     }
                 } else {
                     multiTreeEl.removeAttribute('show-checkboxes');
-                    multiTreeEl.deselectAll?.({ silent: true });
+                    multiTreeEl.clearSelection(undefined, { silent: true });
                     multiSelectedEl.textContent = '(checkboxes off)';
                 }
             };
@@ -761,7 +761,7 @@
             window.resetMultiTree = function () {
                 multiTreeEl.data = structuredClone(multiSeedData);
                 multiTreeEl.clearHighlight?.();
-                multiTreeEl.deselectAll?.({ silent: true });
+                multiTreeEl.clearSelection(undefined, { silent: true });
                 multiHighlightEl.textContent = '(none)';
                 multiFocusedEl.textContent = '(none)';
                 multiSelectedEl.textContent = multiTreeEl.hasAttribute('show-checkboxes') ? '(none)' : '(checkboxes off)';

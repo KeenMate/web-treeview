@@ -28,6 +28,7 @@ import {
   toFloat,
   toText,
   toValue,
+  toCustom,
   toFunction,
   adoptStyles,
   type InputDef,
@@ -46,6 +47,24 @@ import styles from './css/main.css?inline';
 
 /** Any callback input. */
 const cb = (): ReturnType<typeof toFunction> => toFunction();
+
+/**
+ * `drop-zone-start` accepts a NUMBER (percentage of node width) or a STRING used
+ * as-is (`px` or `%`), mirroring the engine's `number | string` contract. A plain
+ * `toInt()` would narrow strings like "50px" to a bare number (→ treated as a
+ * percentage), regressing the old property setter which passed strings through.
+ * Attribute path: a bare numeric string becomes a number (percentage, matching
+ * the old `parseInt`); anything else (e.g. "50px", "33%") stays a string.
+ */
+const toDropZoneStart = () =>
+  toCustom<number | string>(
+    (raw) => {
+      if (raw === null || raw.trim() === '') return undefined as unknown as number | string;
+      const s = raw.trim();
+      return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : s;
+    },
+    { validate: (v): v is number | string => typeof v === 'number' || typeof v === 'string' },
+  );
 
 // ============================================================================
 // INPUT TABLE — the whole <web-treeview> public surface, one row each.
@@ -117,10 +136,10 @@ const INPUTS: readonly InputDef[] = [
   { configKey: 'isLoading', attribute: 'is-loading', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Show the loading state.' },
 
   // ── Drag and drop ──────────────────────────────────────────────────────────
-  { configKey: 'dragDropMode', attribute: 'drag-drop-mode', converter: toText({ isNullable: true }), on: 'update', description: 'Drag-drop mode (e.g. off / internal / self / …).' },
+  { configKey: 'dragDropMode', attribute: 'drag-drop-mode', converter: toText({ isNullable: true }), on: 'update', description: 'Drag-drop mode: `none` (off), `self` (within this tree), `cross` (between trees), or `both`.' },
   { configKey: 'dropZoneMode', attribute: 'drop-zone-mode', converter: toEnum(['floating', 'glow'] as const), on: 'update', description: 'Drop-zone visual style: floating indicator or glow.' },
   { configKey: 'dropZoneLayout', attribute: 'drop-zone-layout', converter: toEnum(['around', 'above', 'below', 'wave', 'wave2'] as const), on: 'update', description: 'Where drop zones render relative to a node.' },
-  { configKey: 'dropZoneStart', attribute: 'drop-zone-start', converter: toInt(), on: 'update', description: 'Indent (px) where drop zones begin.' },
+  { configKey: 'dropZoneStart', attribute: 'drop-zone-start', converter: toDropZoneStart(), on: 'update', type: 'number | string', description: 'Where drop zones begin. A number is a percentage of node width; a string is used as-is (`px` or `%`, e.g. "50px").' },
   { configKey: 'dropZoneMaxWidth', attribute: 'drop-zone-max-width', converter: toInt(), on: 'update', description: 'Maximum drop-zone width (px).' },
   { configKey: 'isCopyAllowed', attribute: 'allow-copy', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Allow the copy clipboard operation.' },
   { configKey: 'shouldAutoHandleCopy', attribute: 'auto-handle-copy', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Let the tree perform the copy itself (vs delegating to onCopy).' },

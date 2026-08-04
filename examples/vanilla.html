@@ -86,10 +86,10 @@
             output.textContent = `Clicked: ${JSON.stringify(e.detail.node, null, 2)}`;
         });
 
-        tree.addEventListener('selected-node-changed', (e) => {
-            const node = e.detail.selectedNode;
+        tree.addEventListener('focused-node-changed', (e) => {
+            const node = e.detail.focusedNode;
             if (node) {
-                output.textContent = `Selected: ${node.data?.name ?? node.path}`;
+                output.textContent = `Focused: ${node.data?.name ?? node.path}`;
             }
         });
 

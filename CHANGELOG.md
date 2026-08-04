@@ -73,6 +73,34 @@ attribute/event/method changes.
   5 of the 6 `TREEVIEW:*` categories. Perf logging and the debug overlay are kept
   as their own cards, labelled as a separate module (perf is not part of the
   `.logging` bundle).
+- **All example pages audited against the current API and corrected.** Swept the
+  root `examples-*.html` + `examples/vanilla.html` for stale attributes, enums,
+  properties, methods, events, and code snippets. Fixes: `deselectAll()` (never a
+  method) → `clearSelection()` in `examples-multiselect.html` (3×) and
+  `examples-drag-drop.html` (2×); a dead `selected-node-changed` listener +
+  `e.detail.selectedNode` → `focused-node-changed` + `e.detail.focusedNode` in
+  `examples/vanilla.html` (and the same stale event name in `examples-basic.html`
+  prose); `node.childrenCount` (not on `LTreeNode`) → `Object.keys(node.children).length`
+  in `examples-icons-grid.html`; and three non-existent CSS variables in
+  `examples-theming.html` (`--wtv-glow-above-color`/`--wtv-glow-below-color` →
+  `--wtv-glow-before-color`/`--wtv-glow-after-color`; the inert `--wtv-border-radius-md`
+  removed — the component only reads `-sm`/`-lg`).
+
+### Fixed
+
+- **`drop-zone-start` silently dropped the `px`/`%` string form (migration regression).**
+  The config contract is `number | string` ("a number is a percentage of node
+  width; a string is used as-is"), and the old property setter passed strings
+  through — so `el.dropZoneStart = "50px"` worked. The migration wired the input to
+  `toInt()`, which narrowed it to an integer, so a `px` string was coerced to a bare
+  number and re-interpreted as a **percentage**. Restored parity with a dedicated
+  `toCustom<number | string>` converter (bare-numeric attribute → number/percentage,
+  matching the old `parseInt`; anything else kept as a string). The
+  `examples-drag-drop.html` "33% or 50px" control now behaves as advertised.
+- **`drag-drop-mode` IntelliSense/manifest description listed wrong values.** It read
+  "off / internal / self / …"; the actual values are `none` (off), `self`, `cross`,
+  `both`. Corrected the `InputDef` description (feeds `custom-elements.json` /
+  web-types).
 
 ## [2.0.0-rc07] - 2026-07-05
 
