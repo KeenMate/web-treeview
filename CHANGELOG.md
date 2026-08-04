@@ -11,8 +11,9 @@ Migrated onto **`@keenmate/web-components-core`** (`BlissElement` + the reactive
 input model), following `@keenmate/web-multiselect` and
 `@keenmate/web-daterangepicker`. The `WebTreeView` engine (`treeview.ts`,
 `controller/`, `renderer/`, `ltree/`) and ALL CSS are UNCHANGED — only the
-custom-element plumbing was replaced. No consumer-facing attribute/event/method
-changes.
+custom-element plumbing was replaced (the one deliberate engine touch is a
+debug-only log line on expand/collapse; see Added). No consumer-facing
+attribute/event/method changes.
 
 ### Changed
 
@@ -52,6 +53,26 @@ changes.
 - **Depends on `@keenmate/web-components-core@1.0.0-rc01`** (exact pin).
   `@floating-ui/dom` and `flexsearch` stay direct dependencies (the engine keeps
   its own positioning + search).
+
+### Added
+
+- **Expand/collapse now logs under the `UI` category.** `toggleNodeExpanded`
+  (`controller/tree-controller.ts`) gains a `uiLogger.debug("Node expanded/collapsed:
+  <path>", …)` line — clicking a node's toggle chevron previously produced no
+  category log at all (only `TREEVIEW:PERF` timing, and only when perf logging was
+  on), so the logging demo's promise that expand/collapse yields logs was untrue.
+  The blocked-toggle collapsibility gate still returns before the log, so a
+  no-op toggle correctly logs nothing.
+- **`examples-logging.html` rebuilt around the `window.components` registry**, to
+  match `@keenmate/web-multiselect`'s reworked page: a live registry inspector for
+  `window.components['web-treeview']` (version / config / logging pills /
+  `getInstances()` count), logging controls driven through the flattened
+  `.logging` bundle, and an add/remove live-instance demo with a cross-instance
+  fan-out. Fixes a stale reference: the missing **`INDEX`** category (search
+  indexing) is now listed and gets its own "Only INDEX" button — the page had only
+  5 of the 6 `TREEVIEW:*` categories. Perf logging and the debug overlay are kept
+  as their own cards, labelled as a separate module (perf is not part of the
+  `.logging` bundle).
 
 ## [2.0.0-rc07] - 2026-07-05
 

@@ -826,6 +826,12 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     const shouldExpand = !node.isExpanded;
 
+    uiLogger.debug(`Node ${shouldExpand ? 'expanded' : 'collapsed'}: ${path}`, {
+      path,
+      id: node.id,
+      accordion: shouldExpand && this._isAccordionExpand
+    });
+
     if (shouldExpand && this._isAccordionExpand) {
       const siblings = this.tree.getSiblings(path);
       for (const sibling of siblings) {
