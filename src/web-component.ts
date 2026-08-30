@@ -82,6 +82,7 @@ const INPUTS: readonly InputDef[] = [
   { configKey: 'idMember', attribute: 'id-member', converter: toText({ default: 'id' }), on: 'update', description: 'Property name on a node object that holds its id.' },
   { configKey: 'pathMember', attribute: 'path-member', converter: toText({ default: 'path' }), on: 'update', description: 'Property name that holds a node materialized tree path.' },
   { configKey: 'displayValueMember', attribute: 'display-value-member', converter: toText({ default: 'displayValue' }), on: 'update', description: 'Property name that holds a node display label.' },
+  { configKey: 'displayValueFallback', attribute: 'display-value-fallback', converter: toText({ isNullable: true, isEmptyAllowed: true }), on: 'update', description: 'Text shown for a node with no resolvable display value (default "[N/A]"; empty renders nothing).' },
 
   // ── Member mappings: optional (absent → default via engine) ────────────────
   { configKey: 'parentPathMember', attribute: 'parent-path-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name holding a node parent path.' },
@@ -145,6 +146,9 @@ const INPUTS: readonly InputDef[] = [
   { configKey: 'shouldAutoHandleCopy', attribute: 'auto-handle-copy', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Let the tree perform the copy itself (vs delegating to onCopy).' },
   { configKey: 'shouldAutoHandlePaste', attribute: 'auto-handle-paste', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Let the tree perform the paste itself (vs delegating to onPaste).' },
   { configKey: 'shouldHandleKeyboardShortcuts', attribute: 'handle-keyboard-shortcuts', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Handle copy/cut/paste/delete keyboard shortcuts.' },
+  { configKey: 'touchDragDelay', attribute: 'touch-drag-delay', converter: toInt(), on: 'update', description: 'Long-press hold (ms) before a touch-drag engages (default 300).' },
+  { configKey: 'shouldIndicateUndraggable', attribute: 'indicate-undraggable', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Built-in "can\'t move/drop this" feedback (🚫 badge + haptic). Default true.' },
+  { configKey: 'shouldEnableTreeDropZone', attribute: 'enable-tree-drop-zone', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Make the whole populated tree one drop target (drop lands target=null regardless of per-node drop rules).' },
 
   // ── Rendering ──────────────────────────────────────────────────────────────
   { configKey: 'noDataText', attribute: 'no-data-text', converter: toText({ isNullable: true }), on: 'update', description: 'Text shown when the tree is empty.' },
@@ -166,6 +170,7 @@ const INPUTS: readonly InputDef[] = [
   { configKey: 'selectionMode', attribute: 'selection-mode', converter: toEnum(['single', 'multi'] as const), on: 'update', description: 'Single- or multi-node selection.' },
   { configKey: 'shouldShowCheckboxes', attribute: 'show-checkboxes', converter: toBool('default-false'), on: 'update', description: 'Show a checkbox on each node.' },
   { configKey: 'checkboxMode', attribute: 'checkbox-mode', converter: toEnum(['independent', 'cascade'] as const), on: 'update', description: 'Checkbox interaction: `independent` toggles one node; `cascade` toggles the subtree with a tristate box on branches.' },
+  { configKey: 'cascadeSelectPolicy', attribute: 'cascade-select-policy', converter: toEnum(['rolled-up', 'leaves', 'all'] as const), on: 'update', description: 'Which paths the selection EMITS in cascade mode: `rolled-up` (minimal cover), `leaves`, or `all`. Default rolled-up.' },
   { configKey: 'shouldClickToggleCheckbox', attribute: 'click-toggles-checkbox', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'A node-row click also toggles its checkbox.' },
 
   // ── Complex property (data; too large for an attribute) ────────────────────
@@ -214,9 +219,12 @@ const INPUTS: readonly InputDef[] = [
   { configKey: 'beforeCutCallback', converter: cb(), on: 'none', type: '(ctx: BeforeCopyContext) => boolean | void', description: 'Runs before a cut; return false to veto.' },
   { configKey: 'beforePasteCallback', converter: cb(), on: 'none', type: '(ctx: BeforePasteContext) => boolean | void', description: 'Runs before a paste; return false to veto.' },
   { configKey: 'beforeDeleteCallback', converter: cb(), on: 'none', type: '(ctx: BeforeDeleteContext) => boolean | void', description: 'Runs before a delete; return false to veto.' },
-  { configKey: 'beforeDropCallback', converter: cb(), on: 'none', type: '(dropNode, draggedNode, position, event, operation) => boolean | void', description: 'Runs before a drop; return false to veto. (Deliberately 5-arg positional.)' },
-  { configKey: 'copyNodeTransformationCallback', converter: cb(), on: 'none', type: '(data) => data', description: 'Transform a node data object as it is copied.' },
-  { configKey: 'pasteNodeTransformationCallback', converter: cb(), on: 'none', type: '(data, ctx: NodeTransformContext) => data | null', description: 'Transform a node data object as it is pasted (null to skip).' },
+  { configKey: 'beforeDropCallback', converter: cb(), on: 'none', type: '(ctx: BeforeDropContext) => boolean | { position?, operation? } | DropGroup[] | void', description: 'Runs before a drop; false blocks, an object redirects, a DropGroup[] routes it to several destinations.' },
+  { configKey: 'beforeDragStartCallback', converter: cb(), on: 'none', type: '(ctx: DragStartContext) => string[] | false | void', description: 'Set-level pre-drag interceptor: prune/augment/veto the dragged set.' },
+  { configKey: 'onNodeDragDenied', converter: cb(), on: 'none', type: '(ctx: NodeEventContext) => void', description: 'A locked node was long-pressed (also fires `node-drag-denied`).' },
+  { configKey: 'onNodeDropDenied', converter: cb(), on: 'none', type: '(ctx: NodeEventContext) => void', description: 'A drop was rejected by the target (also fires `node-drop-denied`).' },
+  { configKey: 'nodeOutputTransformationCallback', converter: cb(), on: 'none', type: '(data, ctx: NodeTransformContext) => data', description: 'OUTPUT (egress) transform — clean/redact a node data object as it leaves the source (copy/cut/copy-drop).' },
+  { configKey: 'nodeInputTransformationCallback', converter: cb(), on: 'none', type: '(data, ctx: NodeTransformContext) => data | null', description: 'INPUT (ingress) transform — derive ids/values as a node lands (paste/copy-drop); return null to skip.' },
   { configKey: 'onTreeKeydown', converter: cb(), on: 'none', type: '(ctx: TreeKeydownContext) => void', description: 'Intercept keydown before the tree handles it.' },
   { configKey: 'getDisplayValueCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => string', description: 'Compute a node display label (overrides displayValueMember).' },
   { configKey: 'getSearchValueCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => string', description: 'Compute the text a node is searched against.' },
@@ -246,6 +254,8 @@ type TreeViewEvents = {
   'node-drag-start': unknown;
   'node-drag-over': unknown;
   'node-drop': unknown;
+  'node-drag-denied': unknown;
+  'node-drop-denied': unknown;
   'highlight-change': unknown;
   'selection-change': unknown;
   'tree-changed': undefined;
@@ -261,6 +271,8 @@ const EVENTS: readonly EventDef[] = [
   { name: 'node-drag-start', property: false, description: 'A node drag started. `detail` is the drag context.' },
   { name: 'node-drag-over', property: false, description: 'A node was dragged over. `detail` is the drag context.' },
   { name: 'node-drop', property: false, description: 'A drop completed. `detail` is the NodeDropContext.' },
+  { name: 'node-drag-denied', property: false, description: 'A locked node was long-pressed / an undraggable drag was attempted. `detail` is the NodeRef.' },
+  { name: 'node-drop-denied', property: false, description: 'A drop was rejected by the target. `detail` is the NodeRef.' },
   { name: 'highlight-change', property: false, description: 'The highlight set changed. `detail` is `{ paths, nodes }`.' },
   { name: 'selection-change', property: false, description: 'The selection (checkbox) set changed. `detail` is `{ paths, nodes }`.' },
   { name: 'tree-changed', property: false, description: 'The tree state changed (bulk notification; no detail).' },
@@ -415,6 +427,8 @@ export class WebTreeViewElement<T = any> extends BlissElement<TreeViewEvents> {
     bridge('node-drag-start', 'onNodeDragStart');
     bridge('node-drag-over', 'onNodeDragOver');
     bridge('node-drop', 'onNodeDrop');
+    bridge('node-drag-denied', 'onNodeDragDenied');
+    bridge('node-drop-denied', 'onNodeDropDenied');
     bridge('highlight-change', 'onHighlightChange');
     bridge('selection-change', 'onSelectionChange');
 
@@ -576,11 +590,25 @@ export class WebTreeViewElement<T = any> extends BlissElement<TreeViewEvents> {
   copyNodeWithDescendants(
     sourceNode: LTreeNode<T>,
     targetParentPath: string,
-    dataTransform: (data: T) => T,
+    dataTransform: (data: T, node: LTreeNode<T>) => T | null,
     siblingPath?: string,
     position?: 'before' | 'after'
   ): any {
     return this.#treeview?.copyNodeWithDescendants(sourceNode, targetParentPath, dataTransform, siblingPath, position);
+  }
+
+  moveNodes(paths: string[], targetPath: string, position: DropPosition): any {
+    return this.#treeview?.moveNodes(paths, targetPath, position);
+  }
+
+  duplicateNodes(
+    paths: string[],
+    targetPath: string,
+    position: DropPosition,
+    transform?: (data: T, ctx: NodeTransformContext<T>) => T | null,
+    sourceTree?: Ltree<T>
+  ): any {
+    return this.#treeview?.duplicateNodes(paths, targetPath, position, transform, sourceTree);
   }
 
   /** Access the underlying LTree for advanced programmatic usage. */

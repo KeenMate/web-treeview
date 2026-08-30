@@ -69,6 +69,10 @@ export function getClipboardOperation(): ClipboardOperation | null {
 // (just removeNode) to avoid a circular type dependency on TreeController.
 export interface ClipboardSourceTree {
   removeNode(path: string, includeDescendants?: boolean): unknown;
+  /** The source tree's live Ltree — read by a cross-tree AUTO-copy so the library
+   *  can duplicate the source's live nodes into the target. Typed loosely to avoid
+   *  a circular dependency on the ltree types. */
+  tree?: unknown;
 }
 
 const _trees = new Map<string, ClipboardSourceTree>();
@@ -91,13 +95,16 @@ export function getClipboardTree(id: string): ClipboardSourceTree | undefined {
 // The target controller only receives ONE reconstituted node (from dataTransfer)
 // and can't see the source's highlight set, so it reads the set from here. Same-
 // tree drops don't need this — they compute the set from their own live highlight.
-let _dragSet: { sourceTreeId: string; paths: string[] } | null = null;
+// `paths` = the top-level dragged set (for ctx.dragged). `manifest` = the COMPLETE
+// placement set (every descendant, or a curated beforeDragStart override with
+// holes) used by a cross-tree AUTO-copy. (svelte-treeview rc13)
+let _dragSet: { sourceTreeId: string; paths: string[]; manifest: string[] } | null = null;
 
-export function setDragSet(sourceTreeId: string, paths: string[]): void {
-  _dragSet = { sourceTreeId, paths };
+export function setDragSet(sourceTreeId: string, paths: string[], manifest: string[] = paths): void {
+  _dragSet = { sourceTreeId, paths, manifest };
 }
 
-export function getDragSet(): { sourceTreeId: string; paths: string[] } | null {
+export function getDragSet(): { sourceTreeId: string; paths: string[]; manifest: string[] } | null {
   return _dragSet;
 }
 

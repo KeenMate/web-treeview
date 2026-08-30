@@ -55,6 +55,15 @@ export interface NodeCallbacks<T> {
 export type ToggleIconMode = 'rotate' | 'swap';
 export type ClickBehavior = 'select' | 'expand' | 'expand-and-focus';
 export type CheckboxMode = 'independent' | 'cascade';
+/**
+ * Which paths the selection EMITS in cascade mode (the projection of the canonical
+ * checked set that `getSelectedPaths()` + the `selection-change` event expose).
+ * ONLY applies when `checkboxMode === 'cascade'`. 'rolled-up' = minimal cover (a
+ * fully-checked subtree collapses to its root; a partial branch descends to emit
+ * its checked bits); 'leaves' = only checked leaf nodes; 'all' = the canonical set
+ * (every fully-checked node). (svelte-treeview rc14)
+ */
+export type CascadeSelectPolicy = 'rolled-up' | 'leaves' | 'all';
 
 export interface NodeConfig {
   clickBehavior: ClickBehavior;
@@ -123,6 +132,49 @@ export interface NodeDragContext<T> extends NodeRef<T> {
 }
 
 /**
+ * Context for beforeDragStartCallback — the set-level PRE-drag interceptor (the
+ * write twin of the read-only `dragged` on the on* drag events). Fires ONCE at
+ * drag start, before onNodeDragStart + before the cross-tree publish. `lead` is
+ * the grabbed node; `dragged` is the COMPLETE FLATTENED set (the grabbed
+ * subtree(s) + every descendant), so the callback can filter descendants.
+ * Return a `string[]` authoritative manifest (landing order; an omitted
+ * descendant of a kept root becomes a HOLE left behind), `false` to cancel the
+ * drag, or `void` to keep the default.
+ */
+export interface DragStartContext<T> {
+  lead: NodeRef<T>;
+  /** The complete flattened set — grabbed subtree(s) + every descendant. */
+  dragged: NodeRef<T>[];
+  event: DragEvent | TouchEvent;
+}
+
+/**
+ * A content-addressed routing destination returned from beforeDropCallback: move
+ * `paths` to `targetPath` at `position` (default 'child'). The first path lands
+ * at the target and the rest chain 'after'. A path in no group isn't placed.
+ */
+export interface DropGroup {
+  targetPath: string;
+  position?: DropPosition;
+  paths: string[];
+}
+
+/**
+ * Context for beforeDropCallback (migrated rc13 from its 5-arg positional form to
+ * this object, symmetric with NodeDropContext). `target` is the drop node ref
+ * (null = empty/root/tree-zone), `dragged` the FULL top-level set (not just the
+ * lead). Return `false` to block, `{ position?, operation? }` to redirect, or a
+ * `DropGroup[]` to fan the drop out to several destinations.
+ */
+export interface BeforeDropContext<T> {
+  target: NodeRef<T> | null;
+  dragged: NodeRef<T>[];
+  position: DropPosition;
+  operation: DropOperation;
+  event: DragEvent | TouchEvent;
+}
+
+/**
  * Context for onNodeDrop, symmetric with NodeTransformContext: `source` is the
  * dragged (lead) node with its parent/siblings, `target` is the drop node (null
  * when dropped into empty space or the tree root), `position`/`operation`
@@ -184,22 +236,22 @@ export interface TreeKeydownContext<T> {
 }
 
 /**
- * Context passed to BOTH copyNodeTransformationCallback and
- * pasteNodeTransformationCallback, one per node. `phase` says which callback is
- * running; `target` is null during the copy phase (no destination chosen yet)
- * and populated during paste. `source` is the origin side — always carries the
- * path; node/parent/siblings are live when reachable (same-tree) and null/[]
- * cross-tree or once a cut source has been removed.
+ * Context passed to BOTH nodeOutputTransformationCallback and
+ * nodeInputTransformationCallback, one per node. Keyed on DIRECTION, not
+ * operation: `phase: 'output'` = a node LEAVES the source (egress, target null);
+ * `phase: 'input'` = a duplicate LANDS in a destination (ingress). `source` is the
+ * origin side — always carries the path; node/parent/siblings are live when
+ * reachable (same-tree) and null/[] cross-tree or once a cut source has been removed.
  *
  * Symmetric by design: the same field means the same thing in both phases. Return
- * new data to derive ids/values/names; from pasteNodeTransformationCallback
+ * new data to derive ids/values/names; from nodeInputTransformationCallback
  * return null to skip a node (skipping a root skips its whole subtree). Pure —
  * reads the pristine snapshot, never mutates it.
  */
 export interface NodeTransformContext<T> {
   operation: ClipboardOperation;
-  /** Which callback is running: 'copy' at snapshot time, 'paste' at insert time. */
-  phase: 'copy' | 'paste';
+  /** Direction: 'output' at egress/snapshot time, 'input' at ingress/insert time. */
+  phase: 'output' | 'input';
   /** True for a top-level node, false for a descendant riding along inside it. */
   isRoot: boolean;
   /** Index of the root entry within this batch (descendants share their root's index). */
@@ -290,6 +342,9 @@ export interface TreeControllerConfig<T> {
 
   displayValueMember?: string | null | undefined;
   getDisplayValueCallback?: (node: LTreeNode<T>) => string;
+  /** Text shown for a node with no resolvable display value (neither member nor
+   *  callback yields one). Default '[N/A]'; '' renders nothing. */
+  displayValueFallback?: string | null | undefined;
 
   searchValueMember?: string | null | undefined;
   getSearchValueCallback?: (node: LTreeNode<T>) => string;
@@ -316,6 +371,13 @@ export interface TreeControllerConfig<T> {
   clickBehavior?: ClickBehavior | null | undefined;
   /** Opt out of the built-in Ctrl/Cmd+C/X/V + Delete + Esc shortcuts. Default true. */
   shouldHandleKeyboardShortcuts?: boolean | null | undefined;
+  /** Long-press hold (ms) before a touch-drag engages. Default 300. */
+  touchDragDelay?: number | null | undefined;
+  /** Built-in "can't move/drop this" feedback (🚫 badge + haptic). Default true. */
+  shouldIndicateUndraggable?: boolean | null | undefined;
+  /** Make the whole populated tree ONE drop target (drop lands target=null
+   *  regardless of per-node getIsDropAllowed). Default false. */
+  shouldEnableTreeDropZone?: boolean | null | undefined;
   initializeIndexCallback?: () => Index;
   searchText?: string | null | undefined;
   shouldUseInternalSearchIndex?: boolean | null | undefined;
@@ -361,6 +423,8 @@ export interface TreeControllerConfig<T> {
   selectionMode?: 'single' | 'multi';
   shouldShowCheckboxes?: boolean;
   checkboxMode?: CheckboxMode;
+  /** Which paths the selection EMITS in cascade mode. Default 'rolled-up'. */
+  cascadeSelectPolicy?: CascadeSelectPolicy | null | undefined;
   shouldClickToggleCheckbox?: boolean;
   beforeCheckboxToggleCallback?: (
     node: LTreeNode<T>,
@@ -392,29 +456,40 @@ export interface TreeControllerConfig<T> {
   onPaste?: (result: PasteResult<T>) => void;
   /** Fires after the built-in Delete (or deleteNodes()); nodes are pre-removal snapshots. */
   onDelete?: (ctx: ClipboardEventContext<T>) => void;
-  /** Per-node transform at snapshot time (copy/cut) — clean/redact before the shared clipboard. */
-  copyNodeTransformationCallback?: (data: T, ctx: NodeTransformContext<T>) => T;
-  /** Per-node transform at insert time (paste) — derive ids/values; return null to skip a node. */
-  pasteNodeTransformationCallback?: (data: T, ctx: NodeTransformContext<T>) => T | null;
+  /** OUTPUT (egress) transform — per-node clean/redact at snapshot time (copy/cut
+   *  and the capture side of a copy-drop), before data hits the shared clipboard. */
+  nodeOutputTransformationCallback?: (data: T, ctx: NodeTransformContext<T>) => T;
+  /** INPUT (ingress) transform — per-node at insert time (paste + the insert side of
+   *  a copy-drop); derive ids/values; return null to skip a node (+ its subtree). */
+  nodeInputTransformationCallback?: (data: T, ctx: NodeTransformContext<T>) => T | null;
   onNodeDragStart?: (ctx: NodeDragContext<T>) => void;
   onNodeDragOver?: (ctx: NodeDragContext<T>) => void;
-  /** Intercept — modify/block a drop. Deliberately kept 5-arg positional (asymmetric drop pair). */
+  /** Intercept — modify/block/route a drop. `false` blocks, `{ position?, operation? }`
+   *  redirects, a `DropGroup[]` fans the drop out to several destinations, `void`
+   *  proceeds. Async-capable. (Migrated rc13 from its 5-arg positional form.) */
   beforeDropCallback?: (
-    dropNode: LTreeNode<T> | null,
-    draggedNode: LTreeNode<T>,
-    position: DropPosition,
-    event: DragEvent | TouchEvent,
-    operation: DropOperation
+    ctx: BeforeDropContext<T>
   ) =>
     | boolean
     | { position?: DropPosition; operation?: DropOperation }
+    | DropGroup[]
     | void
     | Promise<
         | boolean
         | { position?: DropPosition; operation?: DropOperation }
+        | DropGroup[]
         | void
       >;
   onNodeDrop?: (ctx: NodeDropContext<T>) => void;
+  /** Source-side blocked-action event — fires when a locked node is long-pressed
+   *  (or a drag on a non-draggable node is attempted). ctx = NodeRef of the node. */
+  onNodeDragDenied?: (ctx: NodeEventContext<T>) => void;
+  /** Target-side blocked-action event — fires when a drop is rejected because the
+   *  target refuses it (isDropAllowed false). ctx = NodeRef of the refusing node. */
+  onNodeDropDenied?: (ctx: NodeEventContext<T>) => void;
+  /** Set-level PRE-drag interceptor: prune/augment/veto the dragged set. Return a
+   *  `string[]` manifest (landing order), `false` to cancel, or `void` to keep default. */
+  beforeDragStartCallback?: (ctx: DragStartContext<T>) => string[] | false | void;
   /** Interceptor — return true to suppress default + built-in shortcuts. Runs first. */
   onTreeKeydown?: (ctx: TreeKeydownContext<T>) => boolean | void;
   contextMenuCallback?: (

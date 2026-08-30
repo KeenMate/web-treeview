@@ -142,6 +142,13 @@
               "type": {
                 "text": "string[]"
               }
+            },
+            {
+              "name": "manifest",
+              "default": "paths",
+              "type": {
+                "text": "string[]"
+              }
             }
           ]
         },
@@ -150,7 +157,7 @@
           "name": "getDragSet",
           "return": {
             "type": {
-              "text": "{ sourceTreeId: string; paths: string[] } | null"
+              "text": "{ sourceTreeId: string; paths: string[]; manifest: string[] } | null"
             }
           }
         },
@@ -1230,7 +1237,7 @@
                 {
                   "name": "dataTransform",
                   "type": {
-                    "text": "(data: T) => T"
+                    "text": "(data: T, node: LTreeNode<T>) => T | null"
                   }
                 },
                 {
@@ -1248,6 +1255,70 @@
                   }
                 }
               ]
+            },
+            {
+              "kind": "method",
+              "name": "moveNodes",
+              "parameters": [
+                {
+                  "name": "paths",
+                  "type": {
+                    "text": "string[]"
+                  }
+                },
+                {
+                  "name": "targetPath",
+                  "type": {
+                    "text": "string"
+                  }
+                },
+                {
+                  "name": "position",
+                  "type": {
+                    "text": "DropPosition"
+                  }
+                }
+              ],
+              "description": "Batch-move a complete manifest under a target (honors \"holes\"). rc13."
+            },
+            {
+              "kind": "method",
+              "name": "duplicateNodes",
+              "parameters": [
+                {
+                  "name": "paths",
+                  "type": {
+                    "text": "string[]"
+                  }
+                },
+                {
+                  "name": "targetPath",
+                  "type": {
+                    "text": "string"
+                  }
+                },
+                {
+                  "name": "position",
+                  "type": {
+                    "text": "DropPosition"
+                  }
+                },
+                {
+                  "name": "transform",
+                  "optional": true,
+                  "type": {
+                    "text": "(data: T, ctx: NodeTransformContext<T>) => T | null"
+                  }
+                },
+                {
+                  "name": "sourceTree",
+                  "optional": true,
+                  "type": {
+                    "text": "Ltree<T>"
+                  }
+                }
+              ],
+              "description": "Batch-duplicate a complete manifest under a target — the copy-side twin of\r\nmoveNodes. `sourceTree` defaults to this tree (cross-tree copy otherwise). rc13."
             },
             {
               "kind": "method",
@@ -2179,6 +2250,22 @@
         },
         {
           "kind": "js",
+          "name": "CheckboxMode",
+          "declaration": {
+            "name": "CheckboxMode",
+            "module": "./controller/types"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "CascadeSelectPolicy",
+          "declaration": {
+            "name": "CascadeSelectPolicy",
+            "module": "./controller/types"
+          }
+        },
+        {
+          "kind": "js",
           "name": "SelectionModifiers",
           "declaration": {
             "name": "SelectionModifiers",
@@ -2323,6 +2410,30 @@
         },
         {
           "kind": "js",
+          "name": "BeforeDropContext",
+          "declaration": {
+            "name": "BeforeDropContext",
+            "module": "./controller/types"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "DragStartContext",
+          "declaration": {
+            "name": "DragStartContext",
+            "module": "./controller/types"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "DropGroup",
+          "declaration": {
+            "name": "DropGroup",
+            "module": "./controller/types"
+          }
+        },
+        {
+          "kind": "js",
           "name": "ClipboardEntry",
           "declaration": {
             "name": "ClipboardEntry",
@@ -2425,7 +2536,7 @@
               "name": "inputs",
               "privacy": "protected",
               "static": true,
-              "default": "[ // ── Tree identification ──────────────────────────────────────────────────── { configKey: 'treeId', attribute: 'tree-id', converter: toText({ isNullable: true }), on: 'update', description: 'Stable identifier for this tree (clipboard / cross-tree operations).' }, // ── Member mappings: required (with defaults) ────────────────────────────── { configKey: 'idMember', attribute: 'id-member', converter: toText({ default: 'id' }), on: 'update', description: 'Property name on a node object that holds its id.' }, { configKey: 'pathMember', attribute: 'path-member', converter: toText({ default: 'path' }), on: 'update', description: 'Property name that holds a node materialized tree path.' }, { configKey: 'displayValueMember', attribute: 'display-value-member', converter: toText({ default: 'displayValue' }), on: 'update', description: 'Property name that holds a node display label.' }, // ── Member mappings: optional (absent → default via engine) ──────────────── { configKey: 'parentPathMember', attribute: 'parent-path-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name holding a node parent path.' }, { configKey: 'levelMember', attribute: 'level-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name holding a node depth level.' }, { configKey: 'isExpandedMember', attribute: 'is-expanded-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a node is expanded.' }, { configKey: 'isSelectedMember', attribute: 'is-selected-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a node is selected (checkbox).' }, { configKey: 'isDraggableMember', attribute: 'is-draggable-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a node is draggable.' }, { configKey: 'isDropAllowedMember', attribute: 'is-drop-allowed-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a drop is allowed onto a node.' }, { configKey: 'hasChildrenMember', attribute: 'has-children-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging that a node has children (lazy trees).' }, { configKey: 'searchValueMember', attribute: 'search-value-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name a node is searched against.' }, { configKey: 'isSelectableMember', attribute: 'is-selectable-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a node can be selected.' }, { configKey: 'isCollapsibleMember', attribute: 'is-collapsible-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a node can be collapsed.' }, { configKey: 'orderMember', attribute: 'order-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name used to order sibling nodes.' }, { configKey: 'allowedDropPositionsMember', attribute: 'allowed-drop-positions-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name listing the drop positions allowed on a node.' }, { configKey: 'iconMember', attribute: 'icon-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name that holds a per-node icon.' }, // ── Behavior ─────────────────────────────────────────────────────────────── { configKey: 'expandLevel', attribute: 'expand-level', converter: toInt(), on: 'update', description: 'Depth to auto-expand on load (0 = roots only).' }, { configKey: 'treePathSeparator', attribute: 'tree-path-separator', converter: toText({ isNullable: true, isEmptyAllowed: true }), on: 'update', description: 'Separator between segments in a materialized tree path.' }, { configKey: 'clickBehavior', attribute: 'click-behavior', converter: toEnum(['select', 'expand', 'expand-and-focus'] as const), on: 'update', description: 'What a node click does: select, expand, or expand-and-focus.' }, { configKey: 'isAccordionExpand', attribute: 'accordion-expand', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Accordion mode: expanding a node collapses its siblings.' }, { configKey: 'isSorted', attribute: 'is-sorted', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Keep siblings sorted (by orderMember / sortCallback).' }, // ── Search / indexer ─────────────────────────────────────────────────────── { configKey: 'shouldUseInternalSearchIndex', attribute: 'should-use-internal-search-index', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Build an internal FlexSearch index for search.' }, { configKey: 'indexerBatchSize', attribute: 'indexer-batch-size', converter: toInt(), on: 'update', description: 'Nodes indexed per batch when building the search index.' }, { configKey: 'indexerTimeout', attribute: 'indexer-timeout', converter: toInt(), on: 'update', description: 'Idle timeout (ms) between search-index batches.' }, { configKey: 'searchText', attribute: 'search-text', converter: toText({ isNullable: true, isEmptyAllowed: true }), on: 'update', description: 'Active search/filter term.' }, // ── Theme / visual classes ───────────────────────────────────────────────── { configKey: 'theme', attribute: 'theme', converter: toEnum(['dark', 'light'] as const, { shouldNullOnInvalid: true }), on: 'update', description: 'Force a `dark` / `light` theme (unset → follow host).' }, { configKey: 'bodyClass', attribute: 'body-class', converter: toText({ isNullable: true }), on: 'update', description: 'Extra class on the tree body container.' }, { configKey: 'highlightedNodeClass', attribute: 'highlighted-node-class', converter: toText({ isNullable: true }), on: 'update', description: 'Class applied to highlighted nodes.' }, { configKey: 'focusedNodeClass', attribute: 'focused-node-class', converter: toText({ isNullable: true }), on: 'update', description: 'Class applied to the focused node.' }, { configKey: 'dragOverNodeClass', attribute: 'drag-over-node-class', converter: toText({ isNullable: true }), on: 'update', description: 'Class applied to a node being dragged over.' }, { configKey: 'expandIconClass', attribute: 'expand-icon-class', converter: toText({ isNullable: true }), on: 'update', description: 'Icon class for the expand toggle.' }, { configKey: 'collapseIconClass', attribute: 'collapse-icon-class', converter: toText({ isNullable: true }), on: 'update', description: 'Icon class for the collapse toggle.' }, { configKey: 'leafIconClass', attribute: 'leaf-icon-class', converter: toText({ isNullable: true }), on: 'update', description: 'Icon class for leaf nodes.' }, { configKey: 'toggleIconMode', attribute: 'toggle-icon-mode', converter: toEnum(['rotate', 'swap'] as const), on: 'update', description: 'Whether the toggle icon rotates or swaps between expand/collapse.' }, { configKey: 'scrollHighlightClass', attribute: 'scroll-highlight-class', converter: toText({ isNullable: true }), on: 'update', description: 'Class flashed on a node after scrollToPath().' }, { configKey: 'scrollHighlightTimeout', attribute: 'scroll-highlight-timeout', converter: toInt(), on: 'update', description: 'How long (ms) the scroll highlight stays before clearing.' }, // ── Per-node icons ───────────────────────────────────────────────────────── { configKey: 'shouldAlignNodeIcons', attribute: 'align-node-icons', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Reserve a fixed icon column so node labels align.' }, // ── Context menu ─────────────────────────────────────────────────────────── { configKey: 'contextMenuXOffset', attribute: 'context-menu-x-offset', converter: toInt(), on: 'update', description: 'Horizontal offset (px) of the context menu from the pointer.' }, { configKey: 'contextMenuYOffset', attribute: 'context-menu-y-offset', converter: toInt(), on: 'update', description: 'Vertical offset (px) of the context menu from the pointer.' }, // ── Debug / loading ──────────────────────────────────────────────────────── { configKey: 'shouldDisplayDebugInformation', attribute: 'should-display-debug-information', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Render in-tree debug diagnostics.' }, { configKey: 'isLoading', attribute: 'is-loading', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Show the loading state.' }, // ── Drag and drop ────────────────────────────────────────────────────────── { configKey: 'dragDropMode', attribute: 'drag-drop-mode', converter: toText({ isNullable: true }), on: 'update', description: 'Drag-drop mode: `none` (off), `self` (within this tree), `cross` (between trees), or `both`.' }, { configKey: 'dropZoneMode', attribute: 'drop-zone-mode', converter: toEnum(['floating', 'glow'] as const), on: 'update', description: 'Drop-zone visual style: floating indicator or glow.' }, { configKey: 'dropZoneLayout', attribute: 'drop-zone-layout', converter: toEnum(['around', 'above', 'below', 'wave', 'wave2'] as const), on: 'update', description: 'Where drop zones render relative to a node.' }, { configKey: 'dropZoneStart', attribute: 'drop-zone-start', converter: toDropZoneStart(), on: 'update', type: 'number | string', description: 'Where drop zones begin. A number is a percentage of node width; a string is used as-is (`px` or `%`, e.g. \"50px\").' }, { configKey: 'dropZoneMaxWidth', attribute: 'drop-zone-max-width', converter: toInt(), on: 'update', description: 'Maximum drop-zone width (px).' }, { configKey: 'isCopyAllowed', attribute: 'allow-copy', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Allow the copy clipboard operation.' }, { configKey: 'shouldAutoHandleCopy', attribute: 'auto-handle-copy', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Let the tree perform the copy itself (vs delegating to onCopy).' }, { configKey: 'shouldAutoHandlePaste', attribute: 'auto-handle-paste', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Let the tree perform the paste itself (vs delegating to onPaste).' }, { configKey: 'shouldHandleKeyboardShortcuts', attribute: 'handle-keyboard-shortcuts', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Handle copy/cut/paste/delete keyboard shortcuts.' }, // ── Rendering ────────────────────────────────────────────────────────────── { configKey: 'noDataText', attribute: 'no-data-text', converter: toText({ isNullable: true }), on: 'update', description: 'Text shown when the tree is empty.' }, { configKey: 'shouldShowDropPlaceholderWhenEmpty', attribute: 'show-drop-placeholder-when-empty', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Show a drop placeholder when the tree is empty.' }, { configKey: 'isFlatRenderingEnabled', attribute: 'use-flat-rendering', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Render the visible nodes as a flat list (perf).' }, { configKey: 'flatIndentSize', attribute: 'flat-indent-size', converter: toText({ isNullable: true }), on: 'update', description: 'Indent size (CSS length) per level in flat rendering.' }, { configKey: 'isProgressiveRender', attribute: 'progressive-render', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Render large trees in progressive batches.' }, { configKey: 'initialBatchSize', attribute: 'initial-batch-size', converter: toInt(), on: 'update', description: 'Rows rendered in the first progressive batch.' }, { configKey: 'maxBatchSize', attribute: 'max-batch-size', converter: toInt(), on: 'update', description: 'Maximum rows per progressive batch.' }, // ── Virtual scroll ───────────────────────────────────────────────────────── { configKey: 'isVirtualScrollEnabled', attribute: 'virtual-scroll', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Enable virtual scrolling.' }, { configKey: 'virtualRowHeight', attribute: 'virtual-row-height', converter: toFloat(), on: 'update', description: 'Fixed row height (px) used by virtual scrolling.' }, { configKey: 'virtualOverscan', attribute: 'virtual-overscan', converter: toInt(), on: 'update', description: 'Extra rows rendered above/below the viewport when virtualizing.' }, { configKey: 'virtualContainerHeight', attribute: 'virtual-container-height', converter: toText({ isNullable: true }), on: 'update', description: 'Height (CSS length) of the virtual-scroll viewport.' }, // ── Selection model ──────────────────────────────────────────────────────── { configKey: 'rangeSelectionMode', attribute: 'range-selection-mode', converter: toEnum(['visual', 'logical'] as const), on: 'update', description: 'How Shift+click range selection walks the tree.' }, { configKey: 'selectionMode', attribute: 'selection-mode', converter: toEnum(['single', 'multi'] as const), on: 'update', description: 'Single- or multi-node selection.' }, { configKey: 'shouldShowCheckboxes', attribute: 'show-checkboxes', converter: toBool('default-false'), on: 'update', description: 'Show a checkbox on each node.' }, { configKey: 'checkboxMode', attribute: 'checkbox-mode', converter: toEnum(['independent', 'cascade'] as const), on: 'update', description: 'Checkbox interaction: `independent` toggles one node; `cascade` toggles the subtree with a tristate box on branches.' }, { configKey: 'shouldClickToggleCheckbox', attribute: 'click-toggles-checkbox', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'A node-row click also toggles its checkbox.' }, // ── Complex property (data; too large for an attribute) ──────────────────── { configKey: 'data', converter: toValue({ validate: (v): v is unknown[] => Array.isArray(v) }), on: 'update', type: 'ReadonlyArray<Record<string, unknown>>', description: 'The array of node objects to render. Assign `el.data` directly (JS API).' }, // ── JS-only flag (no attribute) ──────────────────────────────────────────── { configKey: 'shouldDisplayContextMenuInDebugMode', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Show the built-in context menu even while debug info is displayed.' }, // ── Custom styles (element-only; injected, not passed to the engine) ─────── { configKey: 'customStylesCallback', converter: cb(), on: 'update', type: '() => string', description: 'Returns a CSS string injected into the component shadow root (supports @import).' }, // ── Callbacks: data shape / behavior (reactive → update) ─────────────────── { configKey: 'iconCallback', converter: cb(), on: 'update', type: '(node: LTreeNode) => string | null', description: 'Compute a per-node icon (overrides iconMember).' }, { configKey: 'sortCallback', converter: cb(), on: 'update', type: '(items: LTreeNode[]) => LTreeNode[]', description: 'Custom sibling sort.' }, { configKey: 'contextMenuCallback', converter: cb(), on: 'update', type: '(node: LTreeNode, close: () => void) => ContextMenuEntry[]', description: 'Build the context-menu entries for a node.' }, { configKey: 'nodeClass', converter: cb(), on: 'update', type: '(node: LTreeNode) => string | null | undefined', description: 'Extra class(es) for a node row.' }, { configKey: 'nodeContentClass', converter: cb(), on: 'update', type: '(node: LTreeNode) => string | null | undefined', description: 'Extra class(es) for a node content element.' }, // ── Callbacks: render hooks (reactive → update) ──────────────────────────── { configKey: 'renderNodeCallback', converter: cb(), on: 'update', type: '(node: LTreeNode, container: HTMLElement) => void', description: 'Custom render for a node row.' }, { configKey: 'renderEmptyStateCallback', converter: cb(), on: 'update', type: '(container: HTMLElement) => void', description: 'Custom render for the empty-tree state.' }, { configKey: 'renderEmptyZoneCallback', converter: cb(), on: 'update', type: '(container: HTMLElement) => void', description: 'Custom render for an empty drop zone.' }, { configKey: 'renderLoadingCallback', converter: cb(), on: 'update', type: '(container: HTMLElement) => void', description: 'Custom render for the loading state.' }, { configKey: 'renderHeaderCallback', converter: cb(), on: 'update', type: '(container: HTMLElement) => void', description: 'Custom render for the tree header.' }, { configKey: 'renderFooterCallback', converter: cb(), on: 'update', type: '(container: HTMLElement) => void', description: 'Custom render for the tree footer.' }, { configKey: 'renderContextMenuCallback', converter: cb(), on: 'update', type: '(node: LTreeNode, close: () => void, container: HTMLElement) => void', description: 'Custom render for the whole context menu.' }, { configKey: 'renderContextMenuItemCallback', converter: cb(), on: 'update', type: '(item: ContextMenuItem, node: LTreeNode, container: HTMLElement) => void', description: 'Custom render for one context-menu item.' }, // ── Callbacks: bridged to DOM events (non-reactive → none; wrapped at build) // Setting one updates `this.config`; the stable engine wrapper reads it lazily, // so the change takes effect on the next event without breaking the bridge. { configKey: 'onNodeClick', converter: cb(), on: 'none', type: '(ctx: NodeEventContext) => void', description: 'A node was clicked (also fires the `node-clicked` DOM event).' }, { configKey: 'onNodeDoubleClick', converter: cb(), on: 'none', type: '(ctx: NodeEventContext) => void', description: 'A node was double-clicked (also fires `node-double-click`).' }, { configKey: 'onCopy', converter: cb(), on: 'none', type: '(ctx: ClipboardEventContext) => void', description: 'A copy happened (also fires `copy`).' }, { configKey: 'onCut', converter: cb(), on: 'none', type: '(ctx: ClipboardEventContext) => void', description: 'A cut happened (also fires `cut`).' }, { configKey: 'onPaste', converter: cb(), on: 'none', type: '(result: PasteResult) => void', description: 'A paste happened (also fires `paste` with `detail.result`).' }, { configKey: 'onDelete', converter: cb(), on: 'none', type: '(ctx: unknown) => void', description: 'A delete happened (also fires `delete`).' }, { configKey: 'onNodeDragStart', converter: cb(), on: 'none', type: '(ctx: NodeDragContext) => void', description: 'A node drag started (also fires `node-drag-start`).' }, { configKey: 'onNodeDragOver', converter: cb(), on: 'none', type: '(ctx: NodeDragContext) => void', description: 'A node was dragged over (also fires `node-drag-over`).' }, { configKey: 'onNodeDrop', converter: cb(), on: 'none', type: '(ctx: NodeDropContext) => void', description: 'A drop completed (also fires `node-drop`).' }, { configKey: 'onHighlightChange', converter: cb(), on: 'none', type: '(ctx: unknown) => void', description: 'The highlight set changed (also fires `highlight-change`).' }, { configKey: 'onSelectionChange', converter: cb(), on: 'none', type: '(ctx: SelectionChangeContext) => void', description: 'The selection (checkbox) set changed (also fires `selection-change`).' }, // ── Callbacks: pure engine hooks (non-reactive → none) ───────────────────── { configKey: 'beforeCopyCallback', converter: cb(), on: 'none', type: '(ctx: BeforeCopyContext) => boolean | void', description: 'Runs before a copy; return false to veto.' }, { configKey: 'beforeCutCallback', converter: cb(), on: 'none', type: '(ctx: BeforeCopyContext) => boolean | void', description: 'Runs before a cut; return false to veto.' }, { configKey: 'beforePasteCallback', converter: cb(), on: 'none', type: '(ctx: BeforePasteContext) => boolean | void', description: 'Runs before a paste; return false to veto.' }, { configKey: 'beforeDeleteCallback', converter: cb(), on: 'none', type: '(ctx: BeforeDeleteContext) => boolean | void', description: 'Runs before a delete; return false to veto.' }, { configKey: 'beforeDropCallback', converter: cb(), on: 'none', type: '(dropNode, draggedNode, position, event, operation) => boolean | void', description: 'Runs before a drop; return false to veto. (Deliberately 5-arg positional.)' }, { configKey: 'copyNodeTransformationCallback', converter: cb(), on: 'none', type: '(data) => data', description: 'Transform a node data object as it is copied.' }, { configKey: 'pasteNodeTransformationCallback', converter: cb(), on: 'none', type: '(data, ctx: NodeTransformContext) => data | null', description: 'Transform a node data object as it is pasted (null to skip).' }, { configKey: 'onTreeKeydown', converter: cb(), on: 'none', type: '(ctx: TreeKeydownContext) => void', description: 'Intercept keydown before the tree handles it.' }, { configKey: 'getDisplayValueCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => string', description: 'Compute a node display label (overrides displayValueMember).' }, { configKey: 'getSearchValueCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => string', description: 'Compute the text a node is searched against.' }, { configKey: 'getIsDraggableCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => boolean', description: 'Whether a node is draggable (overrides isDraggableMember).' }, { configKey: 'getIsCollapsibleCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => boolean', description: 'Whether a node is collapsible (overrides isCollapsibleMember).' }, { configKey: 'getAllowedDropPositionsCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => DropPosition[] | null | undefined', description: 'Which drop positions a node allows.' }, { configKey: 'indexingCompleteCallback', converter: cb(), on: 'none', type: '() => void', description: 'Fires when the search index finishes building.' }, { configKey: 'renderStartCallback', converter: cb(), on: 'none', type: '() => void', description: 'Fires when a progressive render starts.' }, { configKey: 'renderProgressCallback', converter: cb(), on: 'none', type: '(stats) => void', description: 'Fires on each progressive-render batch.' }, { configKey: 'renderCompleteCallback', converter: cb(), on: 'none', type: '(stats) => void', description: 'Fires when a progressive render completes.' }, ]",
+              "default": "[ // ── Tree identification ──────────────────────────────────────────────────── { configKey: 'treeId', attribute: 'tree-id', converter: toText({ isNullable: true }), on: 'update', description: 'Stable identifier for this tree (clipboard / cross-tree operations).' }, // ── Member mappings: required (with defaults) ────────────────────────────── { configKey: 'idMember', attribute: 'id-member', converter: toText({ default: 'id' }), on: 'update', description: 'Property name on a node object that holds its id.' }, { configKey: 'pathMember', attribute: 'path-member', converter: toText({ default: 'path' }), on: 'update', description: 'Property name that holds a node materialized tree path.' }, { configKey: 'displayValueMember', attribute: 'display-value-member', converter: toText({ default: 'displayValue' }), on: 'update', description: 'Property name that holds a node display label.' }, { configKey: 'displayValueFallback', attribute: 'display-value-fallback', converter: toText({ isNullable: true, isEmptyAllowed: true }), on: 'update', description: 'Text shown for a node with no resolvable display value (default \"[N/A]\"; empty renders nothing).' }, // ── Member mappings: optional (absent → default via engine) ──────────────── { configKey: 'parentPathMember', attribute: 'parent-path-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name holding a node parent path.' }, { configKey: 'levelMember', attribute: 'level-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name holding a node depth level.' }, { configKey: 'isExpandedMember', attribute: 'is-expanded-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a node is expanded.' }, { configKey: 'isSelectedMember', attribute: 'is-selected-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a node is selected (checkbox).' }, { configKey: 'isDraggableMember', attribute: 'is-draggable-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a node is draggable.' }, { configKey: 'isDropAllowedMember', attribute: 'is-drop-allowed-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a drop is allowed onto a node.' }, { configKey: 'hasChildrenMember', attribute: 'has-children-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging that a node has children (lazy trees).' }, { configKey: 'searchValueMember', attribute: 'search-value-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name a node is searched against.' }, { configKey: 'isSelectableMember', attribute: 'is-selectable-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a node can be selected.' }, { configKey: 'isCollapsibleMember', attribute: 'is-collapsible-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name flagging whether a node can be collapsed.' }, { configKey: 'orderMember', attribute: 'order-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name used to order sibling nodes.' }, { configKey: 'allowedDropPositionsMember', attribute: 'allowed-drop-positions-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name listing the drop positions allowed on a node.' }, { configKey: 'iconMember', attribute: 'icon-member', converter: toText({ isNullable: true }), on: 'update', description: 'Property name that holds a per-node icon.' }, // ── Behavior ─────────────────────────────────────────────────────────────── { configKey: 'expandLevel', attribute: 'expand-level', converter: toInt(), on: 'update', description: 'Depth to auto-expand on load (0 = roots only).' }, { configKey: 'treePathSeparator', attribute: 'tree-path-separator', converter: toText({ isNullable: true, isEmptyAllowed: true }), on: 'update', description: 'Separator between segments in a materialized tree path.' }, { configKey: 'clickBehavior', attribute: 'click-behavior', converter: toEnum(['select', 'expand', 'expand-and-focus'] as const), on: 'update', description: 'What a node click does: select, expand, or expand-and-focus.' }, { configKey: 'isAccordionExpand', attribute: 'accordion-expand', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Accordion mode: expanding a node collapses its siblings.' }, { configKey: 'isSorted', attribute: 'is-sorted', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Keep siblings sorted (by orderMember / sortCallback).' }, // ── Search / indexer ─────────────────────────────────────────────────────── { configKey: 'shouldUseInternalSearchIndex', attribute: 'should-use-internal-search-index', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Build an internal FlexSearch index for search.' }, { configKey: 'indexerBatchSize', attribute: 'indexer-batch-size', converter: toInt(), on: 'update', description: 'Nodes indexed per batch when building the search index.' }, { configKey: 'indexerTimeout', attribute: 'indexer-timeout', converter: toInt(), on: 'update', description: 'Idle timeout (ms) between search-index batches.' }, { configKey: 'searchText', attribute: 'search-text', converter: toText({ isNullable: true, isEmptyAllowed: true }), on: 'update', description: 'Active search/filter term.' }, // ── Theme / visual classes ───────────────────────────────────────────────── { configKey: 'theme', attribute: 'theme', converter: toEnum(['dark', 'light'] as const, { shouldNullOnInvalid: true }), on: 'update', description: 'Force a `dark` / `light` theme (unset → follow host).' }, { configKey: 'bodyClass', attribute: 'body-class', converter: toText({ isNullable: true }), on: 'update', description: 'Extra class on the tree body container.' }, { configKey: 'highlightedNodeClass', attribute: 'highlighted-node-class', converter: toText({ isNullable: true }), on: 'update', description: 'Class applied to highlighted nodes.' }, { configKey: 'focusedNodeClass', attribute: 'focused-node-class', converter: toText({ isNullable: true }), on: 'update', description: 'Class applied to the focused node.' }, { configKey: 'dragOverNodeClass', attribute: 'drag-over-node-class', converter: toText({ isNullable: true }), on: 'update', description: 'Class applied to a node being dragged over.' }, { configKey: 'expandIconClass', attribute: 'expand-icon-class', converter: toText({ isNullable: true }), on: 'update', description: 'Icon class for the expand toggle.' }, { configKey: 'collapseIconClass', attribute: 'collapse-icon-class', converter: toText({ isNullable: true }), on: 'update', description: 'Icon class for the collapse toggle.' }, { configKey: 'leafIconClass', attribute: 'leaf-icon-class', converter: toText({ isNullable: true }), on: 'update', description: 'Icon class for leaf nodes.' }, { configKey: 'toggleIconMode', attribute: 'toggle-icon-mode', converter: toEnum(['rotate', 'swap'] as const), on: 'update', description: 'Whether the toggle icon rotates or swaps between expand/collapse.' }, { configKey: 'scrollHighlightClass', attribute: 'scroll-highlight-class', converter: toText({ isNullable: true }), on: 'update', description: 'Class flashed on a node after scrollToPath().' }, { configKey: 'scrollHighlightTimeout', attribute: 'scroll-highlight-timeout', converter: toInt(), on: 'update', description: 'How long (ms) the scroll highlight stays before clearing.' }, // ── Per-node icons ───────────────────────────────────────────────────────── { configKey: 'shouldAlignNodeIcons', attribute: 'align-node-icons', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Reserve a fixed icon column so node labels align.' }, // ── Context menu ─────────────────────────────────────────────────────────── { configKey: 'contextMenuXOffset', attribute: 'context-menu-x-offset', converter: toInt(), on: 'update', description: 'Horizontal offset (px) of the context menu from the pointer.' }, { configKey: 'contextMenuYOffset', attribute: 'context-menu-y-offset', converter: toInt(), on: 'update', description: 'Vertical offset (px) of the context menu from the pointer.' }, // ── Debug / loading ──────────────────────────────────────────────────────── { configKey: 'shouldDisplayDebugInformation', attribute: 'should-display-debug-information', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Render in-tree debug diagnostics.' }, { configKey: 'isLoading', attribute: 'is-loading', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Show the loading state.' }, // ── Drag and drop ────────────────────────────────────────────────────────── { configKey: 'dragDropMode', attribute: 'drag-drop-mode', converter: toText({ isNullable: true }), on: 'update', description: 'Drag-drop mode: `none` (off), `self` (within this tree), `cross` (between trees), or `both`.' }, { configKey: 'dropZoneMode', attribute: 'drop-zone-mode', converter: toEnum(['floating', 'glow'] as const), on: 'update', description: 'Drop-zone visual style: floating indicator or glow.' }, { configKey: 'dropZoneLayout', attribute: 'drop-zone-layout', converter: toEnum(['around', 'above', 'below', 'wave', 'wave2'] as const), on: 'update', description: 'Where drop zones render relative to a node.' }, { configKey: 'dropZoneStart', attribute: 'drop-zone-start', converter: toDropZoneStart(), on: 'update', type: 'number | string', description: 'Where drop zones begin. A number is a percentage of node width; a string is used as-is (`px` or `%`, e.g. \"50px\").' }, { configKey: 'dropZoneMaxWidth', attribute: 'drop-zone-max-width', converter: toInt(), on: 'update', description: 'Maximum drop-zone width (px).' }, { configKey: 'isCopyAllowed', attribute: 'allow-copy', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Allow the copy clipboard operation.' }, { configKey: 'shouldAutoHandleCopy', attribute: 'auto-handle-copy', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Let the tree perform the copy itself (vs delegating to onCopy).' }, { configKey: 'shouldAutoHandlePaste', attribute: 'auto-handle-paste', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Let the tree perform the paste itself (vs delegating to onPaste).' }, { configKey: 'shouldHandleKeyboardShortcuts', attribute: 'handle-keyboard-shortcuts', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Handle copy/cut/paste/delete keyboard shortcuts.' }, { configKey: 'touchDragDelay', attribute: 'touch-drag-delay', converter: toInt(), on: 'update', description: 'Long-press hold (ms) before a touch-drag engages (default 300).' }, { configKey: 'shouldIndicateUndraggable', attribute: 'indicate-undraggable', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Built-in \"can\\'t move/drop this\" feedback (🚫 badge + haptic). Default true.' }, { configKey: 'shouldEnableTreeDropZone', attribute: 'enable-tree-drop-zone', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Make the whole populated tree one drop target (drop lands target=null regardless of per-node drop rules).' }, // ── Rendering ────────────────────────────────────────────────────────────── { configKey: 'noDataText', attribute: 'no-data-text', converter: toText({ isNullable: true }), on: 'update', description: 'Text shown when the tree is empty.' }, { configKey: 'shouldShowDropPlaceholderWhenEmpty', attribute: 'show-drop-placeholder-when-empty', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Show a drop placeholder when the tree is empty.' }, { configKey: 'isFlatRenderingEnabled', attribute: 'use-flat-rendering', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Render the visible nodes as a flat list (perf).' }, { configKey: 'flatIndentSize', attribute: 'flat-indent-size', converter: toText({ isNullable: true }), on: 'update', description: 'Indent size (CSS length) per level in flat rendering.' }, { configKey: 'isProgressiveRender', attribute: 'progressive-render', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Render large trees in progressive batches.' }, { configKey: 'initialBatchSize', attribute: 'initial-batch-size', converter: toInt(), on: 'update', description: 'Rows rendered in the first progressive batch.' }, { configKey: 'maxBatchSize', attribute: 'max-batch-size', converter: toInt(), on: 'update', description: 'Maximum rows per progressive batch.' }, // ── Virtual scroll ───────────────────────────────────────────────────────── { configKey: 'isVirtualScrollEnabled', attribute: 'virtual-scroll', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Enable virtual scrolling.' }, { configKey: 'virtualRowHeight', attribute: 'virtual-row-height', converter: toFloat(), on: 'update', description: 'Fixed row height (px) used by virtual scrolling.' }, { configKey: 'virtualOverscan', attribute: 'virtual-overscan', converter: toInt(), on: 'update', description: 'Extra rows rendered above/below the viewport when virtualizing.' }, { configKey: 'virtualContainerHeight', attribute: 'virtual-container-height', converter: toText({ isNullable: true }), on: 'update', description: 'Height (CSS length) of the virtual-scroll viewport.' }, // ── Selection model ──────────────────────────────────────────────────────── { configKey: 'rangeSelectionMode', attribute: 'range-selection-mode', converter: toEnum(['visual', 'logical'] as const), on: 'update', description: 'How Shift+click range selection walks the tree.' }, { configKey: 'selectionMode', attribute: 'selection-mode', converter: toEnum(['single', 'multi'] as const), on: 'update', description: 'Single- or multi-node selection.' }, { configKey: 'shouldShowCheckboxes', attribute: 'show-checkboxes', converter: toBool('default-false'), on: 'update', description: 'Show a checkbox on each node.' }, { configKey: 'checkboxMode', attribute: 'checkbox-mode', converter: toEnum(['independent', 'cascade'] as const), on: 'update', description: 'Checkbox interaction: `independent` toggles one node; `cascade` toggles the subtree with a tristate box on branches.' }, { configKey: 'cascadeSelectPolicy', attribute: 'cascade-select-policy', converter: toEnum(['rolled-up', 'leaves', 'all'] as const), on: 'update', description: 'Which paths the selection EMITS in cascade mode: `rolled-up` (minimal cover), `leaves`, or `all`. Default rolled-up.' }, { configKey: 'shouldClickToggleCheckbox', attribute: 'click-toggles-checkbox', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'A node-row click also toggles its checkbox.' }, // ── Complex property (data; too large for an attribute) ──────────────────── { configKey: 'data', converter: toValue({ validate: (v): v is unknown[] => Array.isArray(v) }), on: 'update', type: 'ReadonlyArray<Record<string, unknown>>', description: 'The array of node objects to render. Assign `el.data` directly (JS API).' }, // ── JS-only flag (no attribute) ──────────────────────────────────────────── { configKey: 'shouldDisplayContextMenuInDebugMode', converter: toBool('tristate'), on: 'update', type: 'boolean', description: 'Show the built-in context menu even while debug info is displayed.' }, // ── Custom styles (element-only; injected, not passed to the engine) ─────── { configKey: 'customStylesCallback', converter: cb(), on: 'update', type: '() => string', description: 'Returns a CSS string injected into the component shadow root (supports @import).' }, // ── Callbacks: data shape / behavior (reactive → update) ─────────────────── { configKey: 'iconCallback', converter: cb(), on: 'update', type: '(node: LTreeNode) => string | null', description: 'Compute a per-node icon (overrides iconMember).' }, { configKey: 'sortCallback', converter: cb(), on: 'update', type: '(items: LTreeNode[]) => LTreeNode[]', description: 'Custom sibling sort.' }, { configKey: 'contextMenuCallback', converter: cb(), on: 'update', type: '(node: LTreeNode, close: () => void) => ContextMenuEntry[]', description: 'Build the context-menu entries for a node.' }, { configKey: 'nodeClass', converter: cb(), on: 'update', type: '(node: LTreeNode) => string | null | undefined', description: 'Extra class(es) for a node row.' }, { configKey: 'nodeContentClass', converter: cb(), on: 'update', type: '(node: LTreeNode) => string | null | undefined', description: 'Extra class(es) for a node content element.' }, // ── Callbacks: render hooks (reactive → update) ──────────────────────────── { configKey: 'renderNodeCallback', converter: cb(), on: 'update', type: '(node: LTreeNode, container: HTMLElement) => void', description: 'Custom render for a node row.' }, { configKey: 'renderEmptyStateCallback', converter: cb(), on: 'update', type: '(container: HTMLElement) => void', description: 'Custom render for the empty-tree state.' }, { configKey: 'renderEmptyZoneCallback', converter: cb(), on: 'update', type: '(container: HTMLElement) => void', description: 'Custom render for an empty drop zone.' }, { configKey: 'renderLoadingCallback', converter: cb(), on: 'update', type: '(container: HTMLElement) => void', description: 'Custom render for the loading state.' }, { configKey: 'renderHeaderCallback', converter: cb(), on: 'update', type: '(container: HTMLElement) => void', description: 'Custom render for the tree header.' }, { configKey: 'renderFooterCallback', converter: cb(), on: 'update', type: '(container: HTMLElement) => void', description: 'Custom render for the tree footer.' }, { configKey: 'renderContextMenuCallback', converter: cb(), on: 'update', type: '(node: LTreeNode, close: () => void, container: HTMLElement) => void', description: 'Custom render for the whole context menu.' }, { configKey: 'renderContextMenuItemCallback', converter: cb(), on: 'update', type: '(item: ContextMenuItem, node: LTreeNode, container: HTMLElement) => void', description: 'Custom render for one context-menu item.' }, // ── Callbacks: bridged to DOM events (non-reactive → none; wrapped at build) // Setting one updates `this.config`; the stable engine wrapper reads it lazily, // so the change takes effect on the next event without breaking the bridge. { configKey: 'onNodeClick', converter: cb(), on: 'none', type: '(ctx: NodeEventContext) => void', description: 'A node was clicked (also fires the `node-clicked` DOM event).' }, { configKey: 'onNodeDoubleClick', converter: cb(), on: 'none', type: '(ctx: NodeEventContext) => void', description: 'A node was double-clicked (also fires `node-double-click`).' }, { configKey: 'onCopy', converter: cb(), on: 'none', type: '(ctx: ClipboardEventContext) => void', description: 'A copy happened (also fires `copy`).' }, { configKey: 'onCut', converter: cb(), on: 'none', type: '(ctx: ClipboardEventContext) => void', description: 'A cut happened (also fires `cut`).' }, { configKey: 'onPaste', converter: cb(), on: 'none', type: '(result: PasteResult) => void', description: 'A paste happened (also fires `paste` with `detail.result`).' }, { configKey: 'onDelete', converter: cb(), on: 'none', type: '(ctx: unknown) => void', description: 'A delete happened (also fires `delete`).' }, { configKey: 'onNodeDragStart', converter: cb(), on: 'none', type: '(ctx: NodeDragContext) => void', description: 'A node drag started (also fires `node-drag-start`).' }, { configKey: 'onNodeDragOver', converter: cb(), on: 'none', type: '(ctx: NodeDragContext) => void', description: 'A node was dragged over (also fires `node-drag-over`).' }, { configKey: 'onNodeDrop', converter: cb(), on: 'none', type: '(ctx: NodeDropContext) => void', description: 'A drop completed (also fires `node-drop`).' }, { configKey: 'onHighlightChange', converter: cb(), on: 'none', type: '(ctx: unknown) => void', description: 'The highlight set changed (also fires `highlight-change`).' }, { configKey: 'onSelectionChange', converter: cb(), on: 'none', type: '(ctx: SelectionChangeContext) => void', description: 'The selection (checkbox) set changed (also fires `selection-change`).' }, // ── Callbacks: pure engine hooks (non-reactive → none) ───────────────────── { configKey: 'beforeCopyCallback', converter: cb(), on: 'none', type: '(ctx: BeforeCopyContext) => boolean | void', description: 'Runs before a copy; return false to veto.' }, { configKey: 'beforeCutCallback', converter: cb(), on: 'none', type: '(ctx: BeforeCopyContext) => boolean | void', description: 'Runs before a cut; return false to veto.' }, { configKey: 'beforePasteCallback', converter: cb(), on: 'none', type: '(ctx: BeforePasteContext) => boolean | void', description: 'Runs before a paste; return false to veto.' }, { configKey: 'beforeDeleteCallback', converter: cb(), on: 'none', type: '(ctx: BeforeDeleteContext) => boolean | void', description: 'Runs before a delete; return false to veto.' }, { configKey: 'beforeDropCallback', converter: cb(), on: 'none', type: '(ctx: BeforeDropContext) => boolean | { position?, operation? } | DropGroup[] | void', description: 'Runs before a drop; false blocks, an object redirects, a DropGroup[] routes it to several destinations.' }, { configKey: 'beforeDragStartCallback', converter: cb(), on: 'none', type: '(ctx: DragStartContext) => string[] | false | void', description: 'Set-level pre-drag interceptor: prune/augment/veto the dragged set.' }, { configKey: 'onNodeDragDenied', converter: cb(), on: 'none', type: '(ctx: NodeEventContext) => void', description: 'A locked node was long-pressed (also fires `node-drag-denied`).' }, { configKey: 'onNodeDropDenied', converter: cb(), on: 'none', type: '(ctx: NodeEventContext) => void', description: 'A drop was rejected by the target (also fires `node-drop-denied`).' }, { configKey: 'nodeOutputTransformationCallback', converter: cb(), on: 'none', type: '(data, ctx: NodeTransformContext) => data', description: 'OUTPUT (egress) transform — clean/redact a node data object as it leaves the source (copy/cut/copy-drop).' }, { configKey: 'nodeInputTransformationCallback', converter: cb(), on: 'none', type: '(data, ctx: NodeTransformContext) => data | null', description: 'INPUT (ingress) transform — derive ids/values as a node lands (paste/copy-drop); return null to skip.' }, { configKey: 'onTreeKeydown', converter: cb(), on: 'none', type: '(ctx: TreeKeydownContext) => void', description: 'Intercept keydown before the tree handles it.' }, { configKey: 'getDisplayValueCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => string', description: 'Compute a node display label (overrides displayValueMember).' }, { configKey: 'getSearchValueCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => string', description: 'Compute the text a node is searched against.' }, { configKey: 'getIsDraggableCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => boolean', description: 'Whether a node is draggable (overrides isDraggableMember).' }, { configKey: 'getIsCollapsibleCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => boolean', description: 'Whether a node is collapsible (overrides isCollapsibleMember).' }, { configKey: 'getAllowedDropPositionsCallback', converter: cb(), on: 'none', type: '(node: LTreeNode) => DropPosition[] | null | undefined', description: 'Which drop positions a node allows.' }, { configKey: 'indexingCompleteCallback', converter: cb(), on: 'none', type: '() => void', description: 'Fires when the search index finishes building.' }, { configKey: 'renderStartCallback', converter: cb(), on: 'none', type: '() => void', description: 'Fires when a progressive render starts.' }, { configKey: 'renderProgressCallback', converter: cb(), on: 'none', type: '(stats) => void', description: 'Fires on each progressive-render batch.' }, { configKey: 'renderCompleteCallback', converter: cb(), on: 'none', type: '(stats) => void', description: 'Fires when a progressive render completes.' }, ]",
               "type": {
                 "text": "readonly InputDef[]"
               }
@@ -2435,7 +2546,7 @@
               "name": "events",
               "privacy": "protected",
               "static": true,
-              "default": "[ { name: 'node-clicked', property: false, description: 'A node was clicked. `detail` is the node context (NodeRef).' }, { name: 'node-double-click', property: false, description: 'A node was double-clicked. `detail` is the node context.' }, { name: 'copy', property: false, description: 'A copy operation ran. `detail` is `{ operation, paths, nodes }`.' }, { name: 'cut', property: false, description: 'A cut operation ran. `detail` is `{ operation, paths, nodes }`.' }, { name: 'paste', property: false, description: 'A paste operation ran. `detail.result` is the PasteResult.' }, { name: 'delete', property: false, description: 'A delete operation ran. `detail` is the delete context.' }, { name: 'node-drag-start', property: false, description: 'A node drag started. `detail` is the drag context.' }, { name: 'node-drag-over', property: false, description: 'A node was dragged over. `detail` is the drag context.' }, { name: 'node-drop', property: false, description: 'A drop completed. `detail` is the NodeDropContext.' }, { name: 'highlight-change', property: false, description: 'The highlight set changed. `detail` is `{ paths, nodes }`.' }, { name: 'selection-change', property: false, description: 'The selection (checkbox) set changed. `detail` is `{ paths, nodes }`.' }, { name: 'tree-changed', property: false, description: 'The tree state changed (bulk notification; no detail).' }, { name: 'focused-node-changed', property: false, description: 'The focused node changed. `detail` is `{ focusedNode }`.' }, ]",
+              "default": "[ { name: 'node-clicked', property: false, description: 'A node was clicked. `detail` is the node context (NodeRef).' }, { name: 'node-double-click', property: false, description: 'A node was double-clicked. `detail` is the node context.' }, { name: 'copy', property: false, description: 'A copy operation ran. `detail` is `{ operation, paths, nodes }`.' }, { name: 'cut', property: false, description: 'A cut operation ran. `detail` is `{ operation, paths, nodes }`.' }, { name: 'paste', property: false, description: 'A paste operation ran. `detail.result` is the PasteResult.' }, { name: 'delete', property: false, description: 'A delete operation ran. `detail` is the delete context.' }, { name: 'node-drag-start', property: false, description: 'A node drag started. `detail` is the drag context.' }, { name: 'node-drag-over', property: false, description: 'A node was dragged over. `detail` is the drag context.' }, { name: 'node-drop', property: false, description: 'A drop completed. `detail` is the NodeDropContext.' }, { name: 'node-drag-denied', property: false, description: 'A locked node was long-pressed / an undraggable drag was attempted. `detail` is the NodeRef.' }, { name: 'node-drop-denied', property: false, description: 'A drop was rejected by the target. `detail` is the NodeRef.' }, { name: 'highlight-change', property: false, description: 'The highlight set changed. `detail` is `{ paths, nodes }`.' }, { name: 'selection-change', property: false, description: 'The selection (checkbox) set changed. `detail` is `{ paths, nodes }`.' }, { name: 'tree-changed', property: false, description: 'The tree state changed (bulk notification; no detail).' }, { name: 'focused-node-changed', property: false, description: 'The focused node changed. `detail` is `{ focusedNode }`.' }, ]",
               "type": {
                 "text": "readonly EventDef[]"
               }
@@ -2962,7 +3073,7 @@
                 {
                   "name": "dataTransform",
                   "type": {
-                    "text": "(data: T) => T"
+                    "text": "(data: T, node: LTreeNode<T>) => T | null"
                   }
                 },
                 {
@@ -2977,6 +3088,78 @@
                   "optional": true,
                   "type": {
                     "text": "'before' | 'after'"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "moveNodes",
+              "return": {
+                "type": {
+                  "text": "any"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "paths",
+                  "type": {
+                    "text": "string[]"
+                  }
+                },
+                {
+                  "name": "targetPath",
+                  "type": {
+                    "text": "string"
+                  }
+                },
+                {
+                  "name": "position",
+                  "type": {
+                    "text": "DropPosition"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "duplicateNodes",
+              "return": {
+                "type": {
+                  "text": "any"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "paths",
+                  "type": {
+                    "text": "string[]"
+                  }
+                },
+                {
+                  "name": "targetPath",
+                  "type": {
+                    "text": "string"
+                  }
+                },
+                {
+                  "name": "position",
+                  "type": {
+                    "text": "DropPosition"
+                  }
+                },
+                {
+                  "name": "transform",
+                  "optional": true,
+                  "type": {
+                    "text": "(data: T, ctx: NodeTransformContext<T>) => T | null"
+                  }
+                },
+                {
+                  "name": "sourceTree",
+                  "optional": true,
+                  "type": {
+                    "text": "Ltree<T>"
                   }
                 }
               ]
@@ -3730,6 +3913,16 @@
             },
             {
               "kind": "field",
+              "name": "displayValueFallback",
+              "privacy": "public",
+              "type": {
+                "text": "string | null"
+              },
+              "attribute": "display-value-fallback",
+              "description": "Text shown for a node with no resolvable display value (default \"[N/A]\"; empty renders nothing)."
+            },
+            {
+              "kind": "field",
               "name": "parentPathMember",
               "privacy": "public",
               "type": {
@@ -4200,6 +4393,36 @@
             },
             {
               "kind": "field",
+              "name": "touchDragDelay",
+              "privacy": "public",
+              "type": {
+                "text": "number"
+              },
+              "attribute": "touch-drag-delay",
+              "description": "Long-press hold (ms) before a touch-drag engages (default 300)."
+            },
+            {
+              "kind": "field",
+              "name": "shouldIndicateUndraggable",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "attribute": "indicate-undraggable",
+              "description": "Built-in \"can't move/drop this\" feedback (🚫 badge + haptic). Default true."
+            },
+            {
+              "kind": "field",
+              "name": "shouldEnableTreeDropZone",
+              "privacy": "public",
+              "type": {
+                "text": "boolean"
+              },
+              "attribute": "enable-tree-drop-zone",
+              "description": "Make the whole populated tree one drop target (drop lands target=null regardless of per-node drop rules)."
+            },
+            {
+              "kind": "field",
               "name": "noDataText",
               "privacy": "public",
               "type": {
@@ -4347,6 +4570,16 @@
               },
               "attribute": "checkbox-mode",
               "description": "Checkbox interaction: `independent` toggles one node; `cascade` toggles the subtree with a tristate box on branches."
+            },
+            {
+              "kind": "field",
+              "name": "cascadeSelectPolicy",
+              "privacy": "public",
+              "type": {
+                "text": "'rolled-up' | 'leaves' | 'all'"
+              },
+              "attribute": "cascade-select-policy",
+              "description": "Which paths the selection EMITS in cascade mode: `rolled-up` (minimal cover), `leaves`, or `all`. Default rolled-up."
             },
             {
               "kind": "field",
@@ -4642,27 +4875,54 @@
               "name": "beforeDropCallback",
               "privacy": "public",
               "type": {
-                "text": "(dropNode, draggedNode, position, event, operation) => boolean | void"
+                "text": "(ctx: BeforeDropContext) => boolean | { position?, operation? } | DropGroup[] | void"
               },
-              "description": "Runs before a drop; return false to veto. (Deliberately 5-arg positional.)"
+              "description": "Runs before a drop; false blocks, an object redirects, a DropGroup[] routes it to several destinations."
             },
             {
               "kind": "field",
-              "name": "copyNodeTransformationCallback",
+              "name": "beforeDragStartCallback",
               "privacy": "public",
               "type": {
-                "text": "(data) => data"
+                "text": "(ctx: DragStartContext) => string[] | false | void"
               },
-              "description": "Transform a node data object as it is copied."
+              "description": "Set-level pre-drag interceptor: prune/augment/veto the dragged set."
             },
             {
               "kind": "field",
-              "name": "pasteNodeTransformationCallback",
+              "name": "onNodeDragDenied",
+              "privacy": "public",
+              "type": {
+                "text": "(ctx: NodeEventContext) => void"
+              },
+              "description": "A locked node was long-pressed (also fires `node-drag-denied`)."
+            },
+            {
+              "kind": "field",
+              "name": "onNodeDropDenied",
+              "privacy": "public",
+              "type": {
+                "text": "(ctx: NodeEventContext) => void"
+              },
+              "description": "A drop was rejected by the target (also fires `node-drop-denied`)."
+            },
+            {
+              "kind": "field",
+              "name": "nodeOutputTransformationCallback",
+              "privacy": "public",
+              "type": {
+                "text": "(data, ctx: NodeTransformContext) => data"
+              },
+              "description": "OUTPUT (egress) transform — clean/redact a node data object as it leaves the source (copy/cut/copy-drop)."
+            },
+            {
+              "kind": "field",
+              "name": "nodeInputTransformationCallback",
               "privacy": "public",
               "type": {
                 "text": "(data, ctx: NodeTransformContext) => data | null"
               },
-              "description": "Transform a node data object as it is pasted (null to skip)."
+              "description": "INPUT (ingress) transform — derive ids/values as a node lands (paste/copy-drop); return null to skip."
             },
             {
               "kind": "field",
@@ -4794,6 +5054,14 @@
               },
               "default": "'displayValue'",
               "description": "Property name that holds a node display label."
+            },
+            {
+              "name": "display-value-fallback",
+              "fieldName": "displayValueFallback",
+              "type": {
+                "text": "string | null"
+              },
+              "description": "Text shown for a node with no resolvable display value (default \"[N/A]\"; empty renders nothing)."
             },
             {
               "name": "parent-path-member",
@@ -5172,6 +5440,30 @@
               "description": "Handle copy/cut/paste/delete keyboard shortcuts."
             },
             {
+              "name": "touch-drag-delay",
+              "fieldName": "touchDragDelay",
+              "type": {
+                "text": "number"
+              },
+              "description": "Long-press hold (ms) before a touch-drag engages (default 300)."
+            },
+            {
+              "name": "indicate-undraggable",
+              "fieldName": "shouldIndicateUndraggable",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Built-in \"can't move/drop this\" feedback (🚫 badge + haptic). Default true."
+            },
+            {
+              "name": "enable-tree-drop-zone",
+              "fieldName": "shouldEnableTreeDropZone",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Make the whole populated tree one drop target (drop lands target=null regardless of per-node drop rules)."
+            },
+            {
               "name": "no-data-text",
               "fieldName": "noDataText",
               "type": {
@@ -5292,6 +5584,14 @@
               "description": "Checkbox interaction: `independent` toggles one node; `cascade` toggles the subtree with a tristate box on branches."
             },
             {
+              "name": "cascade-select-policy",
+              "fieldName": "cascadeSelectPolicy",
+              "type": {
+                "text": "'rolled-up' | 'leaves' | 'all'"
+              },
+              "description": "Which paths the selection EMITS in cascade mode: `rolled-up` (minimal cover), `leaves`, or `all`. Default rolled-up."
+            },
+            {
               "name": "click-toggles-checkbox",
               "fieldName": "shouldClickToggleCheckbox",
               "type": {
@@ -5336,6 +5636,14 @@
             {
               "name": "node-drop",
               "description": "A drop completed. `detail` is the NodeDropContext."
+            },
+            {
+              "name": "node-drag-denied",
+              "description": "A locked node was long-pressed / an undraggable drag was attempted. `detail` is the NodeRef."
+            },
+            {
+              "name": "node-drop-denied",
+              "description": "A drop was rejected by the target. `detail` is the NodeRef."
             },
             {
               "name": "highlight-change",
@@ -6159,6 +6467,33 @@
             },
             {
               "kind": "field",
+              "name": "_touchDragDelay",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "private",
+              "default": "300"
+            },
+            {
+              "kind": "field",
+              "name": "_shouldEnableTreeDropZone",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "_shouldIndicateUndraggable",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "true"
+            },
+            {
+              "kind": "field",
               "name": "_highlightedPaths",
               "type": {
                 "text": "Set<string>"
@@ -6219,6 +6554,15 @@
               },
               "privacy": "private",
               "default": "'independent'"
+            },
+            {
+              "kind": "field",
+              "name": "_cascadeSelectPolicy",
+              "type": {
+                "text": "import('./types').CascadeSelectPolicy"
+              },
+              "privacy": "private",
+              "default": "'rolled-up'"
             },
             {
               "kind": "field",
@@ -6344,17 +6688,17 @@
             },
             {
               "kind": "field",
-              "name": "copyTransformCb",
+              "name": "outputTransformCb",
               "type": {
-                "text": "TreeControllerConfig<T>['copyNodeTransformationCallback']"
+                "text": "TreeControllerConfig<T>['nodeOutputTransformationCallback']"
               },
               "privacy": "private"
             },
             {
               "kind": "field",
-              "name": "pasteTransformCb",
+              "name": "inputTransformCb",
               "type": {
-                "text": "TreeControllerConfig<T>['pasteNodeTransformationCallback']"
+                "text": "TreeControllerConfig<T>['nodeInputTransformationCallback']"
               },
               "privacy": "private"
             },
@@ -6402,9 +6746,33 @@
             },
             {
               "kind": "field",
+              "name": "beforeDragStartCb",
+              "type": {
+                "text": "TreeControllerConfig<T>['beforeDragStartCallback']"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
               "name": "nodeDropCb",
               "type": {
                 "text": "TreeControllerConfig<T>['onNodeDrop']"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "nodeDragDeniedCb",
+              "type": {
+                "text": "TreeControllerConfig<T>['onNodeDragDenied']"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "nodeDropDeniedCb",
+              "type": {
+                "text": "TreeControllerConfig<T>['onNodeDropDenied']"
               },
               "privacy": "private"
             },
@@ -6696,7 +7064,7 @@
               "kind": "field",
               "name": "currentHighlight",
               "type": {
-                "text": "{\r\n    element: HTMLElement;\r\n    timeoutId: ReturnType<typeof setTimeout>;\r\n  } | null"
+                "text": "{\n    element: HTMLElement;\n    timeoutId: ReturnType<typeof setTimeout>;\n  } | null"
               },
               "privacy": "private",
               "default": "null"
@@ -6757,16 +7125,52 @@
             },
             {
               "kind": "field",
-              "name": "touchDragState",
+              "name": "_dragSetOverride",
               "type": {
-                "text": "{\r\n    node: LTreeNode<any> | null;\r\n    startX: number;\r\n    startY: number;\r\n    isDragging: boolean;\r\n    ghostElement: HTMLElement | null;\r\n    currentDropTarget: LTreeNode<any> | null;\r\n  }"
+                "text": "string[] | null"
               },
               "privacy": "private",
-              "default": "{ node: null, startX: 0, startY: 0, isDragging: false, ghostElement: null, currentDropTarget: null }"
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "touchDragState",
+              "type": {
+                "text": "{\n    node: LTreeNode<any> | null;\n    startX: number;\n    startY: number;\n    isDragging: boolean;\n    /** A long-press landed on a NON-draggable node: we show the held 🚫 badge\n     *  instead of starting a drag, and swallow touchmove so it stays put. */\n    isDenied: boolean;\n    ghostElement: HTMLElement | null;\n    currentDropTarget: LTreeNode<any> | null;\n  }"
+              },
+              "privacy": "private",
+              "default": "{ node: null, startX: 0, startY: 0, isDragging: false, isDenied: false, ghostElement: null, currentDropTarget: null }"
             },
             {
               "kind": "field",
               "name": "touchTimer",
+              "type": {
+                "text": "ReturnType<typeof setTimeout> | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "_deniedBadgeEl",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "_deniedRowEl",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "_dropDeniedTimer",
               "type": {
                 "text": "ReturnType<typeof setTimeout> | null"
               },
@@ -6932,7 +7336,7 @@
               "kind": "method",
               "name": "_flushNotify",
               "privacy": "private",
-              "description": "Synchronously emit state-change snapshot, bypassing microtask batching.\r\nUsed when the DOM must be updated before the caller continues (e.g. scrollToPath)."
+              "description": "Synchronously emit state-change snapshot, bypassing microtask batching.\nUsed when the DOM must be updated before the caller continues (e.g. scrollToPath)."
             },
             {
               "kind": "field",
@@ -6969,6 +7373,19 @@
             {
               "kind": "field",
               "name": "checkboxMode"
+            },
+            {
+              "kind": "field",
+              "name": "cascadeSelectPolicy"
+            },
+            {
+              "kind": "field",
+              "name": "emittedPaths",
+              "type": {
+                "text": "Set<string>"
+              },
+              "description": "The emitted (policy-projected) selection — what `getSelectedPaths()` and the\n`selection-change` event expose. Equals the canonical set in independent mode\nor under the 'all' policy.",
+              "readonly": true
             },
             {
               "kind": "field",
@@ -7068,6 +7485,18 @@
             {
               "kind": "field",
               "name": "shouldAutoHandleMove"
+            },
+            {
+              "kind": "field",
+              "name": "touchDragDelay"
+            },
+            {
+              "kind": "field",
+              "name": "shouldIndicateUndraggable"
+            },
+            {
+              "kind": "field",
+              "name": "shouldEnableTreeDropZone"
             },
             {
               "kind": "field",
@@ -7274,7 +7703,7 @@
                   }
                 }
               ],
-              "description": "Silently sync scroll position without triggering state notification.\r\nUsed by the renderer's fast synchronous scroll path."
+              "description": "Silently sync scroll position without triggering state notification.\nUsed by the renderer's fast synchronous scroll path."
             },
             {
               "kind": "method",
@@ -7318,7 +7747,7 @@
               "type": {
                 "text": "number"
               },
-              "description": "Resolved row height: explicit > measured > 24px default (matches the\r\n--wtv-node-height token; only used before a real row can be measured).",
+              "description": "Resolved row height: explicit > measured > 24px default (matches the\n--wtv-node-height token; only used before a real row can be measured).",
               "readonly": true
             },
             {
@@ -7336,7 +7765,7 @@
               "type": {
                 "text": "LTreeNode<T>[]"
               },
-              "description": "All visible flat nodes (before virtual scroll slicing).\r\nWhen virtual scroll is active, bypasses the progressive render filter\r\nbecause virtual scroll already limits rendered nodes to the visible window.",
+              "description": "All visible flat nodes (before virtual scroll slicing).\nWhen virtual scroll is active, bypasses the progressive render filter\nbecause virtual scroll already limits rendered nodes to the visible window.",
               "readonly": true
             },
             {
@@ -7406,7 +7835,7 @@
                   }
                 }
               ],
-              "description": "Toggle expand/collapse for a node clicked via the toggle UI. Honors the\r\n`isAccordionExpand` config: when expanding under accordion mode, every\r\nexpanded sibling (whose `isCollapsible` allows it) is first collapsed\r\nin a single batch. Programmatic `expandNodes` / `expandAll` callers\r\nbypass the accordion. Mirrors svelte-treeview Node.svelte's\r\ntoggleExpanded() flow."
+              "description": "Toggle expand/collapse for a node clicked via the toggle UI. Honors the\n`isAccordionExpand` config: when expanding under accordion mode, every\nexpanded sibling (whose `isCollapsible` allows it) is first collapsed\nin a single batch. Programmatic `expandNodes` / `expandAll` callers\nbypass the accordion. Mirrors svelte-treeview Node.svelte's\ntoggleExpanded() flow."
             },
             {
               "kind": "method",
@@ -7597,7 +8026,7 @@
                   }
                 }
               ],
-              "description": "Build the shared { path, node, parent, siblings } pointer for a node the tree\r\nalready holds — gives on* events and clipboard callbacks the same relational\r\ncontext. Pass the live node (preferred) or just a path (e.g. a pre-removal\r\nsnapshot, where the node is gone and only the path is known). Missing\r\nparent/siblings resolve to null/[]."
+              "description": "Build the shared { path, node, parent, siblings } pointer for a node the tree\nalready holds — gives on* events and clipboard callbacks the same relational\ncontext. Pass the live node (preferred) or just a path (e.g. a pre-removal\nsnapshot, where the node is gone and only the path is known). Missing\nparent/siblings resolve to null/[]."
             },
             {
               "kind": "method",
@@ -7616,7 +8045,7 @@
                   }
                 }
               ],
-              "description": "The effective top-level set being dragged: when the grabbed node is part of a\r\nsame-tree multi-highlight, the draggable top-level highlighted subtrees (the\r\nsame set the multi-drag move loop uses); otherwise just the grabbed node.\r\nUsed to populate `dragged` on the drag/drop contexts. Call BEFORE a move\r\nmutates the highlight set."
+              "description": "The effective top-level set being dragged: when the grabbed node is part of a\nsame-tree multi-highlight, the draggable top-level highlighted subtrees (the\nsame set the multi-drag move loop uses); otherwise just the grabbed node.\nUsed to populate `dragged` on the drag/drop contexts. Call BEFORE a move\nmutates the highlight set."
             },
             {
               "kind": "method",
@@ -7635,7 +8064,32 @@
                   }
                 }
               ],
-              "description": "The full top-level dragged set as NodeRefs, correct for BOTH same-tree and\r\ncross-tree drags — the single source of `ctx.dragged` on drag start/over/drop.\r\nSame-tree reads the live highlight set (nodes resolve). Cross-tree can't see\r\nthe source's highlight, so it reads the paths the source published on drag\r\nstart (getDragSet) and builds path-only refs (node/parent null cross-tree);\r\nfalls back to the lead node alone when no set was published (e.g. touch). Call\r\nBEFORE a move mutates the highlight set."
+              "description": "The full top-level dragged set as NodeRefs, correct for BOTH same-tree and\ncross-tree drags — the single source of `ctx.dragged` on drag start/over/drop.\nSame-tree reads the live highlight set (nodes resolve). Cross-tree can't see\nthe source's highlight, so it reads the paths the source published on drag\nstart (getDragSet) and builds path-only refs (node/parent null cross-tree);\nfalls back to the lead node alone when no set was published (e.g. touch). Call\nBEFORE a move mutates the highlight set."
+            },
+            {
+              "kind": "method",
+              "name": "_normalizeDragManifest",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "string[]"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "paths",
+                  "type": {
+                    "text": "string[]"
+                  }
+                },
+                {
+                  "name": "leadPath",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "Normalize a consumer drag manifest (from beforeDragStartCallback): dedupe and\nguarantee the lead stays (you can prune siblings but not the node under the\ncursor). Descendants are KEPT — moveNodes treats an omitted descendant as a\nhole. Order is preserved (= landing order). (svelte-treeview rc13)"
             },
             {
               "kind": "method",
@@ -7784,7 +8238,7 @@
                 {
                   "name": "transformData",
                   "type": {
-                    "text": "(data: T) => T"
+                    "text": "(data: T, node: LTreeNode<T>) => T | null"
                   }
                 },
                 {
@@ -7802,6 +8256,149 @@
                   }
                 }
               ]
+            },
+            {
+              "kind": "method",
+              "name": "_completeManifest",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "string[]"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "paths",
+                  "type": {
+                    "text": "string[]"
+                  }
+                }
+              ],
+              "description": "Expand a set of paths into a COMPLETE manifest: every descendant of every\nmember is added. moveNodes/duplicateNodes treat a manifest as authoritative —\na descendant PRESENT rides along, one ABSENT is a hole — so callers that just\nwant whole subtrees (multi-drag, DropGroup routing) must complete their set\nfirst, else every unlisted descendant reads as a hole. (svelte-treeview rc13)"
+            },
+            {
+              "kind": "method",
+              "name": "_completeDraggedRefs",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "NodeRef<T>[]"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "refs",
+                  "type": {
+                    "text": "NodeRef<T>[]"
+                  }
+                }
+              ],
+              "description": "Complete a set of top-level dragged refs into the flattened manifest of live\nNodeRefs (every descendant included) for beforeDragStartCallback's\nctx.dragged. Same-tree only (nodes are live at drag start)."
+            },
+            {
+              "kind": "method",
+              "name": "moveNodes",
+              "return": {
+                "type": {
+                  "text": "{ success: boolean; movedNodes: LTreeNode<T>[]; leftBehind: LTreeNode<T>[]; error?: string }"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "paths",
+                  "type": {
+                    "text": "string[]"
+                  }
+                },
+                {
+                  "name": "targetPath",
+                  "type": {
+                    "text": "string"
+                  }
+                },
+                {
+                  "name": "position",
+                  "type": {
+                    "text": "DropPosition"
+                  }
+                }
+              ],
+              "description": "Batch-move a COMPLETE manifest of nodes under a target, honoring \"holes\".\nA descendant ABSENT from the manifest is left behind by re-homing it to its\nmoved root's OLD parent (it physically stays put). Every source is resolved to\na live ref up front, so per-move path reassignment can't stale later items.\nCross-tree nodes (treeId mismatch) are skipped. Roots (manifest entries whose\nparent isn't in the manifest) chain in landing order: first at target/position,\nthe rest 'after'. (svelte-treeview rc13)"
+            },
+            {
+              "kind": "method",
+              "name": "duplicateNodes",
+              "return": {
+                "type": {
+                  "text": "{ success: boolean; copiedNodes: LTreeNode<T>[]; skipped: number; error?: string }"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "paths",
+                  "type": {
+                    "text": "string[]"
+                  }
+                },
+                {
+                  "name": "targetPath",
+                  "type": {
+                    "text": "string"
+                  }
+                },
+                {
+                  "name": "position",
+                  "type": {
+                    "text": "DropPosition"
+                  }
+                },
+                {
+                  "name": "transform",
+                  "optional": true,
+                  "type": {
+                    "text": "(data: T, ctx: NodeTransformContext<T>) => T | null"
+                  }
+                },
+                {
+                  "name": "sourceTree",
+                  "optional": true,
+                  "type": {
+                    "text": "Ltree<T>"
+                  }
+                }
+              ],
+              "description": "Batch-DUPLICATE a COMPLETE manifest — the copy-side twin of moveNodes. A\ndescendant ABSENT from the manifest is a hole, but a copy has nothing to\nre-home, so the hole is simply NOT copied. Roots chain in source order under\nthe target; each node's data flows through `transform` (the INPUT transform;\nreturn null to skip). `sourceTree` defaults to this tree — pass another tree's\nLtree to copy its live nodes in (cross-tree). (svelte-treeview rc13)"
+            },
+            {
+              "kind": "field",
+              "name": "_defaultCopyTransform",
+              "privacy": "private",
+              "description": "Default INPUT transform for a copy-drop when the consumer supplies no\npasteNodeTransformationCallback: uniquify the id so the duplicate doesn't\ncollide with the original."
+            },
+            {
+              "kind": "method",
+              "name": "_executeDropGroups",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "groups",
+                  "type": {
+                    "text": "DropGroup[]"
+                  }
+                },
+                {
+                  "name": "fireDrop",
+                  "type": {
+                    "text": "(dropped: LTreeNode<T>[] | null) => void"
+                  }
+                }
+              ],
+              "description": "Execute a beforeDropCallback `DropGroup[]` (content-addressed routing). Each\ngroup's paths (whole-subtree roots) are completed to a manifest and moved to\nthe group's target/position via moveNodes; targets + sources are resolved to\nlive refs up front so per-move path reassignment can't stale them. Cross-tree\npaths (not in this tree) are skipped for the consumer to place. Fires drop once\nwith all placed nodes. (svelte-treeview rc13)"
             },
             {
               "kind": "method",
@@ -7938,7 +8535,7 @@
                   }
                 }
               ],
-              "description": "Programmatically update the highlight set.\r\n- `mode='replace'`: replaces the set with `path`\r\n- `mode='toggle'`: toggles `path` in/out of the set\r\n- `mode='range'`: range-selects from focused node to `path`\r\nPass `{ silent: true }` to skip the `highlightChangeCallback` / mirror callbacks."
+              "description": "Programmatically update the highlight set.\n- `mode='replace'`: replaces the set with `path`\n- `mode='toggle'`: toggles `path` in/out of the set\n- `mode='range'`: range-selects from focused node to `path`\nPass `{ silent: true }` to skip the `highlightChangeCallback` / mirror callbacks."
             },
             {
               "kind": "method",
@@ -7963,7 +8560,7 @@
                   }
                 }
               ],
-              "description": "Add nodes to the highlight set (additive — existing highlights are kept).\r\nUse setHighlightedPaths() to replace the whole set instead.\r\nPass `{ silent: true }` to skip `highlightChangeCallback`."
+              "description": "Add nodes to the highlight set (additive — existing highlights are kept).\nUse setHighlightedPaths() to replace the whole set instead.\nPass `{ silent: true }` to skip `highlightChangeCallback`."
             },
             {
               "kind": "method",
@@ -7988,7 +8585,7 @@
                   }
                 }
               ],
-              "description": "Replace the entire highlight set with the given paths.\r\nEquivalent to clearHighlight() + highlightNodes(paths).\r\nPass `{ silent: true }` to skip `highlightChangeCallback`."
+              "description": "Replace the entire highlight set with the given paths.\nEquivalent to clearHighlight() + highlightNodes(paths).\nPass `{ silent: true }` to skip `highlightChangeCallback`."
             },
             {
               "kind": "method",
@@ -8014,7 +8611,7 @@
                   }
                 }
               ],
-              "description": "Clear highlights. Pass `paths` to clear only those nodes, or omit to clear all.\r\nPass `{ silent: true }` to skip `highlightChangeCallback`."
+              "description": "Clear highlights. Pass `paths` to clear only those nodes, or omit to clear all.\nPass `{ silent: true }` to skip `highlightChangeCallback`."
             },
             {
               "kind": "method",
@@ -8071,7 +8668,7 @@
                   }
                 }
               ],
-              "description": "Highlight every visible node. Pass `{ silent: true }` to skip\r\n`highlightChangeCallback`."
+              "description": "Highlight every visible node. Pass `{ silent: true }` to skip\n`highlightChangeCallback`."
             },
             {
               "kind": "method",
@@ -8140,7 +8737,7 @@
                   }
                 }
               ],
-              "description": "Internal: do the click-driven highlight work. Called by both the\r\nclick handler (with `modifiers` from the event) and the public\r\n`highlightNode(path, mode, options)` (which builds modifiers from\r\nthe mode string)."
+              "description": "Internal: do the click-driven highlight work. Called by both the\nclick handler (with `modifiers` from the event) and the public\n`highlightNode(path, mode, options)` (which builds modifiers from\nthe mode string)."
             },
             {
               "kind": "method",
@@ -8166,6 +8763,25 @@
             },
             {
               "kind": "method",
+              "name": "_projectSelection",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Set<string>"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "canonical",
+                  "type": {
+                    "text": "Set<string>"
+                  }
+                }
+              ],
+              "description": "Project the canonical checked set through the active `cascadeSelectPolicy` to\nproduce the EMITTED selection. Pure — reads visualState/isSelected off the live\ntree, never mutates. Independent mode OR 'all' → the canonical set as-is;\n'leaves' → only checked leaf nodes; 'rolled-up' → a fully-checked selectable\nbranch collapses to its root (stop descending), indeterminate branches descend\nto emit their checked bits. (svelte-treeview rc14)"
+            },
+            {
+              "kind": "method",
               "name": "_mirrorHighlightToSelected",
               "privacy": "private",
               "return": {
@@ -8173,7 +8789,7 @@
                   "text": "void"
                 }
               },
-              "description": "When `shouldShowCheckboxes` is false, the highlight set IS the selection set —\r\nmirror it onto `_selectedPaths` so consumers reading the bindable\r\ncheckbox state see what the user picked via the mouse. With checkboxes\r\nvisible the two sets stay independent. Mirrors svelte-treeview rc09."
+              "description": "When `shouldShowCheckboxes` is false, the highlight set IS the selection set —\nmirror it onto `_selectedPaths` so consumers reading the bindable\ncheckbox state see what the user picked via the mouse. With checkboxes\nvisible the two sets stay independent. Mirrors svelte-treeview rc09."
             },
             {
               "kind": "method",
@@ -8193,7 +8809,7 @@
                   "text": "Set<string>"
                 }
               },
-              "description": "Get a snapshot of the selected-path set (checkbox state)."
+              "description": "The EMITTED (policy-projected) checkbox set — the minimal cover in cascade\n'rolled-up' mode, the leaves in 'leaves', or the full canonical set in 'all' /\nindependent mode. Use the `selectedPaths` getter for the raw canonical set."
             },
             {
               "kind": "method",
@@ -8236,7 +8852,7 @@
                   }
                 }
               ],
-              "description": "Apply a checked/unchecked state to the given paths, expanding to\r\ndescendants in cascade mode and recomputing ancestor visual states.\r\nReturns whether the selected set actually changed. Does not notify."
+              "description": "Apply a checked/unchecked state to the given paths, expanding to\ndescendants in cascade mode and recomputing ancestor visual states.\nReturns whether the selected set actually changed. Does not notify."
             },
             {
               "kind": "method",
@@ -8272,7 +8888,7 @@
                   }
                 }
               ],
-              "description": "Check a single node (cascades to descendants in cascade mode).\r\nPass `{ silent: true }` to skip `selectionChangeCallback`."
+              "description": "Check a single node (cascades to descendants in cascade mode).\nPass `{ silent: true }` to skip `selectionChangeCallback`."
             },
             {
               "kind": "method",
@@ -8297,7 +8913,7 @@
                   }
                 }
               ],
-              "description": "Check multiple nodes (additive — existing checks are kept).\r\nUse setSelectedPaths() to replace the whole set instead.\r\nPass `{ silent: true }` to skip `selectionChangeCallback`."
+              "description": "Check multiple nodes (additive — existing checks are kept).\nUse setSelectedPaths() to replace the whole set instead.\nPass `{ silent: true }` to skip `selectionChangeCallback`."
             },
             {
               "kind": "method",
@@ -8322,7 +8938,7 @@
                   }
                 }
               ],
-              "description": "Replace the entire checkbox set with the given paths.\r\nEquivalent to clearSelection() + selectNodes(paths).\r\nPass `{ silent: true }` to skip `selectionChangeCallback`."
+              "description": "Replace the entire checkbox set with the given paths.\nEquivalent to clearSelection() + selectNodes(paths).\nPass `{ silent: true }` to skip `selectionChangeCallback`."
             },
             {
               "kind": "method",
@@ -8341,7 +8957,7 @@
                   }
                 }
               ],
-              "description": "Check every selectable node. Pass `{ silent: true }` to skip\r\n`selectionChangeCallback`."
+              "description": "Check every selectable node. Pass `{ silent: true }` to skip\n`selectionChangeCallback`."
             },
             {
               "kind": "method",
@@ -8366,7 +8982,7 @@
                   }
                 }
               ],
-              "description": "Uncheck a single node (cascades to descendants in cascade mode).\r\nPass `{ silent: true }` to skip `selectionChangeCallback`."
+              "description": "Uncheck a single node (cascades to descendants in cascade mode).\nPass `{ silent: true }` to skip `selectionChangeCallback`."
             },
             {
               "kind": "method",
@@ -8392,7 +9008,7 @@
                   }
                 }
               ],
-              "description": "Clear checkbox selection. Pass `paths` to uncheck only those nodes, or omit\r\nto clear all. Pass `{ silent: true }` to skip `selectionChangeCallback`."
+              "description": "Clear checkbox selection. Pass `paths` to uncheck only those nodes, or omit\nto clear all. Pass `{ silent: true }` to skip `selectionChangeCallback`."
             },
             {
               "kind": "method",
@@ -8417,7 +9033,7 @@
                   }
                 }
               ],
-              "description": "Move focus to a node. `_options` is accepted for signature parity;\r\nfocus changes have no dedicated change callback."
+              "description": "Move focus to a node. `_options` is accepted for signature parity;\nfocus changes have no dedicated change callback."
             },
             {
               "kind": "method",
@@ -8462,7 +9078,7 @@
                   }
                 }
               ],
-              "description": "Handle checkbox toggle. Honors checkboxMode (cascade/independent),\r\nmulti-highlight bulk toggle, beforeCheckboxToggleCallback interceptor.\r\nMirrors svelte-treeview rc06+ flow."
+              "description": "Handle checkbox toggle. Honors checkboxMode (cascade/independent),\nmulti-highlight bulk toggle, beforeCheckboxToggleCallback interceptor.\nMirrors svelte-treeview rc06+ flow."
             },
             {
               "kind": "method",
@@ -8473,7 +9089,7 @@
                   "text": "void"
                 }
               },
-              "description": "Re-derive every node's visualState + isSelected when checkboxMode changes\r\nat runtime. Switching to 'independent' PROMOTES an indeterminate [-] node to\r\nfully checked; switching to 'cascade' recomputes parent dashes from their\r\ndescendants. Without this the indeterminate marker (an imperative DOM prop)\r\nsticks after a mode flip. (svelte-treeview parity — guarded by the ported\r\ne2e/checkbox-mode.spec.ts.) No-op before the tree is built."
+              "description": "Re-derive every node's visualState + isSelected when checkboxMode changes\nat runtime. Switching to 'independent' PROMOTES an indeterminate [-] node to\nfully checked; switching to 'cascade' recomputes parent dashes from their\ndescendants. Without this the indeterminate marker (an imperative DOM prop)\nsticks after a mode flip. (svelte-treeview parity — guarded by the ported\ne2e/checkbox-mode.spec.ts.) No-op before the tree is built."
             },
             {
               "kind": "method",
@@ -8511,7 +9127,7 @@
                   }
                 }
               ],
-              "description": "Walk up from a node and set visualState on each ancestor based on its\r\ndescendant selection. Syncs `isSelected` on the ancestors (all\r\ndescendants selected → ancestor selected)."
+              "description": "Walk up from a node and set visualState on each ancestor based on its\ndescendant selection. Syncs `isSelected` on the ancestors (all\ndescendants selected → ancestor selected)."
             },
             {
               "kind": "method",
@@ -8530,7 +9146,7 @@
                   }
                 }
               ],
-              "description": "Compute the visualState (selected / notSelected / indeterminate) for a\r\nnode based on its descendants' `isSelected`. Leaves use the node's own\r\n`isSelected`."
+              "description": "Compute the visualState (selected / notSelected / indeterminate) for a\nnode based on its descendants' `isSelected`. Leaves use the node's own\n`isSelected`."
             },
             {
               "kind": "method",
@@ -8710,7 +9326,7 @@
                   "type": {
                     "text": "((data: T, ctx: NodeTransformContext<T>) => T | null) | null"
                   },
-                  "description": "Optional per-node transform (overrides pasteNodeTransformationCallback);\r\nreturn null to SKIP a node (skipping a root skips its subtree)."
+                  "description": "Optional per-node transform (overrides pasteNodeTransformationCallback);\nreturn null to SKIP a node (skipping a root skips its subtree)."
                 },
                 {
                   "name": "position",
@@ -8762,7 +9378,7 @@
                   "text": "string[]"
                 }
               },
-              "description": "Paths a keyboard shortcut should act on: the highlight set if any, else the\r\nfocused node, else empty. Shared by the built-in copy/cut/delete handling."
+              "description": "Paths a keyboard shortcut should act on: the highlight set if any, else the\nfocused node, else empty. Shared by the built-in copy/cut/delete handling."
             },
             {
               "kind": "method",
@@ -8800,7 +9416,7 @@
                   }
                 }
               ],
-              "description": "Remove nodes (and their descendants) from the tree. Defaults to the current\r\nselection (highlight set, else focused node). Runs `beforeDeleteCallback` first\r\n(narrow or block), removes only top-level subtrees, clears highlight + focus of\r\nanything removed, and fires `onDelete` with PRE-REMOVAL node snapshots."
+              "description": "Remove nodes (and their descendants) from the tree. Defaults to the current\nselection (highlight set, else focused node). Runs `beforeDeleteCallback` first\n(narrow or block), removes only top-level subtrees, clears highlight + focus of\nanything removed, and fires `onDelete` with PRE-REMOVAL node snapshots."
             },
             {
               "kind": "method",
@@ -8818,7 +9434,7 @@
                   }
                 }
               ],
-              "description": "Built-in keyboard shortcuts, gated by `shouldHandleKeyboardShortcuts` (default\r\non). Returns true when it consumed the event (caller should preventDefault +\r\nstop). A consumer `onTreeKeydown` runs BEFORE this, so it can override/suppress.\r\n  Ctrl/Cmd+C copy · Ctrl/Cmd+X cut · Ctrl/Cmd+V paste (into focused node / root) ·\r\n  Delete remove selection · Escape cancel cut. Classic CUA aliases too:\r\n  Ctrl+Insert copy · Shift+Insert paste · Shift+Delete cut."
+              "description": "Built-in keyboard shortcuts, gated by `shouldHandleKeyboardShortcuts` (default\non). Returns true when it consumed the event (caller should preventDefault +\nstop). A consumer `onTreeKeydown` runs BEFORE this, so it can override/suppress.\n  Ctrl/Cmd+C copy · Ctrl/Cmd+X cut · Ctrl/Cmd+V paste (into focused node / root) ·\n  Delete remove selection · Escape cancel cut. Classic CUA aliases too:\n  Ctrl+Insert copy · Shift+Insert paste · Shift+Delete cut."
             },
             {
               "kind": "method",
@@ -8836,7 +9452,7 @@
                   }
                 }
               ],
-              "description": "Full keydown entry point for the renderer: runs the consumer `onTreeKeydown`\r\ninterceptor FIRST (return true to suppress everything), then the built-in\r\nshortcuts. Returns true when the event was consumed (caller should\r\npreventDefault + stop; skip its own navigation handling)."
+              "description": "Full keydown entry point for the renderer: runs the consumer `onTreeKeydown`\ninterceptor FIRST (return true to suppress everything), then the built-in\nshortcuts. Returns true when the event was consumed (caller should\npreventDefault + stop; skip its own navigation handling)."
             },
             {
               "kind": "method",
@@ -8865,7 +9481,7 @@
                   "default": "0"
                 }
               ],
-              "description": "Collect a node and all its descendants into a ClipboardEntry. Descendants are\r\nparent-first with paths relative to the source node (INCLUDING the leading\r\nseparator, e.g. \".2\" under \"1\"). The optional copy transform cleans each\r\nsnapshot before it lands on the shared clipboard — it gets the SAME\r\nNodeTransformContext the paste transform sees (phase: 'copy', target: null)."
+              "description": "Collect a node and all its descendants into a ClipboardEntry. Descendants are\nparent-first with paths relative to the source node (INCLUDING the leading\nseparator, e.g. \".2\" under \"1\"). The optional copy transform cleans each\nsnapshot before it lands on the shared clipboard — it gets the SAME\nNodeTransformContext the input transform sees (phase: 'output', target: null)."
             },
             {
               "kind": "method",
@@ -9240,7 +9856,7 @@
                   "name": "options",
                   "optional": true,
                   "type": {
-                    "text": "{\r\n      expand?: boolean;\r\n      expandTarget?: boolean;\r\n      highlight?: boolean;\r\n      scrollOptions?: ScrollIntoViewOptions;\r\n      containerScroll?: boolean;\r\n      containerElement?: HTMLElement;\r\n    }"
+                    "text": "{\n      expand?: boolean;\n      expandTarget?: boolean;\n      highlight?: boolean;\n      scrollOptions?: ScrollIntoViewOptions;\n      containerScroll?: boolean;\n      containerElement?: HTMLElement;\n    }"
                   }
                 }
               ]
@@ -9291,7 +9907,7 @@
                   "text": "void"
                 }
               },
-              "description": "Re-apply the controller-owned runtime selection onto freshly (re)inserted\r\nnodes. `_selectedPaths` is the source of truth and survives a data re-insert;\r\nthe per-node `isSelected` flag does NOT (fresh nodes default to false), and\r\nthe cascade `visualState` is derived. So after every insertArray we push\r\n`_selectedPaths` back onto `node.isSelected` and recompute `visualState` from\r\nit — otherwise a config-triggered re-insert silently drops the checkbox\r\nselection + indeterminate dashes. (web-grid-style: primary state lives off\r\nthe nodes; derived state is recomputed.) The renderer reads `checked` straight\r\nfrom `snapshot.selectedPaths`, so it's already rebuild-proof; this keeps the\r\ncascade computation + the indeterminate marker correct too."
+              "description": "Re-apply the controller-owned runtime selection onto freshly (re)inserted\nnodes. `_selectedPaths` is the source of truth and survives a data re-insert;\nthe per-node `isSelected` flag does NOT (fresh nodes default to false), and\nthe cascade `visualState` is derived. So after every insertArray we push\n`_selectedPaths` back onto `node.isSelected` and recompute `visualState` from\nit — otherwise a config-triggered re-insert silently drops the checkbox\nselection + indeterminate dashes. (web-grid-style: primary state lives off\nthe nodes; derived state is recomputed.) The renderer reads `checked` straight\nfrom `snapshot.selectedPaths`, so it's already rebuild-proof; this keeps the\ncascade computation + the indeterminate marker correct too."
             },
             {
               "kind": "method",
@@ -9302,7 +9918,7 @@
                   "text": "Set<string>"
                 }
               },
-              "description": "Snapshot which nodes are currently expanded — call BEFORE a data re-insert\r\n(which resets isExpanded to the expandLevel default) so the user's manual\r\nexpand/collapse survives. Paths are stable across a re-insert."
+              "description": "Snapshot which nodes are currently expanded — call BEFORE a data re-insert\n(which resets isExpanded to the expandLevel default) so the user's manual\nexpand/collapse survives. Paths are stable across a re-insert."
             },
             {
               "kind": "method",
@@ -9321,7 +9937,7 @@
                   }
                 }
               ],
-              "description": "Re-apply a captured expansion set onto freshly (re)inserted nodes. Paths not\r\npresent in the new data are simply ignored. Unlike selection/highlight (whose\r\nsource of truth is a controller-owned set the renderer reads), expansion is\r\nconsumed by the LTree's own flattening, so it stays on the node — we just make\r\nthe re-insert lossless by restoring it."
+              "description": "Re-apply a captured expansion set onto freshly (re)inserted nodes. Paths not\npresent in the new data are simply ignored. Unlike selection/highlight (whose\nsource of truth is a controller-owned set the renderer reads), expansion is\nconsumed by the LTree's own flattening, so it stays on the node — we just make\nthe re-insert lossless by restoring it."
             },
             {
               "kind": "method",
@@ -9393,7 +10009,7 @@
                   }
                 }
               ],
-              "description": "Manual double-click detection, called by the renderer for every genuine\r\nplain (no Ctrl/Shift) UI click. The flat diff reconciler patches a row's\r\nattributes on the first click (focus/highlight bumps `_rev`), so the\r\nbrowser's native `dblclick` can't be trusted. Returns `true` when this\r\nclick completes a double within the 400ms window — the caller then\r\nconsumes the click (returns early) so the gesture reads as a single open\r\nrather than a re-toggle. Fires `onNodeDoubleClick` for every clickBehavior;\r\n`select` mode additionally toggles expand/collapse on the double (the other\r\nmodes already toggle on single click)."
+              "description": "Manual double-click detection, called by the renderer for every genuine\nplain (no Ctrl/Shift) UI click. The flat diff reconciler patches a row's\nattributes on the first click (focus/highlight bumps `_rev`), so the\nbrowser's native `dblclick` can't be trusted. Returns `true` when this\nclick completes a double within the 400ms window — the caller then\nconsumes the click (returns early) so the gesture reads as a single open\nrather than a re-toggle. Fires `onNodeDoubleClick` for every clickBehavior;\n`select` mode additionally toggles expand/collapse on the double (the other\nmodes already toggle on single click)."
             },
             {
               "kind": "method",
@@ -9484,7 +10100,7 @@
                   "text": "string[]"
                 }
               },
-              "description": "Pick out the \"top-level highlighted\" subset of `highlightedPaths`:\r\nevery path whose nearest highlighted ancestor is NOT in the set.\r\nDescendants whose ancestor is also highlighted are absorbed — they\r\nride along inside the ancestor's subtree during multi-drag."
+              "description": "Pick out the \"top-level highlighted\" subset of `highlightedPaths`:\nevery path whose nearest highlighted ancestor is NOT in the set.\nDescendants whose ancestor is also highlighted are absorbed — they\nride along inside the ancestor's subtree during multi-drag."
             },
             {
               "kind": "field",
@@ -9589,7 +10205,7 @@
                   }
                 }
               ],
-              "description": "Build the NodeDropContext and fire onNodeDrop. `dropped` is the nodes the\r\nlibrary placed (null when it didn't — cross-tree or shouldAutoHandle*=false)."
+              "description": "Build the NodeDropContext and fire onNodeDrop. `dropped` is the nodes the\nlibrary placed (null when it didn't — cross-tree or shouldAutoHandle*=false)."
             },
             {
               "kind": "method",
@@ -9672,6 +10288,14 @@
                   }
                 }
               ]
+            },
+            {
+              "kind": "field",
+              "name": "handleTreeZoneDragOver"
+            },
+            {
+              "kind": "field",
+              "name": "handleTreeZoneDrop"
             },
             {
               "kind": "method",
@@ -9788,6 +10412,40 @@
               "kind": "method",
               "name": "_resetTouchState",
               "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "_indicateDragDenied",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "node",
+                  "type": {
+                    "text": "LTreeNode<any>"
+                  }
+                }
+              ],
+              "description": "\"Can't move this\" — a locked node was long-pressed. Fires onNodeDragDenied\nalways; the built-in held 🚫 badge + double-buzz only when\nshouldIndicateUndraggable. Torn down on release via _clearDragDenied."
+            },
+            {
+              "kind": "method",
+              "name": "_clearDragDenied",
+              "privacy": "private",
+              "description": "Remove the held \"can't move this\" indicator (badge + row class). Idempotent."
+            },
+            {
+              "kind": "method",
+              "name": "_indicateDropDenied",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "node",
+                  "type": {
+                    "text": "LTreeNode<any>"
+                  }
+                }
+              ],
+              "description": "\"Can't drop here\" — the target-side twin. Fires onNodeDropDenied always; the\nbuilt-in indicator (haptic + a brief 🚫 flash on the refusing target) only\nwhen shouldIndicateUndraggable. Transient (a drop is a discrete moment), so\nit auto-clears after a short beat."
             },
             {
               "kind": "method",
@@ -11223,6 +11881,16 @@
             {
               "kind": "field",
               "name": "_onBodyTouchStart",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "_onContainerDragOver",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "_onContainerDrop",
               "privacy": "private"
             },
             {

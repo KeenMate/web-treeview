@@ -154,11 +154,28 @@ export class WebTreeView<T = any> {
   copyNodeWithDescendants(
     sourceNode: LTreeNode<T>,
     targetParentPath: string,
-    dataTransform: (data: T) => T,
+    dataTransform: (data: T, node: LTreeNode<T>) => T | null,
     siblingPath?: string,
     position?: 'before' | 'after'
   ) {
     return this.controller.copyNodeWithDescendants(sourceNode, targetParentPath, dataTransform, siblingPath, position);
+  }
+
+  /** Batch-move a complete manifest under a target (honors "holes"). rc13. */
+  moveNodes(paths: string[], targetPath: string, position: DropPosition) {
+    return this.controller.moveNodes(paths, targetPath, position);
+  }
+
+  /** Batch-duplicate a complete manifest under a target — the copy-side twin of
+   *  moveNodes. `sourceTree` defaults to this tree (cross-tree copy otherwise). rc13. */
+  duplicateNodes(
+    paths: string[],
+    targetPath: string,
+    position: DropPosition,
+    transform?: (data: T, ctx: NodeTransformContext<T>) => T | null,
+    sourceTree?: Ltree<T>
+  ) {
+    return this.controller.duplicateNodes(paths, targetPath, position, transform, sourceTree);
   }
 
   applyChanges(changes: TreeChange<T>[]): ApplyChangesResult {
@@ -370,6 +387,7 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     isSorted: options.isSorted,
     displayValueMember: options.displayValueMember,
     getDisplayValueCallback: options.getDisplayValueCallback,
+    displayValueFallback: options.displayValueFallback,
     searchValueMember: options.searchValueMember,
     getSearchValueCallback: options.getSearchValueCallback,
     orderMember: options.orderMember,
@@ -414,6 +432,9 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     shouldAutoHandleMove: options.shouldAutoHandleMove,
     shouldAutoHandlePaste: options.shouldAutoHandlePaste,
     shouldHandleKeyboardShortcuts: options.shouldHandleKeyboardShortcuts,
+    touchDragDelay: options.touchDragDelay,
+    shouldIndicateUndraggable: options.shouldIndicateUndraggable,
+    shouldEnableTreeDropZone: options.shouldEnableTreeDropZone,
 
     onNodeClick: options.onNodeClick,
     onNodeDoubleClick: options.onNodeDoubleClick,
@@ -421,8 +442,8 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     beforeCutCallback: options.beforeCutCallback,
     beforePasteCallback: options.beforePasteCallback,
     beforeDeleteCallback: options.beforeDeleteCallback,
-    copyNodeTransformationCallback: options.copyNodeTransformationCallback,
-    pasteNodeTransformationCallback: options.pasteNodeTransformationCallback,
+    nodeOutputTransformationCallback: options.nodeOutputTransformationCallback,
+    nodeInputTransformationCallback: options.nodeInputTransformationCallback,
     onCopy: options.onCopy,
     onCut: options.onCut,
     onPaste: options.onPaste,
@@ -430,7 +451,10 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     onNodeDragStart: options.onNodeDragStart,
     onNodeDragOver: options.onNodeDragOver,
     beforeDropCallback: options.beforeDropCallback,
+    beforeDragStartCallback: options.beforeDragStartCallback,
     onNodeDrop: options.onNodeDrop,
+    onNodeDragDenied: options.onNodeDragDenied,
+    onNodeDropDenied: options.onNodeDropDenied,
     onTreeKeydown: options.onTreeKeydown,
     contextMenuCallback: options.contextMenuCallback,
     hasContextMenuRenderer: !!(options.contextMenuCallback || options.renderContextMenuCallback),
@@ -461,6 +485,7 @@ function mapToControllerConfig<T>(options: Partial<TreeViewConfig<T>>): TreeCont
     selectionMode: options.selectionMode,
     shouldShowCheckboxes: options.shouldShowCheckboxes,
     checkboxMode: options.checkboxMode,
+    cascadeSelectPolicy: options.cascadeSelectPolicy,
     shouldClickToggleCheckbox: options.shouldClickToggleCheckbox,
     beforeCheckboxToggleCallback: options.beforeCheckboxToggleCallback,
     onSelectionChange: options.onSelectionChange,

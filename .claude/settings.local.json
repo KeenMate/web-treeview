@@ -19,7 +19,11 @@
       "Bash(npx tsc:*)",
       "Bash(cp:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(node -p \"require\\('./package.json'\\).version\")",
+      "Bash(npm view *)",
+      "Bash(npm run *)",
+      "Bash(npm pack *)"
     ],
     "deny": [],
     "ask": []

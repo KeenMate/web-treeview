@@ -134,11 +134,16 @@ test.describe('Click Behavior tree', () => {
 
     await checkboxOf(nodeInCard(card, '1')).click();
 
+    // Emitted set uses the default cascadeSelectPolicy='rolled-up' (rc09): a
+    // fully-checked subtree collapses to its root, so only '1' is emitted — the
+    // descendants are covered by it, not listed.
     const selected = outputValue(card, 'Selected / Checked');
     await expect(selected).toContainText('1');
-    await expect(selected).toContainText('1.1');
-    await expect(selected).toContainText('1.2');
+    await expect(selected).not.toContainText('1.1');
+    await expect(selected).not.toContainText('1.2');
 
+    // The checkbox VISUAL state is still the full canonical set: every descendant
+    // is checked on screen even though the emitted projection rolls up to the root.
     await expect(checkboxOf(nodeInCard(card, '1'))).toBeChecked();
     await expect(checkboxOf(nodeInCard(card, '1.1'))).toBeChecked();
     await expect(checkboxOf(nodeInCard(card, '1.2'))).toBeChecked();

@@ -19,6 +19,8 @@ export type {
   NodeCallbacks,
   NodeConfig,
   ClickBehavior,
+  CheckboxMode,
+  CascadeSelectPolicy,
   SelectionModifiers,
   RangeSelectionMode,
   HighlightMode,
@@ -37,7 +39,10 @@ export type {
   NodeTransformContext,
   BeforeCopyContext,
   BeforeDeleteContext,
-  BeforePasteContext
+  BeforePasteContext,
+  BeforeDropContext,
+  DragStartContext,
+  DropGroup
 } from './controller/types';
 
 // Re-export clipboard types
@@ -69,7 +74,10 @@ import type {
   NodeTransformContext,
   BeforeCopyContext,
   BeforeDeleteContext,
-  BeforePasteContext
+  BeforePasteContext,
+  BeforeDropContext,
+  DragStartContext,
+  DropGroup
 } from './controller/types';
 import type { PasteResult } from './clipboard';
 import type { RenderStats } from './renderer/render-coordinator';
@@ -92,6 +100,10 @@ export interface TreeViewConfig<T = any> {
   isDropAllowedMember?: string | null;
   hasChildrenMember?: string | null;
   displayValueMember?: string | null;
+  /** Text shown for a node with no resolvable display value (neither
+   *  `displayValueMember` nor `getDisplayValueCallback` yields one — e.g. a
+   *  synthetic/dataless node). Default `'[N/A]'`; set `''` to render nothing. */
+  displayValueFallback?: string | null;
   searchValueMember?: string | null;
   isSelectableMember?: string | null;
   isCollapsibleMember?: string | null;
@@ -203,6 +215,12 @@ export interface TreeViewConfig<T = any> {
    *  to every descendant; partial selection shows an indeterminate state on
    *  the parent. */
   checkboxMode?: 'independent' | 'cascade';
+  /** Which paths the selection EMITS in cascade mode (a projection of the canonical
+   *  checked set, exposed by `getSelectedPaths()` + the `selection-change` event).
+   *  ONLY applies in cascade mode. `'rolled-up'` (default) — minimal cover (a
+   *  fully-checked subtree collapses to its root); `'leaves'` — only checked leaf
+   *  nodes; `'all'` — every fully-checked node. */
+  cascadeSelectPolicy?: 'rolled-up' | 'leaves' | 'all';
   /** When `true`, plain clicks on a selectable node toggle its checkbox
    *  instead of focusing/highlighting. Requires `shouldShowCheckboxes=true`. */
   shouldClickToggleCheckbox?: boolean;
@@ -260,12 +278,12 @@ export interface TreeViewConfig<T = any> {
   ) => { targetPath?: string; position?: DropPosition } | false | void;
   /** Narrow (return path[]) or block (false) the built-in Delete set. */
   beforeDeleteCallback?: (ctx: BeforeDeleteContext<T>) => string[] | false | void;
-  /** Per-node transform at snapshot time (copy/cut) — clean/redact fields before
-   *  they hit the shared clipboard. */
-  copyNodeTransformationCallback?: (data: T, ctx: NodeTransformContext<T>) => T;
-  /** Per-node transform at insert time (paste) — derive ids/values/names; return
-   *  null to SKIP a node (skipping a root skips its subtree). */
-  pasteNodeTransformationCallback?: (data: T, ctx: NodeTransformContext<T>) => T | null;
+  /** OUTPUT (egress) transform — per-node clean/redact at snapshot time (copy/cut +
+   *  the capture side of a copy-drop) before data hits the shared clipboard. */
+  nodeOutputTransformationCallback?: (data: T, ctx: NodeTransformContext<T>) => T;
+  /** INPUT (ingress) transform — per-node at insert time (paste + the insert side of
+   *  a copy-drop); derive ids/values/names; return null to SKIP a node (+ subtree). */
+  nodeInputTransformationCallback?: (data: T, ctx: NodeTransformContext<T>) => T | null;
   /** Fires after `copyNodes` succeeds. ctx = { operation:'copy', paths, nodes }. */
   onCopy?: (ctx: ClipboardEventContext<T>) => void;
   /** Fires after `cutNodes` succeeds. ctx = { operation:'cut', paths, nodes }. */
@@ -276,27 +294,43 @@ export interface TreeViewConfig<T = any> {
   onDelete?: (ctx: ClipboardEventContext<T>) => void;
   onNodeDragStart?: (ctx: NodeDragContext<T>) => void;
   onNodeDragOver?: (ctx: NodeDragContext<T>) => void;
-  /** Intercept — modify/block a drop. Deliberately kept 5-arg positional (asymmetric drop pair). */
+  /** Intercept — modify/block/route a drop. `false` blocks, `{ position?, operation? }`
+   *  redirects, a `DropGroup[]` fans it out to several destinations, `void` proceeds.
+   *  Async-capable. (Migrated rc13 from its 5-arg positional form.) */
   beforeDropCallback?: (
-    dropNode: LTreeNode<T> | null,
-    draggedNode: LTreeNode<T>,
-    position: DropPosition,
-    event: DragEvent | TouchEvent,
-    operation: DropOperation
+    ctx: BeforeDropContext<T>
   ) =>
     | boolean
     | { position?: DropPosition; operation?: DropOperation }
+    | DropGroup[]
     | void
     | Promise<
         | boolean
         | { position?: DropPosition; operation?: DropOperation }
+        | DropGroup[]
         | void
       >;
   onNodeDrop?: (ctx: NodeDropContext<T>) => void;
+  /** Source-side blocked-action event — a locked node was long-pressed / an
+   *  undraggable drag was attempted. Fires the `node-drag-denied` DOM event. */
+  onNodeDragDenied?: (ctx: NodeEventContext<T>) => void;
+  /** Target-side blocked-action event — a drop was rejected because the target
+   *  refuses it. Fires the `node-drop-denied` DOM event. */
+  onNodeDropDenied?: (ctx: NodeEventContext<T>) => void;
+  /** Set-level PRE-drag interceptor: prune/augment/veto the dragged set. Return a
+   *  `string[]` manifest (landing order), `false` to cancel, or `void` for default. */
+  beforeDragStartCallback?: (ctx: DragStartContext<T>) => string[] | false | void;
   /** Interceptor — return `true` to suppress default + built-in shortcuts. Runs first. */
   onTreeKeydown?: (ctx: TreeKeydownContext<T>) => boolean | void;
   /** Opt out of the built-in Ctrl/Cmd+C/X/V + Delete + Esc shortcuts. Default `true`. */
   shouldHandleKeyboardShortcuts?: boolean;
+  /** Long-press hold (ms) before a touch-drag engages. Default `300`. */
+  touchDragDelay?: number | null;
+  /** Built-in "can't move/drop this" feedback (🚫 badge + haptic). Default `true`. */
+  shouldIndicateUndraggable?: boolean | null;
+  /** Make the whole populated tree ONE drop target: a drop anywhere lands with
+   *  `target = null` regardless of per-node `getIsDropAllowedCallback`. Default `false`. */
+  shouldEnableTreeDropZone?: boolean | null;
 
   // Render callbacks
   renderStartCallback?: () => void;
@@ -421,6 +455,8 @@ export interface TreeEventMap<T = any> {
   'node-drag-start': CustomEvent<NodeDragContext<T>>;
   'node-drag-over': CustomEvent<NodeDragContext<T>>;
   'node-drop': CustomEvent<NodeDropContext<T>>;
+  'node-drag-denied': CustomEvent<NodeEventContext<T>>;
+  'node-drop-denied': CustomEvent<NodeEventContext<T>>;
   'data-changed': CustomEvent<{ data: T[] }>;
   'focused-node-changed': CustomEvent<{ focusedNode: LTreeNode<T> | null }>;
   'search-text-changed': CustomEvent<{ searchText: string }>;

@@ -76,7 +76,7 @@
             // Paste transform: skip files named "Q2.txt" (return null → skipped),
             // re-id everything else so pasted ids don't collide.
             let nextId = 1000;
-            tree.pasteNodeTransformationCallback = (d, ctx) => {
+            tree.nodeInputTransformationCallback = (d, ctx) => {
                 if (d.name === 'Q2.txt') return null;
                 return { ...d, id: ++nextId };
             };

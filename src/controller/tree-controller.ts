@@ -46,7 +46,10 @@ import type {
   NodeTransformContext,
   BeforeCopyContext,
   BeforeDeleteContext,
-  BeforePasteContext
+  BeforePasteContext,
+  BeforeDropContext,
+  DragStartContext,
+  DropGroup
 } from './types';
 import {
   setClipboard,
@@ -134,6 +137,13 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _shouldAutoHandlePaste: boolean = true;
   // Opt out of built-in Ctrl/Cmd+C/X/V + Delete + Esc shortcuts (default on).
   private _shouldHandleKeyboardShortcuts: boolean = true;
+  // Long-press hold (ms) before a touch-drag engages (svelte-treeview rc14).
+  private _touchDragDelay: number = 300;
+  // Whole populated tree is one drop target — a drop anywhere lands target=null
+  // regardless of per-node getIsDropAllowed (svelte-treeview rc13).
+  private _shouldEnableTreeDropZone: boolean = false;
+  // Built-in "can't move/drop this" feedback (🚫 badge + haptic). rc14.
+  private _shouldIndicateUndraggable: boolean = true;
 
   // Three-level selection model (rc06+)
   private _highlightedPaths: Set<string> = new Set();
@@ -143,6 +153,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _selectionMode: 'single' | 'multi' = 'single';
   private _shouldShowCheckboxes: boolean = false;
   private _checkboxMode: import('./types').CheckboxMode = 'independent';
+  // Which paths the selection EMITS in cascade mode (a projection of the canonical
+  // _selectedPaths). Only applies when checkboxMode === 'cascade'. rc14.
+  private _cascadeSelectPolicy: import('./types').CascadeSelectPolicy = 'rolled-up';
   private _shouldClickToggleCheckbox: boolean = false;
   private beforeCheckboxToggleCb: TreeControllerConfig<T>['beforeCheckboxToggleCallback'];
 
@@ -162,8 +175,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private onCutCb: TreeControllerConfig<T>['onCut'];
   private onPasteCb: TreeControllerConfig<T>['onPaste'];
   private onDeleteCb: TreeControllerConfig<T>['onDelete'];
-  private copyTransformCb: TreeControllerConfig<T>['copyNodeTransformationCallback'];
-  private pasteTransformCb: TreeControllerConfig<T>['pasteNodeTransformationCallback'];
+  private outputTransformCb: TreeControllerConfig<T>['nodeOutputTransformationCallback'];
+  private inputTransformCb: TreeControllerConfig<T>['nodeInputTransformationCallback'];
   // Manual double-click detection — the flat diff reconciler patches a row's
   // attributes on the first click (focus/highlight bumps _rev), which makes the
   // browser's native dblclick unreliable. Tracks the last plain UI click.
@@ -172,7 +185,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private nodeDragStartCb: TreeControllerConfig<T>['onNodeDragStart'];
   private nodeDragOverCb: TreeControllerConfig<T>['onNodeDragOver'];
   private beforeDropCallbackCb: TreeControllerConfig<T>['beforeDropCallback'];
+  private beforeDragStartCb: TreeControllerConfig<T>['beforeDragStartCallback'];
   private nodeDropCb: TreeControllerConfig<T>['onNodeDrop'];
+  private nodeDragDeniedCb: TreeControllerConfig<T>['onNodeDragDenied'];
+  private nodeDropDeniedCb: TreeControllerConfig<T>['onNodeDropDenied'];
   private onTreeKeydownCb: TreeControllerConfig<T>['onTreeKeydown'];
   /** @internal Used by renderers to check if a callback is available */
   contextMenuCallbackCb: TreeControllerConfig<T>['contextMenuCallback'];
@@ -234,6 +250,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   // OS-convention sync replaces it with the dragged node. Restored on
   // Esc-cancel so the user isn't left with the dragged node "stuck" selected.
   private _preDragHighlightSnapshot: Set<string> | null = null;
+  // Authoritative dragged-set manifest from beforeDragStartCallback (rc13). Null =
+  // no override (use the highlight set). Consulted by _draggedRefs + the multi-drag
+  // move/copy. Cleared on drag end. A curated override may omit descendants (holes).
+  private _dragSetOverride: string[] | null = null;
 
   // Touch drag
   private touchDragState: {
@@ -241,13 +261,22 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     startX: number;
     startY: number;
     isDragging: boolean;
+    /** A long-press landed on a NON-draggable node: we show the held 🚫 badge
+     *  instead of starting a drag, and swallow touchmove so it stays put. */
+    isDenied: boolean;
     ghostElement: HTMLElement | null;
     currentDropTarget: LTreeNode<any> | null;
   } = {
     node: null, startX: 0, startY: 0,
-    isDragging: false, ghostElement: null, currentDropTarget: null
+    isDragging: false, isDenied: false, ghostElement: null, currentDropTarget: null
   };
   private touchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Blocked-action ("can't move this") feedback (svelte-treeview rc14). The held
+  // 🚫 badge + its row's pulse class are torn down on touch release.
+  private _deniedBadgeEl: HTMLElement | null = null;
+  private _deniedRowEl: HTMLElement | null = null;
+  private _dropDeniedTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Progressive flat rendering
   private flatRenderedIds: Set<string> = new Set();
@@ -347,7 +376,23 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (this._checkboxMode === v) return;
     this._checkboxMode = v;
     this._reconcileVisualStatesForMode();
+    // The emitted projection depends on the mode — re-notify with the new view.
+    this._emitSelectionChange();
   }
+
+  get cascadeSelectPolicy() { return this._cascadeSelectPolicy; }
+  set cascadeSelectPolicy(v: import('./types').CascadeSelectPolicy) {
+    if (this._cascadeSelectPolicy === v) return;
+    this._cascadeSelectPolicy = v;
+    // Re-project the (unchanged) canonical set through the new policy and notify.
+    this._emitSelectionChange();
+    this._scheduleNotify();
+  }
+
+  /** The emitted (policy-projected) selection — what `getSelectedPaths()` and the
+   *  `selection-change` event expose. Equals the canonical set in independent mode
+   *  or under the 'all' policy. */
+  get emittedPaths(): Set<string> { return this._projectSelection(this._selectedPaths); }
 
   /** Bindable: the multi-select highlight set. */
   get highlightedPaths(): Set<string> { return this._highlightedPaths; }
@@ -411,6 +456,15 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   get shouldAutoHandleMove() { return this._shouldAutoHandleMove; }
   set shouldAutoHandleMove(v: boolean) { this._shouldAutoHandleMove = v; }
+
+  get touchDragDelay() { return this._touchDragDelay; }
+  set touchDragDelay(v: number) { this._touchDragDelay = v ?? 300; }
+
+  get shouldIndicateUndraggable() { return this._shouldIndicateUndraggable; }
+  set shouldIndicateUndraggable(v: boolean) { this._shouldIndicateUndraggable = v; }
+
+  get shouldEnableTreeDropZone() { return this._shouldEnableTreeDropZone; }
+  set shouldEnableTreeDropZone(v: boolean) { this._shouldEnableTreeDropZone = v; }
 
   get clickBehavior() { return this._clickBehavior; }
   set clickBehavior(v: import('./types').ClickBehavior) { this._clickBehavior = v; this._updateNodeConfig(); }
@@ -611,6 +665,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._selectionMode = props.selectionMode ?? 'single';
     this._shouldShowCheckboxes = props.shouldShowCheckboxes ?? false;
     this._checkboxMode = props.checkboxMode ?? 'independent';
+    this._cascadeSelectPolicy = props.cascadeSelectPolicy ?? 'rolled-up';
     this._shouldClickToggleCheckbox = props.shouldClickToggleCheckbox ?? false;
     this.beforeCheckboxToggleCb = props.beforeCheckboxToggleCallback;
 
@@ -632,6 +687,9 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._shouldAutoHandleMove = props.shouldAutoHandleMove ?? true;
     this._shouldAutoHandlePaste = props.shouldAutoHandlePaste ?? true;
     this._shouldHandleKeyboardShortcuts = props.shouldHandleKeyboardShortcuts ?? true;
+    this._touchDragDelay = props.touchDragDelay ?? 300;
+    this._shouldIndicateUndraggable = props.shouldIndicateUndraggable ?? true;
+    this._shouldEnableTreeDropZone = props.shouldEnableTreeDropZone ?? false;
 
     this._isVirtualScrollEnabled = props.isVirtualScrollEnabled ?? false;
     this._virtualRowHeight = props.virtualRowHeight;
@@ -675,12 +733,15 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this.onCutCb = props.onCut;
     this.onPasteCb = props.onPaste;
     this.onDeleteCb = props.onDelete;
-    this.copyTransformCb = props.copyNodeTransformationCallback;
-    this.pasteTransformCb = props.pasteNodeTransformationCallback;
+    this.outputTransformCb = props.nodeOutputTransformationCallback;
+    this.inputTransformCb = props.nodeInputTransformationCallback;
     this.nodeDragStartCb = props.onNodeDragStart;
     this.nodeDragOverCb = props.onNodeDragOver;
     this.beforeDropCallbackCb = props.beforeDropCallback;
+    this.beforeDragStartCb = props.beforeDragStartCallback;
     this.nodeDropCb = props.onNodeDrop;
+    this.nodeDragDeniedCb = props.onNodeDragDenied;
+    this.nodeDropDeniedCb = props.onNodeDropDenied;
     this.onTreeKeydownCb = props.onTreeKeydown;
     this.contextMenuCallbackCb = props.contextMenuCallback;
     this.renderStartCb = props.renderStartCallback;
@@ -723,7 +784,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       {
         shouldDisplayDebugInformation: props.shouldDisplayDebugInformation,
         isSorted: props.isSorted,
-        sortCallback: props.sortCallback
+        sortCallback: props.sortCallback,
+        displayValueFallback: props.displayValueFallback ?? '[N/A]'
       }
     );
 
@@ -954,12 +1016,35 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   private _draggedRefs(draggedNode: LTreeNode<T> | null): NodeRef<T>[] {
     if (!draggedNode) return [];
     if (draggedNode.treeId === this._treeId) {
+      // A beforeDragStartCallback override is authoritative: resolve its paths
+      // directly (bypassing the highlight-derived set AND the isDraggable gate,
+      // since a forced-in node is the whole point).
+      if (this._dragSetOverride) {
+        return this._dragSetOverride
+          .map((p) => this.tree?.getNodeByPath(p) ?? null)
+          .filter((n): n is LTreeNode<T> => !!n)
+          .map((n) => this.nodeRef(n));
+      }
       return this._draggedTopLevel(draggedNode).map((n) => this.nodeRef(n));
     }
     const set = getDragSet();
     const paths =
       set && set.sourceTreeId === draggedNode.treeId ? set.paths : [draggedNode.path];
     return paths.map((p) => this.nodeRef(p));
+  }
+
+  /** Normalize a consumer drag manifest (from beforeDragStartCallback): dedupe and
+   *  guarantee the lead stays (you can prune siblings but not the node under the
+   *  cursor). Descendants are KEPT — moveNodes treats an omitted descendant as a
+   *  hole. Order is preserved (= landing order). (svelte-treeview rc13) */
+  private _normalizeDragManifest(paths: string[], leadPath: string): string[] {
+    const seen = new Set<string>();
+    const deduped: string[] = [];
+    for (const p of paths) {
+      if (!seen.has(p)) { seen.add(p); deduped.push(p); }
+    }
+    if (!seen.has(leadPath)) deduped.push(leadPath);
+    return deduped;
   }
 
   // ── Tree editor mutation methods ────────────────────────────────────
@@ -1081,7 +1166,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   copyNodeWithDescendants(
     sourceNode: LTreeNode<T>,
     targetParentPath: string,
-    transformData: (data: T) => T,
+    transformData: (data: T, node: LTreeNode<T>) => T | null,
     siblingPath?: string,
     position?: 'before' | 'after'
   ): { success: boolean; rootNode?: LTreeNode<T>; count: number; error?: string } {
@@ -1091,6 +1176,255 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     ) || { success: false, count: 0, error: 'Tree not initialized' };
     queueMicrotask(() => { this._skipInsertArray = false; });
     return result;
+  }
+
+  /**
+   * Expand a set of paths into a COMPLETE manifest: every descendant of every
+   * member is added. moveNodes/duplicateNodes treat a manifest as authoritative —
+   * a descendant PRESENT rides along, one ABSENT is a hole — so callers that just
+   * want whole subtrees (multi-drag, DropGroup routing) must complete their set
+   * first, else every unlisted descendant reads as a hole. (svelte-treeview rc13)
+   */
+  private _completeManifest(paths: string[]): string[] {
+    if (!this.tree) return paths;
+    const set = new Set<string>(paths);
+    for (const p of paths) {
+      const n = this.tree.getNodeByPath(p);
+      if (n) for (const dp of this._getDescendantPaths(n)) set.add(dp);
+    }
+    return [...set];
+  }
+
+  /**
+   * Complete a set of top-level dragged refs into the flattened manifest of live
+   * NodeRefs (every descendant included) for beforeDragStartCallback's
+   * ctx.dragged. Same-tree only (nodes are live at drag start).
+   */
+  private _completeDraggedRefs(refs: NodeRef<T>[]): NodeRef<T>[] {
+    return this._completeManifest(refs.map((r) => r.path)).map((p) => this.nodeRef(p));
+  }
+
+  /**
+   * Batch-move a COMPLETE manifest of nodes under a target, honoring "holes".
+   * A descendant ABSENT from the manifest is left behind by re-homing it to its
+   * moved root's OLD parent (it physically stays put). Every source is resolved to
+   * a live ref up front, so per-move path reassignment can't stale later items.
+   * Cross-tree nodes (treeId mismatch) are skipped. Roots (manifest entries whose
+   * parent isn't in the manifest) chain in landing order: first at target/position,
+   * the rest 'after'. (svelte-treeview rc13)
+   */
+  moveNodes(
+    paths: string[],
+    targetPath: string,
+    position: DropPosition
+  ): { success: boolean; movedNodes: LTreeNode<T>[]; leftBehind: LTreeNode<T>[]; error?: string } {
+    const tree = this.tree;
+    if (!tree)
+      return { success: false, movedNodes: [], leftBehind: [], error: 'Tree not initialized' };
+
+    const manifest = new Set(paths);
+    const resolved = paths
+      .map((p) => tree.getNodeByPath(p))
+      .filter((n): n is LTreeNode<T> => !!n && n.treeId === this._treeId);
+    let allOk = resolved.length === paths.length;
+
+    const roots = resolved.filter((n) => !n.parentPath || !manifest.has(n.parentPath));
+
+    // Holes: a descendant whose PARENT is kept (in the manifest) but which is
+    // itself ABSENT is a boundary hole — re-home it to its moved root's OLD parent.
+    const holes: { node: LTreeNode<T>; toParent: string }[] = [];
+    for (const root of roots) {
+      const oldParent = root.parentPath ?? '';
+      for (const dp of this._getDescendantPaths(root)) {
+        if (manifest.has(dp)) continue;
+        const parent = dp.substring(0, dp.lastIndexOf(this._treePathSeparator));
+        if (!manifest.has(parent)) continue; // parent is also a hole → rides inside it
+        const node = tree.getNodeByPath(dp);
+        if (node) holes.push({ node, toParent: oldParent });
+      }
+    }
+
+    const leftBehind: LTreeNode<T>[] = [];
+    for (const hole of holes) {
+      const r = this.moveNode(hole.node.path, hole.toParent, 'child');
+      if (r.success) leftBehind.push(hole.node);
+      else allOk = false;
+    }
+
+    const movedNodes: LTreeNode<T>[] = [];
+    let prevMovedNode: LTreeNode<T> | null = null;
+    for (const root of roots) {
+      const tp = prevMovedNode ? prevMovedNode.path : targetPath;
+      const pos: DropPosition = prevMovedNode ? 'after' : position;
+      const r = this.moveNode(root.path, tp, pos);
+      if (r.success) {
+        prevMovedNode = root; // moveNode mutates in place → root.path is the new path
+        movedNodes.push(root);
+      } else {
+        allOk = false;
+      }
+    }
+
+    return { success: allOk, movedNodes, leftBehind };
+  }
+
+  /**
+   * Batch-DUPLICATE a COMPLETE manifest — the copy-side twin of moveNodes. A
+   * descendant ABSENT from the manifest is a hole, but a copy has nothing to
+   * re-home, so the hole is simply NOT copied. Roots chain in source order under
+   * the target; each node's data flows through `transform` (the INPUT transform;
+   * return null to skip). `sourceTree` defaults to this tree — pass another tree's
+   * Ltree to copy its live nodes in (cross-tree). (svelte-treeview rc13)
+   */
+  duplicateNodes(
+    paths: string[],
+    targetPath: string,
+    position: DropPosition,
+    transform?: (data: T, ctx: NodeTransformContext<T>) => T | null,
+    sourceTree?: Ltree<T>
+  ): { success: boolean; copiedNodes: LTreeNode<T>[]; skipped: number; error?: string } {
+    const tree = this.tree;
+    if (!tree)
+      return { success: false, copiedNodes: [], skipped: 0, error: 'Tree not initialized' };
+    const src = sourceTree ?? tree;
+    const manifest = new Set(paths);
+
+    const resolved = paths.map((p) => src.getNodeByPath(p)).filter((n): n is LTreeNode<T> => !!n);
+    const roots = resolved.filter((n) => !n.parentPath || !manifest.has(n.parentPath));
+    if (!roots.length)
+      return { success: false, copiedNodes: [], skipped: 0, error: 'No source roots resolved' };
+
+    // Leaf-aware landing: a 'child' copy onto a node that disallows 'child' lands
+    // beside it (inside its parent), mirroring pasteNodes + the drag position rules.
+    let landTargetPath = targetPath;
+    if (position === 'child' && landTargetPath !== '') {
+      const t = tree.getNodeByPath(landTargetPath);
+      if (t) {
+        const allowed = this.getNodeAllowedDropPositions(t);
+        if (allowed && allowed.length > 0 && !allowed.includes('child')) {
+          landTargetPath = t.parentPath ?? '';
+        }
+      }
+    }
+    const parentPath =
+      position === 'child'
+        ? landTargetPath
+        : (tree.getNodeByPath(landTargetPath)?.parentPath ?? '');
+
+    const ctxFor = (
+      srcNode: LTreeNode<T>,
+      isRoot: boolean,
+      idx: number
+    ): NodeTransformContext<T> => {
+      const srcParentPath = srcNode.parentPath ?? null;
+      const srcParent = srcParentPath ? (src.getNodeByPath(srcParentPath) ?? null) : null;
+      const anchorNode = landTargetPath ? (tree.getNodeByPath(landTargetPath) ?? null) : null;
+      const anchorParentPath = anchorNode?.parentPath ?? null;
+      return {
+        operation: 'copy',
+        phase: 'input',
+        isRoot,
+        index: idx,
+        position,
+        source: {
+          path: srcNode.path,
+          node: srcNode,
+          parent: srcParent,
+          siblings: srcParent ? (Object.values(srcParent.children) as LTreeNode<T>[]) : []
+        },
+        target: {
+          path: landTargetPath,
+          node: anchorNode,
+          parent: anchorParentPath ? (tree.getNodeByPath(anchorParentPath) ?? null) : null,
+          siblings: this.getChildren(anchorParentPath ?? '')
+        }
+      };
+    };
+
+    this._skipInsertArray = true;
+    const copiedNodes: LTreeNode<T>[] = [];
+    let skipped = 0;
+    let lastError: string | undefined;
+    let prevRootPath: string | null = null;
+
+    for (let index = 0; index < roots.length; index++) {
+      const root = roots[index];
+      const siblingPath =
+        prevRootPath !== null ? prevRootPath : position !== 'child' ? landTargetPath : undefined;
+      const rootPosition: 'before' | 'after' | undefined =
+        prevRootPath !== null ? 'after' : position !== 'child' ? (position as 'before' | 'after') : undefined;
+
+      // Per-node wrapper: gate on the manifest (an absent descendant is a hole →
+      // NOT copied), then run the caller's input transform with a full context.
+      const wrapped = (data: T, srcNode: LTreeNode<T>): T | null => {
+        if (!manifest.has(srcNode.path)) return null; // hole → skip node + subtree
+        if (!transform) return data;
+        return transform(data, ctxFor(srcNode, srcNode === root, index));
+      };
+
+      const result = tree.copyNodeWithDescendants(root, parentPath, wrapped, siblingPath, rootPosition);
+      if (result.success && result.rootNode) {
+        copiedNodes.push(result.rootNode);
+        prevRootPath = result.rootNode.path;
+      } else {
+        lastError = result.error;
+        skipped++;
+      }
+    }
+
+    queueMicrotask(() => { this._skipInsertArray = false; });
+
+    return {
+      success: copiedNodes.length > 0,
+      copiedNodes,
+      skipped,
+      error: copiedNodes.length === 0 ? (lastError ?? 'No nodes copied') : undefined
+    };
+  }
+
+  /** Default INPUT transform for a copy-drop when the consumer supplies no
+   *  pasteNodeTransformationCallback: uniquify the id so the duplicate doesn't
+   *  collide with the original. */
+  private _defaultCopyTransform = (data: T): T => {
+    const idKey = this.tree?.idMember || 'id';
+    const raw = data as Record<string, unknown>;
+    return { ...raw, [idKey]: `${raw[idKey]}_copy_${Date.now()}` } as T;
+  };
+
+  /**
+   * Execute a beforeDropCallback `DropGroup[]` (content-addressed routing). Each
+   * group's paths (whole-subtree roots) are completed to a manifest and moved to
+   * the group's target/position via moveNodes; targets + sources are resolved to
+   * live refs up front so per-move path reassignment can't stale them. Cross-tree
+   * paths (not in this tree) are skipped for the consumer to place. Fires drop once
+   * with all placed nodes. (svelte-treeview rc13)
+   */
+  private _executeDropGroups(
+    groups: DropGroup[],
+    fireDrop: (dropped: LTreeNode<T>[] | null) => void
+  ): boolean {
+    const resolved = groups
+      .filter((g) => g?.targetPath && g.paths?.length)
+      .map((g) => ({
+        targetNode: this.tree?.getNodeByPath(g.targetPath) ?? null,
+        targetPath: g.targetPath,
+        position: g.position ?? ('child' as DropPosition),
+        nodes: g.paths
+          .map((p) => this.tree?.getNodeByPath(p) ?? null)
+          .filter((n): n is LTreeNode<T> => !!n)
+      }));
+
+    const movedNodes: LTreeNode<T>[] = [];
+    let allOk = true;
+    for (const group of resolved) {
+      if (!group.nodes.length) continue;
+      const manifest = this._completeManifest(group.nodes.map((n) => n.path));
+      const r = this.moveNodes(manifest, group.targetNode?.path ?? group.targetPath, group.position);
+      movedNodes.push(...r.movedNodes);
+      if (!r.success) allOk = false;
+    }
+    fireDrop(movedNodes.length ? movedNodes : null);
+    return allOk;
   }
 
   insertBranch(parentPath: string, data: T[]): { success: boolean; count: number; error?: string } {
@@ -1378,7 +1712,49 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   /** Emit the `selectionChangeCallback` callback (checkbox state). */
   private _emitSelectionChange(): void {
-    this.selectionChangeCb?.({ paths: new Set(this._selectedPaths), nodes: this.getSelectedNodes() });
+    if (!this.selectionChangeCb) return;
+    const paths = this._projectSelection(this._selectedPaths);
+    const nodes: LTreeNode<T>[] = [];
+    for (const p of paths) {
+      const n = this.tree?.getNodeByPath(p);
+      if (n) nodes.push(n);
+    }
+    this.selectionChangeCb({ paths, nodes });
+  }
+
+  /**
+   * Project the canonical checked set through the active `cascadeSelectPolicy` to
+   * produce the EMITTED selection. Pure — reads visualState/isSelected off the live
+   * tree, never mutates. Independent mode OR 'all' → the canonical set as-is;
+   * 'leaves' → only checked leaf nodes; 'rolled-up' → a fully-checked selectable
+   * branch collapses to its root (stop descending), indeterminate branches descend
+   * to emit their checked bits. (svelte-treeview rc14)
+   */
+  private _projectSelection(canonical: Set<string>): Set<string> {
+    if (this._checkboxMode !== 'cascade' || this._cascadeSelectPolicy === 'all' || !this.tree) {
+      return new Set(canonical);
+    }
+    const policy = this._cascadeSelectPolicy;
+    const out = new Set<string>();
+    const walk = (node: LTreeNode<T>) => {
+      const vs = this._computeVisualState(node);
+      if (vs === VisualState.notSelected) return;
+      const children = Object.values(node.children);
+      const selectable = node.isSelectable !== false;
+      if (policy === 'leaves') {
+        if (children.length === 0 && node.isSelected && selectable) out.add(node.path);
+        for (const child of children) walk(child);
+        return;
+      }
+      // rolled-up: a fully-checked selectable node covers its whole subtree.
+      if (vs === VisualState.selected && selectable) {
+        out.add(node.path);
+        return;
+      }
+      for (const child of children) walk(child);
+    };
+    for (const root of this.tree.tree) walk(root);
+    return out;
   }
 
   /** When `shouldShowCheckboxes` is false, the highlight set IS the selection set —
@@ -1403,9 +1779,11 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     return nodes;
   }
 
-  /** Get a snapshot of the selected-path set (checkbox state). */
+  /** The EMITTED (policy-projected) checkbox set — the minimal cover in cascade
+   *  'rolled-up' mode, the leaves in 'leaves', or the full canonical set in 'all' /
+   *  independent mode. Use the `selectedPaths` getter for the raw canonical set. */
   getSelectedPaths(): Set<string> {
-    return new Set(this._selectedPaths);
+    return this._projectSelection(this._selectedPaths);
   }
 
   /** Check if a node is in the selected (checked) set. */
@@ -2072,7 +2450,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         ? targetPath
         : targetNodeAfter!.parentPath ?? '';
 
-    const transform = transformData ?? this.pasteTransformCb ?? null;
+    const transform = transformData ?? this.inputTransformCb ?? null;
     const apply = (data: T, ctx: NodeTransformContext<T>): T | null =>
       transform ? transform(data, ctx) : data;
     const sameTree = clip.sourceTreeId === this._treeId;
@@ -2119,7 +2497,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       const tgtParentPath = tgtNode?.parentPath ?? null;
       return {
         operation,
-        phase: 'paste',
+        phase: 'input',
         isRoot,
         index: idx,
         position: pos,
@@ -2334,7 +2712,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     }
     if ((mod && key === 'v') || (event.shiftKey && isInsert)) {
       if (!hasClipboardFn()) return false;
-      this.pasteNodes(this._focusedNode?.path ?? '', this.pasteTransformCb ?? null, 'child');
+      this.pasteNodes(this._focusedNode?.path ?? '', this.inputTransformCb ?? null, 'child');
       return true;
     }
     // Delete selection — plain Delete only (Shift+Delete was cut, handled above).
@@ -2374,7 +2752,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
    * parent-first with paths relative to the source node (INCLUDING the leading
    * separator, e.g. ".2" under "1"). The optional copy transform cleans each
    * snapshot before it lands on the shared clipboard — it gets the SAME
-   * NodeTransformContext the paste transform sees (phase: 'copy', target: null).
+   * NodeTransformContext the input transform sees (phase: 'output', target: null).
    */
   private _collectClipboardEntry(
     node: LTreeNode<T>,
@@ -2383,10 +2761,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
   ): ClipboardEntry<T> {
     const snapshot = (n: LTreeNode<T>, isRoot: boolean): T => {
       const snap = JSON.parse(JSON.stringify(n.data)) as T;
-      if (!this.copyTransformCb) return snap;
-      return this.copyTransformCb(snap, {
+      if (!this.outputTransformCb) return snap;
+      return this.outputTransformCb(snap, {
         operation,
-        phase: 'copy',
+        phase: 'output',
         isRoot,
         index: rootIndex,
         position: null,
@@ -2872,6 +3250,13 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         this._reconcileVisualStatesForMode();
       }
     }
+    if (updates.cascadeSelectPolicy !== undefined) {
+      const nextPolicy = updates.cascadeSelectPolicy ?? 'rolled-up';
+      if (nextPolicy !== this._cascadeSelectPolicy) {
+        this._cascadeSelectPolicy = nextPolicy;
+        this._emitSelectionChange(); // re-project the unchanged canonical set
+      }
+    }
     if (updates.shouldClickToggleCheckbox !== undefined)
       this._shouldClickToggleCheckbox = updates.shouldClickToggleCheckbox ?? false;
     if (updates.beforeCheckboxToggleCallback !== undefined)
@@ -2920,6 +3305,12 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this._shouldAutoHandlePaste = updates.shouldAutoHandlePaste ?? true;
     if (updates.shouldHandleKeyboardShortcuts !== undefined)
       this._shouldHandleKeyboardShortcuts = updates.shouldHandleKeyboardShortcuts ?? true;
+    if (updates.touchDragDelay !== undefined)
+      this._touchDragDelay = updates.touchDragDelay ?? 300;
+    if (updates.shouldIndicateUndraggable !== undefined)
+      this._shouldIndicateUndraggable = updates.shouldIndicateUndraggable ?? true;
+    if (updates.shouldEnableTreeDropZone !== undefined)
+      this._shouldEnableTreeDropZone = updates.shouldEnableTreeDropZone ?? false;
     if (updates.dragDropMode !== undefined)
       this._dragDropMode = updates.dragDropMode ?? 'none';
     if (updates.scrollHighlightTimeout !== undefined)
@@ -2930,6 +3321,19 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this._contextMenuXOffset = updates.contextMenuXOffset ?? 8;
     if (updates.contextMenuYOffset !== undefined)
       this._contextMenuYOffset = updates.contextMenuYOffset ?? 0;
+
+    // Display-value fallback — mutable on the tree (member → callback → fallback).
+    // A change re-renders the fallback labels; since the DOM renderer diffs on
+    // data-rev, bump revs of the visible nodes so they repaint. (No recreation:
+    // it's not a baked member.) Applied before any recreation below, so a rebuild
+    // reads the updated value through createLTree's opts.
+    if (updates.displayValueFallback !== undefined && this.tree) {
+      const nextFallback = updates.displayValueFallback ?? '[N/A]';
+      if (this.tree.displayValueFallback !== nextFallback) {
+        this.tree.displayValueFallback = nextFallback;
+        for (const n of this.tree.visibleFlatNodes ?? []) n._rev = (n._rev || 0) + 1;
+      }
+    }
 
     // Per-node icons
     if (updates.iconMember !== undefined) this._iconMember = updates.iconMember ?? undefined;
@@ -2958,14 +3362,17 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (updates.onCut !== undefined) this.onCutCb = updates.onCut;
     if (updates.onPaste !== undefined) this.onPasteCb = updates.onPaste;
     if (updates.onDelete !== undefined) this.onDeleteCb = updates.onDelete;
-    if (updates.copyNodeTransformationCallback !== undefined) this.copyTransformCb = updates.copyNodeTransformationCallback;
-    if (updates.pasteNodeTransformationCallback !== undefined) this.pasteTransformCb = updates.pasteNodeTransformationCallback;
+    if (updates.nodeOutputTransformationCallback !== undefined) this.outputTransformCb = updates.nodeOutputTransformationCallback;
+    if (updates.nodeInputTransformationCallback !== undefined) this.inputTransformCb = updates.nodeInputTransformationCallback;
     if (updates.nodeClass !== undefined) { this._nodeClass = updates.nodeClass; this._updateNodeConfig(); }
     if (updates.nodeContentClass !== undefined) { this._nodeContentClass = updates.nodeContentClass; this._updateNodeConfig(); }
     if (updates.onNodeDragStart !== undefined) this.nodeDragStartCb = updates.onNodeDragStart;
     if (updates.onNodeDragOver !== undefined) this.nodeDragOverCb = updates.onNodeDragOver;
     if (updates.beforeDropCallback !== undefined) this.beforeDropCallbackCb = updates.beforeDropCallback;
+    if (updates.beforeDragStartCallback !== undefined) this.beforeDragStartCb = updates.beforeDragStartCallback;
     if (updates.onNodeDrop !== undefined) this.nodeDropCb = updates.onNodeDrop;
+    if (updates.onNodeDragDenied !== undefined) this.nodeDragDeniedCb = updates.onNodeDragDenied;
+    if (updates.onNodeDropDenied !== undefined) this.nodeDropDeniedCb = updates.onNodeDropDenied;
     if (updates.onTreeKeydown !== undefined) this.onTreeKeydownCb = updates.onTreeKeydown;
     if (updates.contextMenuCallback !== undefined) this.contextMenuCallbackCb = updates.contextMenuCallback;
     if (updates.hasContextMenuRenderer !== undefined) this._hasContextMenuRenderer = updates.hasContextMenuRenderer;
@@ -3028,7 +3435,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         {
           shouldDisplayDebugInformation: this._shouldDisplayDebugInformation,
           isSorted: updates.isSorted ?? this.tree.isSorted,
-          sortCallback: updates.sortCallback
+          sortCallback: updates.sortCallback,
+          displayValueFallback: updates.displayValueFallback ?? this.tree.displayValueFallback
         }
       );
       this.tree.onChange = () => this._onTreeChanged();
@@ -3112,6 +3520,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (typeof document !== 'undefined') {
       this._removeDocumentTouchListeners();
       this.removeGhostElement();
+      this._clearDragDenied();
+      if (this._dropDeniedTimer) { clearTimeout(this._dropDeniedTimer); this._dropDeniedTimer = null; }
       document.querySelectorAll('.wtv__touch-ghost').forEach(el => el.remove());
     }
     this._contextMenuCleanup?.();
@@ -3532,10 +3942,49 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     });
     this._draggedNode = node;
     this._isDragInProgress = true;
-    // Publish the top-level dragged paths so a CROSS-TREE target can expose the
-    // full multi-drag set via ctx.dragged (it can't see our highlight set).
-    const draggedRefs = this._draggedRefs(node);
-    setDragSet(this._treeId, draggedRefs.map((r) => r.path));
+
+    // Set-level PRE-drag interceptor (rc13): build the tree's default dragged set,
+    // hand the consumer the COMPLETE flattened set, and let them REPLACE it (prune
+    // and/or force-add), cancel the drag, or leave it. Runs BEFORE the cross-tree
+    // publish + onNodeDragStart so both see the final set.
+    this._dragSetOverride = null;
+    let draggedRefs = this._draggedRefs(node);
+    if (this.beforeDragStartCb) {
+      const decision = this.beforeDragStartCb({
+        lead: this.nodeRef(node),
+        dragged: this._completeDraggedRefs(draggedRefs),
+        event
+      });
+      if (decision === false) {
+        event.preventDefault();
+        this._draggedNode = null;
+        this._isDragInProgress = false;
+        this._dragSetOverride = null;
+        dragLogger.debug('[before-drag-start] drag cancelled by callback', { path: node.path });
+        return;
+      }
+      if (Array.isArray(decision)) {
+        this._dragSetOverride = this._normalizeDragManifest(decision, node.path);
+        draggedRefs = this._draggedRefs(node); // republish through the override
+      }
+    }
+
+    // Publish the top-level dragged paths (→ ctx.dragged cross-tree) PLUS the
+    // PLACEMENT manifest a cross-tree auto-copy feeds to duplicateNodes: a curated
+    // override keeps its holes; a plain drag is completed so whole subtrees copy.
+    const placementManifest =
+      this._dragSetOverride ?? this._completeManifest(draggedRefs.map((r) => r.path));
+    setDragSet(this._treeId, draggedRefs.map((r) => r.path), placementManifest);
+    // ALSO stash it in the dataTransfer: the module-level dragSet is cleared on the
+    // source's dragend, which can fire BEFORE the target's drop under synthetic DnD.
+    if (event.dataTransfer) {
+      try {
+        event.dataTransfer.setData(
+          'application/svelte-treeview-manifest',
+          JSON.stringify({ sourceTreeId: this._treeId, manifest: placementManifest })
+        );
+      } catch { /* setData can throw outside a dragstart — dragSet still covers it */ }
+    }
     this.nodeDragStartCb?.({ ...this.nodeRef(node), event, dragged: draggedRefs });
 
     // OS-convention highlight sync: grabbing a node that isn't part of the
@@ -3634,6 +4083,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._activeDropPosition = null;
     this._isDropPlaceholderActive = false;
     this._currentDropOperation = 'move';
+    this._dragSetOverride = null;
     clearDragSet();
     this._scheduleNotify();
   }
@@ -3658,17 +4108,6 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       isCrossTree: draggedNodeRef.treeId !== this._treeId
     });
 
-    if (this.beforeDropCallbackCb) {
-      const result = await this.beforeDropCallbackCb(
-        dropNode, draggedNodeRef, position, event, operation
-      );
-      if (result === false) return false;
-      if (result && typeof result === 'object') {
-        if ('position' in result && result.position) position = result.position;
-        if ('operation' in result && result.operation) operation = result.operation;
-      }
-    }
-
     const isSameTreeDrag = draggedNodeRef.treeId === this._treeId;
 
     // Full top-level dragged set as NodeRefs — captured BEFORE any move mutates
@@ -3676,26 +4115,54 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     // (cross-tree). Feeds ctx.dragged on every drop, single- or multi-origin.
     const draggedRefs = this._draggedRefs(draggedNodeRef);
 
-    // Multi-drag: when the dragged node is in a multi-highlight set, move
-    // every top-level highlighted subtree. First node uses the requested
-    // position; subsequent nodes chain `'after'` the previous so the whole
-    // set lands as siblings in source order. Mirrors svelte-treeview rc09.
+    // One fire path for every branch: `dropped` = the nodes the library actually
+    // placed (null when it didn't — cross-tree/consumer-owned or auto-handle off).
+    const fireDrop = (dropped: LTreeNode<T>[] | null) => {
+      this._fireNodeDrop(dropNode, draggedNodeRef, draggedRefs, dropped, position, operation, event);
+    };
+
+    if (this.beforeDropCallbackCb) {
+      const result = await this.beforeDropCallbackCb({
+        target: dropNode ? this.nodeRef(dropNode) : null,
+        dragged: draggedRefs,
+        position,
+        operation,
+        event
+      });
+      if (result === false) return false;
+      if (Array.isArray(result)) {
+        // Content-addressed routing: fan the drop out to the returned groups.
+        // Same-tree nodes are moved by the library; cross-tree nodes are left for
+        // the consumer's onNodeDrop. Paths in no group aren't placed.
+        return this._executeDropGroups(result, fireDrop);
+      }
+      if (result && typeof result === 'object') {
+        if ('position' in result && result.position) position = result.position;
+        if ('operation' in result && result.operation) operation = result.operation;
+      }
+    }
+
+    // Multi-drag: when the dragged node is in a multi-highlight set (or a
+    // beforeDragStart override carries >1 top-level path), move the whole set as
+    // top-level subtrees via moveNodes, which resolves refs up front, picks the
+    // roots, and chains them in source order under the target. (svelte-treeview rc13)
     const isMultiDrag =
       isSameTreeDrag &&
       operation === 'move' &&
       dropNode &&
       this._shouldAutoHandleMove &&
-      this._highlightedPaths.has(draggedNodeRef.path) &&
-      this._highlightedPaths.size > 1;
+      (this._dragSetOverride
+        ? this._dragSetOverride.length > 1
+        : this._highlightedPaths.has(draggedNodeRef.path) && this._highlightedPaths.size > 1);
 
     if (isMultiDrag) {
-      const topLevelPaths = this._getTopLevelHighlightedPaths()
+      const topLevelPaths = (this._dragSetOverride ?? this._getTopLevelHighlightedPaths())
         .filter((p) => p !== dropNode!.path)
-        // Respect per-node draggability: a locked node (isDraggable=false) that
-        // merely happens to be in the highlight set must NOT ride along. The
-        // single-drag path is already gated at drag *start*, but multi-drag
-        // pulls straight from highlightedPaths, so it has to re-check here.
+        // Respect per-node draggability: a locked node merely in the highlight set
+        // must NOT ride along. An explicit override skips this gate (the consumer
+        // forced these in on purpose).
         .filter((p) => {
+          if (this._dragSetOverride) return !!this.tree.getNodeByPath(p);
           const n = this.tree.getNodeByPath(p);
           return n ? this.getNodeIsDraggable(n) : false;
         });
@@ -3705,67 +4172,90 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
         dropTarget: dropNode!.path,
         position
       });
-      let allOk = true;
-      let prevMovedNode: LTreeNode<T> | null = null;
-      const movedNodes: LTreeNode<T>[] = [];
-      for (let i = 0; i < topLevelPaths.length; i++) {
-        const sourcePath = topLevelPaths[i];
-        const targetPath = i === 0 ? dropNode!.path : prevMovedNode!.path;
-        // Chain: first move uses the requested position, subsequent moves
-        // land 'after' the previously moved node so the whole set arrives
-        // in source order.
-        const pos: DropPosition = i === 0 ? position : 'after';
-        const sourceNode = this.tree?.getNodeByPath(sourcePath);
-        const r = this.moveNode(sourcePath, targetPath, pos);
-        if (!r.success) {
-          allOk = false;
-        } else if (sourceNode) {
-          // moveNode mutates the LTreeNode in place — its .path now reflects
-          // the new location, so we can use it as the next chain target.
-          prevMovedNode = sourceNode;
-          movedNodes.push(sourceNode);
-        }
-      }
-      this._fireNodeDrop(dropNode, draggedNodeRef, draggedRefs, movedNodes, position, operation, event);
-      return allOk;
+      // A curated override IS the manifest as-is (its omissions are holes moveNodes
+      // leaves behind); a plain highlight set has no holes, so complete it → whole
+      // subtrees move.
+      const manifest = this._dragSetOverride ? topLevelPaths : this._completeManifest(topLevelPaths);
+      const result = this.moveNodes(manifest, dropNode!.path, position);
+      fireDrop(result.movedNodes);
+      return result.success;
     }
 
     if (isSameTreeDrag && operation === 'move' && dropNode) {
       if (this._shouldAutoHandleMove) {
         const result = this.moveNode(draggedNodeRef.path, dropNode.path, position);
-        // moveNode mutates draggedNodeRef in place — its .path now points at the
-        // new home, so it doubles as the placed ("dropped") node.
-        this._fireNodeDrop(dropNode, draggedNodeRef, draggedRefs, result.success ? [draggedNodeRef] : null, position, operation, event);
+        // moveNode mutates in place → draggedNodeRef IS the landed node.
+        fireDrop(result.success ? [draggedNodeRef] : null);
         return result.success;
       }
       // shouldAutoHandleMove=false: don't mutate the tree, just notify the consumer
-      this._fireNodeDrop(dropNode, draggedNodeRef, draggedRefs, null, position, operation, event);
+      fireDrop(null);
       return true;
     }
 
     if (isSameTreeDrag && operation === 'copy' && dropNode && this._shouldAutoHandleCopy) {
-      const targetParentPath =
-        position === 'child' ? dropNode.path : dropNode.parentPath || '';
-      const siblingPath = position !== 'child' ? dropNode.path : undefined;
-      const copyPosition = position !== 'child' ? position : undefined;
-
-      const result = this.tree.copyNodeWithDescendants(
-        draggedNodeRef,
-        targetParentPath,
-        (data) => ({
-          ...data,
-          [this.tree.idMember || 'id']: `${(data as any)[this.tree.idMember || 'id']}_copy_${Date.now()}`
-        }),
-        siblingPath,
-        copyPosition
-      );
-      this._fireNodeDrop(dropNode, draggedNodeRef, draggedRefs, result.rootNode ? [result.rootNode] : null, position, operation, event);
+      // Copy twin of the move branches: build the same manifest (curated override
+      // with holes, or the completed highlight/lead set = whole subtrees), then
+      // duplicateNodes runs the INPUT transform per node — the consumer's
+      // pasteNodeTransformationCallback, else a default id-uniquifier.
+      const transform = this.inputTransformCb ?? this._defaultCopyTransform;
+      const isMulti = this._dragSetOverride
+        ? this._dragSetOverride.length > 1
+        : this._highlightedPaths.has(draggedNodeRef.path) && this._highlightedPaths.size > 1;
+      const manifest = this._dragSetOverride
+        ? this._dragSetOverride
+        : isMulti
+          ? this._completeManifest(
+              this._getTopLevelHighlightedPaths().filter((p) => p !== dropNode.path)
+            )
+          : this._completeManifest([draggedNodeRef.path]);
+      const result = this.duplicateNodes(manifest, dropNode.path, position, transform);
+      fireDrop(result.copiedNodes);
       return result.success;
     }
 
-    // Cross-tree, or a case the library did not auto-place — the consumer owns
-    // insertion, so dropped is null.
-    this._fireNodeDrop(dropNode, draggedNodeRef, draggedRefs, null, position, operation, event);
+    if (!isSameTreeDrag && operation === 'copy' && this._shouldAutoHandleCopy) {
+      // Cross-tree AUTO-copy: reach the SOURCE tree via the registry, read its
+      // published PLACEMENT manifest (curated override keeps holes; a plain drag was
+      // completed to whole subtrees) and duplicate it into THIS tree. The source
+      // stays put — a copy re-homes nothing. Prefer the dataTransfer payload (it
+      // survives the source's early dragend), fall back to the module-level dragSet.
+      let sourceTreeId = draggedNodeRef.treeId ?? '';
+      let manifest: string[] | null = null;
+      if (event instanceof DragEvent) {
+        const raw = event.dataTransfer?.getData('application/svelte-treeview-manifest');
+        if (raw) {
+          try {
+            const m = JSON.parse(raw) as { sourceTreeId?: string; manifest?: string[] };
+            if (m.sourceTreeId) sourceTreeId = m.sourceTreeId;
+            if (m.manifest) manifest = m.manifest;
+          } catch { /* malformed payload — fall through to the dragSet */ }
+        }
+      }
+      if (!manifest) {
+        const drag = getDragSet();
+        if (drag) { sourceTreeId = drag.sourceTreeId; manifest = drag.manifest; }
+      }
+      if (!manifest) manifest = [draggedNodeRef.path];
+      const sourceCtrl = getClipboardTree(sourceTreeId);
+      const sourceTree = sourceCtrl ? (sourceCtrl.tree as Ltree<T> | undefined) : undefined;
+      if (sourceTree) {
+        const transform = this.inputTransformCb ?? this._defaultCopyTransform;
+        const result = this.duplicateNodes(
+          manifest,
+          dropNode ? dropNode.path : '',
+          dropNode ? position : 'child',
+          transform,
+          sourceTree
+        );
+        fireDrop(result.copiedNodes);
+        return result.success;
+      }
+    }
+
+    // Cross-tree without a reachable source (or copy without shouldAutoHandleCopy):
+    // the consumer performs the insertion, so dropped is null.
+    fireDrop(null);
     return true;
   }
 
@@ -3872,6 +4362,10 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     // before forwarding, so the drop event fires regardless of the dragover
     // gate — it must be re-checked here (svelte-treeview parity).
     if (!node.isDropAllowed) {
+      // A tree drop zone catches the forwarded reject and routes it (target=null);
+      // otherwise this is a genuine "can't drop here" → flash + onNodeDropDenied.
+      if (this._shouldEnableTreeDropZone) return this.handleTreeZoneDrop(event);
+      this._indicateDropDenied(node);
       this._onNodeDragEnd(event);
       return;
     }
@@ -3912,6 +4406,8 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
     // Per-node opt-out gate (glow/zone equivalent of the _onNodeDrop gate).
     if (!node.isDropAllowed) {
+      if (this._shouldEnableTreeDropZone) return this.handleTreeZoneDrop(event);
+      this._indicateDropDenied(node);
       this._onNodeDragEnd(event);
       return;
     }
@@ -3923,10 +4419,48 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     this._onNodeDragEnd(event);
   }
 
+  // ── Tree-level drop zone (shouldEnableTreeDropZone) ─────────────────────
+  // The whole populated tree becomes ONE drop target: a drop anywhere lands with
+  // dropNode = null (route via beforeDropCallback's DropGroup[] return), regardless
+  // of per-node isDropAllowed. Wired on the always-present container (only when the
+  // flag is on). dragover here preventDefaults so a drop is accepted even when every
+  // node rejects it. A drop ON a node is stopPropagation()'d, so a node's reject
+  // path forwards straight to handleTreeZoneDrop; drops on empty area hit it directly.
+
+  handleTreeZoneDragOver = (event: DragEvent) => {
+    if (!this._shouldEnableTreeDropZone || this._dragDropMode === 'none') return;
+    const isTreeDrag = event.dataTransfer?.types.includes('application/svelte-treeview');
+    if (isTreeDrag || this._draggedNode) {
+      event.preventDefault();
+      this._isDropPlaceholderActive = true;
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = this._isCopyAllowed && event.ctrlKey ? 'copy' : 'move';
+      }
+    }
+  };
+
+  handleTreeZoneDrop = (event: DragEvent) => {
+    if (!this._shouldEnableTreeDropZone) return;
+    event.preventDefault();
+    this._isDropPlaceholderActive = false;
+    if (this._dragDropMode === 'none') return;
+
+    // Same-tree: the live draggedNode. Cross-tree: rehydrate from the dataTransfer.
+    let dragged = this._draggedNode;
+    if (!dragged) {
+      const data = event.dataTransfer?.getData('application/svelte-treeview');
+      if (data) {
+        try { dragged = JSON.parse(data); } catch { /* malformed payload */ }
+      }
+    }
+    if (dragged) this._handleDrop(null, dragged, 'child', event);
+    this._onNodeDragEnd(event);
+  };
+
   // ── Touch drag handlers ─────────────────────────────────────────────
 
   private _onTouchStart(node: LTreeNode<any>, event: TouchEvent) {
-    if (!this.getNodeIsDraggable(node)) return;
+    const draggable = this.getNodeIsDraggable(node);
 
     const touch = event.touches[0];
     this.touchDragState = {
@@ -3934,11 +4468,24 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       startX: touch.clientX,
       startY: touch.clientY,
       isDragging: false,
+      isDenied: false,
       ghostElement: null,
       currentDropTarget: null
     };
 
     this._addDocumentTouchListeners();
+
+    // Non-draggable node: instead of silently doing nothing (which just feels
+    // broken), a deliberate long-press plays the "can't move this" reaction — a
+    // held 🚫 badge + double-buzz. A tap/scroll still cancels via the move
+    // threshold in _docTouchMove before the timer fires. (svelte-treeview rc14)
+    if (!draggable) {
+      this.touchTimer = setTimeout(() => {
+        this.touchDragState.isDenied = true;
+        this._indicateDragDenied(node);
+      }, this._touchDragDelay);
+      return;
+    }
 
     this.touchTimer = setTimeout(() => {
       this.touchDragState.isDragging = true;
@@ -3948,7 +4495,7 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       this.createGhostElement(node, touch.clientX, touch.clientY);
       try { navigator.vibrate?.(50); } catch { /* blocked by browser policy */ }
       this._scheduleNotify();
-    }, 300);
+    }, this._touchDragDelay);
   }
 
   private _onTouchMove(_node: LTreeNode<any>, _event: TouchEvent) {
@@ -3989,6 +4536,13 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
     if (!this.touchDragState.node) return;
 
     const touch = event.touches[0];
+
+    // A denied long-press is held: keep the 🚫 badge on the row and swallow the
+    // move so the page doesn't scroll out from under it. Released in _docTouchEnd.
+    if (this.touchDragState.isDenied) {
+      event.preventDefault();
+      return;
+    }
 
     if (!this.touchDragState.isDragging) {
       const dx = Math.abs(touch.clientX - this.touchDragState.startX);
@@ -4039,6 +4593,12 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
       } else if (dropNode && dropNode !== this._draggedNode && dropNode.isDropAllowed) {
         dragLogger.debug(`Touch drag ended: ${this._draggedNode.path} -> ${dropNode.path}`);
         this._handleDrop(dropNode, this._draggedNode, 'child', event);
+      } else if (dropNode && dropNode !== this._draggedNode && !this._shouldEnableTreeDropZone) {
+        // Target refused the drop (isDropAllowed false / getIsDropAllowedCallback):
+        // flash the 🚫 on it + fire onNodeDropDenied. Skipped when a tree drop zone
+        // would catch the forwarded drop instead. (svelte-treeview rc14)
+        dragLogger.debug(`Touch drop denied: ${this._draggedNode.path} -> ${dropNode.path}`);
+        this._indicateDropDenied(dropNode);
       } else {
         dragLogger.debug(`Touch drag cancelled: ${this._draggedNode.path}`);
       }
@@ -4052,14 +4612,97 @@ export class TreeController<T> extends EventEmitter<TreeControllerEvents<T>> {
 
   private _resetTouchState() {
     this._removeDocumentTouchListeners();
+    // Tear down any held "can't move this" badge/pulse.
+    this._clearDragDenied();
     this.touchDragState = {
       node: null, startX: 0, startY: 0,
-      isDragging: false, ghostElement: null, currentDropTarget: null
+      isDragging: false, isDenied: false, ghostElement: null, currentDropTarget: null
     };
     this._draggedNode = null;
     this._isDragInProgress = false;
     this._isDropPlaceholderActive = false;
     this._scheduleNotify();
+  }
+
+  // ── Blocked-action feedback (svelte-treeview rc14) ──────────────────
+
+  /** "Can't move this" — a locked node was long-pressed. Fires onNodeDragDenied
+   *  always; the built-in held 🚫 badge + double-buzz only when
+   *  shouldIndicateUndraggable. Torn down on release via _clearDragDenied. */
+  private _indicateDragDenied(node: LTreeNode<any>) {
+    dragLogger.debug('[drag-denied] locked node long-pressed', { path: node?.path });
+
+    this.nodeDragDeniedCb?.(this.nodeRef(node));
+
+    if (!this._shouldIndicateUndraggable) return;
+
+    // Distinct double-buzz (a real drag start is a single 50ms buzz).
+    try { navigator.vibrate?.([30, 25, 30]); } catch { /* blocked by browser policy */ }
+
+    if (typeof document === 'undefined') return;
+    const el = document.querySelector(
+      `[data-tree-path="${node.path}"] .wtv__node-content`
+    ) as HTMLElement | null;
+    if (!el) return;
+
+    // Clear any previous indicator, then show one that persists until release.
+    this._clearDragDenied();
+
+    el.classList.add('wtv__node-content--drag-denied');
+    this._deniedRowEl = el;
+
+    const badge = document.createElement('span');
+    badge.className = 'wtv__drag-denied-badge';
+    badge.textContent = '🚫';
+    badge.setAttribute('aria-hidden', 'true');
+    el.appendChild(badge);
+    this._deniedBadgeEl = badge;
+  }
+
+  /** Remove the held "can't move this" indicator (badge + row class). Idempotent. */
+  private _clearDragDenied() {
+    if (this._deniedBadgeEl) {
+      this._deniedBadgeEl.remove();
+      this._deniedBadgeEl = null;
+    }
+    if (this._deniedRowEl) {
+      this._deniedRowEl.classList.remove('wtv__node-content--drag-denied');
+      this._deniedRowEl = null;
+    }
+  }
+
+  /** "Can't drop here" — the target-side twin. Fires onNodeDropDenied always; the
+   *  built-in indicator (haptic + a brief 🚫 flash on the refusing target) only
+   *  when shouldIndicateUndraggable. Transient (a drop is a discrete moment), so
+   *  it auto-clears after a short beat. */
+  private _indicateDropDenied(node: LTreeNode<any>) {
+    dragLogger.debug('[drop-denied] target refused drop', { path: node?.path });
+
+    this.nodeDropDeniedCb?.(this.nodeRef(node));
+
+    if (!this._shouldIndicateUndraggable) return;
+
+    try { navigator.vibrate?.([30, 25, 30]); } catch { /* blocked by browser policy */ }
+
+    if (typeof document === 'undefined') return;
+    const el = document.querySelector(
+      `[data-tree-path="${node.path}"] .wtv__node-content`
+    ) as HTMLElement | null;
+    if (!el) return;
+
+    el.classList.add('wtv__node-content--drag-denied');
+    const badge = document.createElement('span');
+    badge.className = 'wtv__drag-denied-badge';
+    badge.textContent = '🚫';
+    badge.setAttribute('aria-hidden', 'true');
+    el.appendChild(badge);
+
+    if (this._dropDeniedTimer) clearTimeout(this._dropDeniedTimer);
+    this._dropDeniedTimer = setTimeout(() => {
+      el.classList.remove('wtv__node-content--drag-denied');
+      badge.remove();
+      this._dropDeniedTimer = null;
+    }, 700);
   }
 
   private createGhostElement(node: LTreeNode<any>, x: number, y: number) {

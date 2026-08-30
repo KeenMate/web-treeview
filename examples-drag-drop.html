@@ -612,7 +612,7 @@
             function wireClipboard(el, treeName) {
                 el.clickBehavior = 'select';
                 el.highlightedNodeClass = 'wtv__node-content--highlight-bold';
-                el.pasteNodeTransformationCallback = transformPasted;
+                el.nodeInputTransformationCallback = transformPasted;
                 el.beforePasteCallback = selfPasteRedirect;
                 el.onCopy = (c) => addLog(`Copied ${c.paths.length} from ${treeName}`);
                 el.onCut = (c) => addLog(`Cut ${c.paths.length} from ${treeName}`);
@@ -775,13 +775,15 @@
             const tree5 = initTree('tree5', validationData, { dragDropMode: 'both' });
             const log5 = document.getElementById('tree5-log');
 
-            tree5.beforeDropCallback = (dropNode, draggedNode, position, event, operation) => {
+            tree5.beforeDropCallback = ({ target, dragged, position, operation, event }) => {
                 const time = new Date().toLocaleTimeString();
                 const entry = document.createElement('div');
                 entry.className = 'event-entry';
+                const draggedNode = dragged[0]?.node ?? dragged[0];
+                const dropNode = target?.node ?? null;
 
                 // Reject moving locked nodes
-                if (draggedNode.data?.name?.includes('[locked]')) {
+                if (draggedNode?.data?.name?.includes('[locked]')) {
                     entry.innerHTML = `<span class="event-time">${time}</span> <span class="event-name" style="color: #fc8181">REJECTED</span> Cannot move locked node: ${draggedNode.data.name}`;
                     log5.prepend(entry);
                     return false;

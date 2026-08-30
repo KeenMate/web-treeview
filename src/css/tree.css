@@ -388,6 +388,65 @@
   text-align: center;
 }
 
+/* Engaged feedback — signals the empty drop zone is interactive. `:hover` covers
+   plain mouse-over; the `--active` modifier covers a DRAG hovering the zone (an
+   in-flight HTML5 drag suppresses `:hover`), toggled by the controller's
+   isDropPlaceholderActive. (svelte-treeview rc13) */
+.wtv__empty-zone:hover,
+.wtv__empty-zone--active {
+  border-style: solid !important;
+  border-color: var(--wtv-empty-zone-hover-border-color, var(--wtv-accent-color)) !important;
+  background: var(--wtv-empty-zone-hover-bg, color-mix(in srgb, var(--wtv-accent-color) 12%, transparent)) !important;
+  box-shadow: var(--wtv-empty-zone-hover-shadow, 0 0 0 3px color-mix(in srgb, var(--wtv-accent-color) 20%, transparent));
+  transform: scale(var(--wtv-empty-zone-hover-scale, 1.01));
+}
+
+/* Whole-tree drop zone (shouldEnableTreeDropZone): while a drag hovers the tree the
+   container shows an engaged outline so the "basket" reads as active. */
+.wtv__container.wtv__tree-drop-zone--active {
+  outline: 2px dashed var(--wtv-empty-zone-hover-border-color, var(--wtv-accent-color));
+  outline-offset: -2px;
+  background: var(--wtv-empty-zone-hover-bg, color-mix(in srgb, var(--wtv-accent-color) 8%, transparent));
+  transition: all var(--wtv-transition-speed) ease;
+}
+
+/* ==============================================================================
+   "CAN'T MOVE/DROP THIS" FEEDBACK (svelte-treeview rc14)
+   Fired imperatively by the controller (_indicateDragDenied / _indicateDropDenied)
+   via .wtv__node-content--drag-denied + an appended .wtv__drag-denied-badge.
+   ============================================================================== */
+
+/* Row tint pulses for as long as the locked node stays pressed (drag-denied is
+   held) — or for one 700ms beat on a rejected drop. */
+.wtv__node-content--drag-denied {
+  animation: wtv-drag-denied-flash 0.9s ease-in-out infinite;
+}
+
+@keyframes wtv-drag-denied-flash {
+  0%,
+  100% { background-color: transparent; }
+  50% { background-color: var(--wtv-drag-denied-flash-bg, color-mix(in srgb, #e11d48 18%, transparent)); }
+}
+
+/* No-entry icon pops in and STAYS visible until the finger lifts. */
+.wtv__drag-denied-badge {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  font-size: 1em;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 3;
+  transform: translateY(-50%);
+  animation: wtv-drag-denied-badge 0.22s ease-out forwards;
+}
+
+@keyframes wtv-drag-denied-badge {
+  0% { opacity: 0; transform: translateY(-50%) scale(0.5); }
+  70% { opacity: 1; transform: translateY(-50%) scale(1.15); }
+  100% { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
 /* Drag-over content styles */
 .wtv__node-content.wtv__node-content--drag-over {
   background: var(--wtv-drag-over-bg) !important;

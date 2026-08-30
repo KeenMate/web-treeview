@@ -83,6 +83,10 @@ export interface Ltree<T> {
 
 	displayValueMember?: string | null | undefined;
 	getDisplayValueCallback?: (node: LTreeNode<T>) => string;
+	/** Text shown for a node with no resolvable display value (neither member nor
+	 *  callback yields one). Mutable — set it to re-render the fallback labels.
+	 *  Defaults to '[N/A]'; set to '' to render nothing. */
+	displayValueFallback: string;
 
 	searchValueMember?: string | null | undefined;
 	getSearchValueCallback?: (node: LTreeNode<T>) => string;
@@ -189,7 +193,7 @@ export interface Ltree<T> {
 	copyNodeWithDescendants(
 		sourceNode: LTreeNode<T>,
 		targetParentPath: string,
-		transformData: (data: T) => T,
+		transformData: (data: T, node: LTreeNode<T>) => T | null,
 		siblingPath?: string,
 		position?: 'before' | 'after'
 	): { success: boolean; rootNode?: LTreeNode<T>; count: number; error?: string };

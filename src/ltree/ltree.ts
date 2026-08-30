@@ -145,6 +145,7 @@ export function createLTree<T>(
 		hasChildrenMember: _hasChildrenMember,
 		displayValueMember: _displayValueMember,
 		getDisplayValueCallback: _getDisplayValueCallback,
+		displayValueFallback: opts?.displayValueFallback ?? '[N/A]',
 
 		searchValueMember: _searchValueMember,
 		getSearchValueCallback: _getSearchValueCallback,
@@ -854,7 +855,7 @@ export function createLTree<T>(
 
 			if (this.getDisplayValueCallback) return this.getDisplayValueCallback(node);
 
-			return '[N/A]';
+			return this.displayValueFallback ?? '[N/A]';
 		},
 
 		getNodeSearchValue(node: LTreeNode<T>): string {
@@ -1409,7 +1410,7 @@ export function createLTree<T>(
 		copyNodeWithDescendants(
 			sourceNode: LTreeNode<T>,
 			targetParentPath: string,
-			transformData: (data: T) => T,
+			transformData: (data: T, node: LTreeNode<T>) => T | null,
 			siblingPath?: string,
 			position?: 'before' | 'after'
 		): { success: boolean; rootNode?: LTreeNode<T>; count: number; error?: string } {
@@ -1423,8 +1424,11 @@ export function createLTree<T>(
 			const copyRecursive = (node: LTreeNode<T>, parentPath: string): LTreeNode<T> | null => {
 				if (!node.data) return null;
 
-				// Transform the data (user assigns new IDs, etc.)
-				const transformedData = transformData(node.data);
+				// Transform the data (user assigns new IDs, etc.). The live source node
+				// is the 2nd arg so batch callers (duplicateNodes) can gate on a manifest.
+				// Returning null/undefined SKIPS this node AND its subtree (a "hole").
+				const transformedData = transformData(node.data, node);
+				if (transformedData == null) return null;
 
 				// Add the node
 				const result = this.addNode(parentPath, transformedData);

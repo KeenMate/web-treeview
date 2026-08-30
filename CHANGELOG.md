@@ -5,6 +5,109 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0-rc09] - 2026-08-14
+
+Parity sync with **`@keenmate/svelte-treeview` rc13 + rc14**: the remaining
+clipboard/drag overhaul items plus the rc14 feature set. Most of rc13 had already
+landed; this release closes the gap.
+
+### Added
+
+- **`displayValueFallback` (attr `display-value-fallback`, default `'[N/A]'`)** —
+  the text shown for a node with no resolvable display value is now configurable
+  (empty renders nothing). Carried as a mutable property on the LTree
+  (`getNodeDisplayValue` reads it); a runtime change bumps the affected rows'
+  `_rev` so the fallback labels repaint. Resolution order stays member → callback →
+  fallback.
+- **`touchDragDelay` (attr `touch-drag-delay`, default `300`)** — the long-press
+  hold before a touch-drag engages is now configurable (was a hardcoded 300ms).
+- **Blocked-action feedback — `onNodeDragDenied` / `onNodeDropDenied` events
+  (`node-drag-denied` / `node-drop-denied` DOM events) + `shouldIndicateUndraggable`
+  (attr `indicate-undraggable`, default `true`).** Long-pressing a locked
+  (non-draggable) node now plays a "can't move this" reaction — a 🚫 badge held on
+  the row (pulsing red tint) for as long as the finger stays down, plus a distinct
+  haptic double-buzz. The target-side twin flashes the same 🚫 briefly on a node
+  that refuses a drop. Both fire their event regardless of the built-in visual;
+  `shouldIndicateUndraggable` toggles just the badge + haptic. New CSS hooks
+  `.wtv__node-content--drag-denied` + `.wtv__drag-denied-badge`
+  (`--wtv-drag-denied-flash-bg`).
+- **`cascadeSelectPolicy` (attr `cascade-select-policy`, default `'rolled-up'`)** —
+  a second, orthogonal checkbox knob controlling which paths the selection EMITS in
+  cascade mode. The controller keeps the CANONICAL checked set on `_selectedPaths`
+  (renderer checkboxes read it) and derives an emitted projection via
+  `_projectSelection`: `'rolled-up'` = minimal cover (a fully-checked subtree
+  collapses to its root), `'leaves'` = only checked leaves, `'all'` = every
+  fully-checked node. `getSelectedPaths()` + the `selection-change` event now expose
+  the projection; a parent SET of the checkbox set is cascade-expanded back to
+  canonical, so round-trips are stable. New `emittedPaths` getter + exported
+  `CascadeSelectPolicy` type. ONLY applies in cascade mode.
+- **`beforeDragStartCallback(ctx) => string[] | false | void`** — a set-level
+  PRE-drag interceptor that can prune, augment, or veto the dragged set. Fires once
+  at drag start (mouse + touch) with the COMPLETE flattened set (`{ lead, dragged,
+  event }`); return an authoritative `string[]` manifest (a descendant omitted from
+  a kept root becomes a HOLE left behind), `false` to cancel, or `void` to keep the
+  default. New `DragStartContext` type.
+- **`moveNodes` / `duplicateNodes`** — symmetric batch move/copy primitives with a
+  manifest-hole model. `moveNodes(paths, target, position)` relocates whole subtrees
+  and re-homes any omitted descendant (hole) to its root's old parent;
+  `duplicateNodes(paths, target, position, transform?, sourceTree?)` is the copy-side
+  twin (a hole is simply not copied) and accepts a foreign `sourceTree` for
+  cross-tree copies. The multi-drag move, the drag-copy branch, and `DropGroup`
+  routing all delegate to them. `copyNodeWithDescendants` now passes the live source
+  node to its transform and supports a `null` return (skip node + subtree).
+- **`shouldEnableTreeDropZone` (attr `enable-tree-drop-zone`, default `false`)** —
+  makes the whole populated tree ONE drop target: a drop anywhere lands with
+  `target = null` regardless of per-node drop rules, so you route each item from
+  `beforeDropCallback`. The container carries fallback `dragover`/`drop`; a node that
+  rejects a drop forwards to the zone handler. Engaged outline via
+  `.wtv__tree-drop-zone--active`.
+- **Cross-tree AUTO-copy.** A cross-tree copy-drop (Ctrl+drag, or forced via
+  `beforeDropCallback` returning `{ operation: 'copy' }`) with `shouldAutoHandleCopy`
+  is now placed BY THE LIBRARY — it reaches the source tree through the clipboard
+  registry and runs `duplicateNodes(sourceTree)`, honouring any `beforeDragStart`
+  holes via a placement manifest published on both the module-level drag set and the
+  drop `dataTransfer` (`application/svelte-treeview-manifest`, cross-compatible with
+  svelte-treeview).
+- **Drop-zone engaged feedback** — the empty drop zone lights up on hover AND while a
+  drag hovers it (`.wtv__empty-zone--active`, since an in-flight HTML5 drag suppresses
+  `:hover`).
+
+### Changed
+
+- **`beforeDropCallback` migrated from its 5-arg positional form to a single
+  `BeforeDropContext` object** (`{ target, dragged, position, operation, event }`,
+  symmetric with `NodeDropContext`), and its return widened to accept a
+  **`DropGroup[]`** for content-addressed routing — fan one drop out to several
+  destinations (the library auto-executes groups for same-tree nodes). New
+  `BeforeDropContext` / `DropGroup` exports. **Breaking** for existing
+  `beforeDropCallback` consumers.
+- **The two clipboard transforms are renamed and made direction-neutral:**
+  `copyNodeTransformationCallback` → **`nodeOutputTransformationCallback`** (egress),
+  `pasteNodeTransformationCallback` → **`nodeInputTransformationCallback`** (ingress);
+  `NodeTransformContext.phase` `'copy' | 'paste'` → **`'output' | 'input'`**. They
+  now fire for BOTH clipboard and drag. **Breaking** rename.
+- **Default cascade emission is now `'rolled-up'`, not the full checked set.** In
+  cascade mode `getSelectedPaths()` + `selection-change` previously exposed every
+  fully-checked node (= the new `'all'` policy); they now default to the minimal
+  cover. Pass `cascadeSelectPolicy="all"` to restore. **Breaking** for cascade
+  consumers.
+
+### Fixed
+
+- **Touch drag-and-drop under touch environments (most visibly Chrome DevTools
+  device emulation).** The native `draggable` attr swallowed the synthetic
+  `touchmove`/`touchend` stream (Chrome tried to hand the gesture to its
+  mouse-driven HTML5 drag engine), freezing the drag mid-flight. On `touchstart` the
+  node's `draggable` is now toggled off synchronously and restored on
+  `touchend`/`touchcancel`. Scoped to touch, so mouse-drag is unaffected.
+
+### Notes
+
+- Virtual-scroll uniform-row-height (svelte-treeview rc14's `flatGap` fix) is **N/A**
+  here: web-treeview is virtual-scroll-first and already enforces uniform rows
+  (single-line label truncation + `min-height`), with no per-row level-transition
+  margin in flat mode. No change required.
+
 ## [2.0.0-rc08] - 2026-08-04
 
 Migrated onto **`@keenmate/web-components-core`** (`BlissElement` + the reactive

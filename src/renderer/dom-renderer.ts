@@ -474,6 +474,10 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
 
   private _onBodyDrop = (event: DragEvent) => {
     if (!this.controller) return;
+    // When the tree drop zone is on, the container also listens for `drop`. bodyEl
+    // fully owns in-body drops (node / zone / empty, plus forwarding rejects to the
+    // zone), so stop the event here to keep the container handler from double-placing.
+    if (this.controller.shouldEnableTreeDropZone) event.stopPropagation();
     const target = event.target as HTMLElement;
 
     // Check for drop zone (zones are appended to bodyEl, not inside .wtv__node)
@@ -542,10 +546,29 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     if (path) {
       const node = this.controller.getNodeByPath(path);
       if (node) {
+        // Chromium touch-emulation fix (svelte-treeview rc14): the native
+        // `draggable` attr swallows the synthetic touchmove/touchend stream (Chrome
+        // tries to hand the gesture to its mouse-driven HTML5 drag engine). Turn it
+        // OFF synchronously for the duration of the touch gesture; restore on end.
+        // Scoped to touch — a mouse never fires touchstart, so mouse-drag is
+        // unaffected. On real phones the collision can't occur.
+        if (nodeEl.draggable) {
+          const wasDraggable = nodeEl.draggable;
+          nodeEl.draggable = false;
+          const restore = () => { nodeEl.draggable = wasDraggable; };
+          document.addEventListener('touchend', restore, { once: true });
+          document.addEventListener('touchcancel', restore, { once: true });
+        }
         this.controller.touchStart(node, event);
       }
     }
   };
+
+  // Tree-level drop zone (shouldEnableTreeDropZone): container-level fallback so a
+  // drop anywhere over the tree is accepted even when every node rejects it. The
+  // controller handlers no-op unless the flag is on, so these can attach always.
+  private _onContainerDragOver = (event: DragEvent) => this.controller?.handleTreeZoneDragOver(event);
+  private _onContainerDrop = (event: DragEvent) => this.controller?.handleTreeZoneDrop(event);
 
   /** RAF-throttled virtual scroll handler — uses fast synchronous path */
   private _onVirtualScroll = () => {
@@ -621,6 +644,12 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.bodyEl.addEventListener('dragend', this._onBodyDragEnd);
     // Cross-tree / Esc: dragend from other shadow roots won't reach our bodyEl
     document.addEventListener('dragend', this._onDocumentDragEnd);
+    // Tree-level drop zone: fallback dragover/drop on the whole container (gated
+    // inside the controller handlers by shouldEnableTreeDropZone).
+    if (this.container) {
+      this.container.addEventListener('dragover', this._onContainerDragOver);
+      this.container.addEventListener('drop', this._onContainerDrop);
+    }
   }
 
   private _detachBodyListeners() {
@@ -637,6 +666,10 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
     this.bodyEl.removeEventListener('dragend', this._onBodyDragEnd);
     this.bodyEl.removeEventListener('scroll', this._onVirtualScroll);
     document.removeEventListener('dragend', this._onDocumentDragEnd);
+    if (this.container) {
+      this.container.removeEventListener('dragover', this._onContainerDragOver);
+      this.container.removeEventListener('drop', this._onContainerDrop);
+    }
   }
 
   // ── Virtual scroll structure ───────────────────────────────────────
@@ -773,6 +806,14 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
       if (snapshot.bodyClass) {
         this.bodyEl.classList.add(snapshot.bodyClass);
       }
+    }
+
+    // Whole-tree drop-zone engaged outline (shouldEnableTreeDropZone): light the
+    // container while a drag hovers it (isDropPlaceholderActive is set by the
+    // container-level tree-zone dragover handler).
+    if (this.container) {
+      const zoneActive = !!this.controller?.shouldEnableTreeDropZone && snapshot.isDropPlaceholderActive;
+      this.container.classList.toggle('wtv__tree-drop-zone--active', zoneActive);
     }
 
     this.lastSnapshot = snapshot;
@@ -917,6 +958,8 @@ export class DomRenderer<T = any> implements TreeViewRenderer<T> {
         }
         target.appendChild(zone);
       }
+      // Engaged feedback while a drag hovers the zone (HTML5 drag suppresses :hover).
+      zone.classList.toggle('wtv__empty-zone--active', snapshot.isDropPlaceholderActive);
     } else if (snapshot.isLoading) {
       // Loading active — don't show empty state underneath the overlay
       // Set min-height so the absolute loading overlay has room to display
